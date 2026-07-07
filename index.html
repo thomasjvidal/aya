@@ -384,14 +384,36 @@ function showCalma(){document.getElementById('calma').classList.add('show');}
 function hideCalma(t){document.getElementById('calma').classList.remove('show');toast(t);}
 
 /* chat */
-const answers={
-  'Quanto gastei com iFood?':'Esse mês, R$ 312 em iFood 🍔 — 23% a mais que no mês passado. Nada de pânico. Se quiser, crio um limite suave de R$ 250 e te aviso quando chegar perto. Topa?',
-  'Posso comprar um tênis de R$ 500?':'Você tem R$ 840 no cofre Livre, então dá sim 👟 Mas te conto: se guardar esses R$ 500, sua reserva fecha 1 mês antes. Decisão sua — só quis te mostrar os dois caminhos.',
-  'Como tá minha reserva?':'Tá em R$ 1.500 de R$ 6.000 (25%) 🛟 No ritmo de agora, você fecha em ~5 meses. Já rendendo 100% do CDI. Você tá indo melhor do que acha.'
-};
-function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;}
-function ask(q){pushMsg('me',q);setTimeout(()=>pushMsg('aya',answers[q]||'Boa pergunta 🌿 No app de verdade eu puxo isso dos seus dados via Open Finance e te respondo na hora.'),450);}
-function sendChat(){const i=document.getElementById('chatInput');if(!i.value.trim())return;const q=i.value.trim();i.value='';pushMsg('me',q);setTimeout(()=>pushMsg('aya',answers[q]||'Entendi 🌿 No app real eu respondo isso olhando sua conta em tempo real. Aqui é só uma amostra do jeito que eu falo com você.'),450);}
+let chatHistory=[];
+let chatBusy=false;
+function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
+function pushTyping(){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg aya';d.id='typing';d.textContent='digitando…';c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+async function askAya(q){
+  if(chatBusy||!q.trim())return;
+  chatBusy=true;
+  pushMsg('me',q);
+  chatHistory.push({role:'user',content:q});
+  pushTyping();
+  try{
+    const res=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:q,history:chatHistory.slice(-10)})
+    });
+    const data=await res.json();
+    removeTyping();
+    const reply=data.reply||'Desculpa, tive um probleminha aqui 🌿 Tenta de novo?';
+    pushMsg('aya',reply);
+    chatHistory.push({role:'assistant',content:reply});
+  }catch(err){
+    removeTyping();
+    pushMsg('aya','Não consegui me conectar agora 🌿 Confere sua internet e tenta de novo.');
+  }
+  chatBusy=false;
+}
+function ask(q){askAya(q);}
+function sendChat(){const i=document.getElementById('chatInput');const q=i.value.trim();if(!q)return;i.value='';askAya(q);}
 
 /* profile */
 const profileData={
