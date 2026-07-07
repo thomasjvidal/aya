@@ -182,6 +182,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .demo-tag{position:absolute;top:52px;right:16px;background:var(--ink);color:#fff;font-size:10px;font-weight:600;padding:5px 10px;border-radius:20px;z-index:50;letter-spacing:.03em;opacity:.85}
 .toast{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:14px;z-index:70;opacity:0;transition:.3s;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* mobile-first: em telas de celular real, o app ocupa a tela inteira em vez de mostrar a moldura de mockup */
+@media (max-width:640px){
+  body{padding:0;background:var(--paper)}
+  .phone{width:100vw;height:100vh;height:100dvh;max-width:100vw;max-height:100vh;max-height:100dvh;border-radius:0;box-shadow:none}
+  .notch{display:none}
+}
 </style>
 </head>
 <body>
