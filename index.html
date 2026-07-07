@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Aya — protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1F4F2; --card:#FFFFFF; --ink:#182524; --ink2:#5B6B69;
+  --line:#E4E8E5; --sage:#2F7D5B; --sage-soft:#6FB89A; --sage-tint:#E6F1EB;
+  --amber:#E0A458; --amber-soft:#F5D9AF; --amber-tint:#FBF1E2;
+  --rose:#C77B72;
+  --shadow:0 1px 2px rgba(24,37,36,.04),0 8px 24px rgba(24,37,36,.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px 0}
+.num{font-variant-numeric:tabular-nums}
+.serif{font-family:'Fraunces',serif}
+
+/* phone */
+.phone{width:390px;max-width:100vw;height:844px;max-height:96vh;background:var(--paper);
+  border-radius:44px;position:relative;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.28),0 0 0 11px #0c0f0e,0 0 0 13px #23282600}
+.notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#0c0f0e;border-radius:16px;z-index:60}
+.screen{position:absolute;inset:0;overflow:hidden}
+
+/* views */
+.view{position:absolute;inset:0;padding:58px 22px 108px;overflow-y:auto;overflow-x:hidden;
+  opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .32s ease,transform .32s ease}
+.view.active{opacity:1;pointer-events:auto;transform:none}
+.view::-webkit-scrollbar{display:none}
+
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+.h-greet{font-size:15px;color:var(--ink2);margin-bottom:2px}
+.h-name{font-size:26px;font-weight:600;letter-spacing:-.02em}
+
+/* HOJE hero */
+.hero{margin-top:26px;text-align:center;padding:14px 0}
+.hero .lbl{font-size:14px;color:var(--ink2);margin-bottom:10px}
+.breathe{display:inline-block;animation:breathe 5.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+.hero .amount{font-family:'Fraunces',serif;font-size:66px;font-weight:500;letter-spacing:-.03em;line-height:1;color:var(--sage)}
+.hero .amount small{font-size:26px;vertical-align:top;margin-right:2px;font-weight:500}
+.hero .sub{font-size:13.5px;color:var(--ink2);margin-top:12px;max-width:230px;margin-left:auto;margin-right:auto;line-height:1.4}
+
+.bars{display:flex;gap:9px;margin:22px 2px 0}
+.bar{flex:1;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 14px 15px;box-shadow:var(--shadow)}
+.bar .t{font-size:12px;color:var(--ink2);margin-bottom:7px}
+.bar .v{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.bar .v.small{font-size:16px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+
+.aya-card{margin-top:16px;background:linear-gradient(135deg,#2F7D5B,#276849);color:#eafaf2;border-radius:22px;padding:18px 18px 17px;box-shadow:0 10px 24px rgba(47,125,91,.28);position:relative;overflow:hidden}
+.aya-card .ico{position:absolute;right:-8px;bottom:-14px;font-size:78px;opacity:.13}
+.aya-card .who{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;letter-spacing:.02em;margin-bottom:8px;opacity:.92}
+.aya-face{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bff0d7,#6FB89A);display:grid;place-items:center;font-size:11px}
+.aya-card p{font-size:14.5px;line-height:1.5;position:relative;z-index:1}
+.aya-card .cta{margin-top:12px;background:rgba(255,255,255,.16);border:0;color:#fff;font-family:inherit;font-size:13px;font-weight:600;padding:9px 15px;border-radius:12px;cursor:pointer}
+
+.sec-title{font-size:13px;font-weight:600;color:var(--ink2);margin:24px 4px 12px;letter-spacing:.01em}
+
+.mini-cofres{display:flex;flex-direction:column;gap:9px}
+.cofre-row{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.cofre-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.cofre-row .nm{font-size:14.5px;font-weight:600}
+.cofre-row .meta{font-size:12px;color:var(--ink2);margin-top:1px}
+.cofre-row .val{margin-left:auto;text-align:right}
+.cofre-row .val b{font-size:15px;font-weight:600}
+.prog{height:5px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden}
+.prog>i{display:block;height:100%;border-radius:4px;background:var(--sage-soft)}
+
+/* COFRES */
+.dinheiro-entrou{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow);margin-top:20px}
+.dinheiro-entrou .head{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 0 rgba(47,125,91,.5);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,125,91,.45)}70%{box-shadow:0 0 0 9px rgba(47,125,91,0)}100%{box-shadow:0 0 0 0 rgba(47,125,91,0)}}
+.dinheiro-entrou h3{font-size:15px;font-weight:600}
+.dinheiro-entrou .amt{font-family:'Fraunces',serif;font-size:34px;color:var(--sage);margin:6px 0 3px;font-weight:500}
+.dinheiro-entrou .cap{font-size:12.5px;color:var(--ink2)}
+.split-btn{margin-top:15px;width:100%;background:var(--sage);color:#fff;border:0;font-family:inherit;font-size:14.5px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;transition:transform .1s}
+.split-btn:active{transform:scale(.98)}
+.split-note{font-size:11.5px;color:var(--ink2);text-align:center;margin-top:9px}
+
+.cofre-big{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:11px;opacity:0;transform:translateY(10px);transition:.5s}
+.cofre-big.show{opacity:1;transform:none}
+.cofre-big .top{display:flex;align-items:center;gap:11px}
+.cofre-big .nm{font-size:15px;font-weight:600}
+.cofre-big .pct{font-size:11.5px;color:var(--ink2)}
+.cofre-big .amt{margin-left:auto;font-size:17px;font-weight:600}
+.cofre-big .desc{font-size:12.5px;color:var(--ink2);margin-top:10px;line-height:1.4}
+.toggle-row{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-top:6px;box-shadow:var(--shadow)}
+.toggle-row .txt{font-size:13.5px;font-weight:500}.toggle-row .txt small{display:block;color:var(--ink2);font-weight:400;font-size:11.5px;margin-top:2px}
+.sw{margin-left:auto;width:44px;height:26px;border-radius:20px;background:var(--sage);position:relative;flex-shrink:0;cursor:pointer}
+.sw::after{content:"";position:absolute;top:3px;left:21px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+
+/* CHAT / AYA */
+.chat-head{display:flex;align-items:center;gap:12px;padding-bottom:6px}
+.chat-head .big-face{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bff0d7,#4C9C7A);display:grid;place-items:center;font-size:20px;box-shadow:0 6px 16px rgba(47,125,91,.28)}
+.chat-head .nm{font-size:19px;font-weight:600}
+.chat-head .st{font-size:12px;color:var(--sage);font-weight:500}
+.chat-scroll{display:flex;flex-direction:column;gap:11px;margin-top:16px;padding-bottom:8px}
+.msg{max-width:80%;padding:12px 15px;border-radius:19px;font-size:14px;line-height:1.5}
+.msg.aya{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:var(--shadow)}
+.msg.me{background:var(--sage);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.chip{background:var(--sage-tint);color:var(--sage);border:0;font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 13px;border-radius:20px;cursor:pointer}
+.composer{position:absolute;left:14px;right:14px;bottom:92px;display:flex;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:6px 6px 6px 16px;box-shadow:0 6px 18px rgba(24,37,36,.1)}
+.composer input{flex:1;border:0;outline:0;font-family:inherit;font-size:14px;background:transparent;color:var(--ink)}
+.composer .send{width:38px;height:38px;border-radius:50%;background:var(--sage);border:0;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0}
+.composer .mic{font-size:18px;color:var(--ink2);cursor:pointer}
+
+/* MOVIMENTO */
+.day-label{font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.05em;text-transform:uppercase;margin:20px 4px 12px}
+.tx{display:flex;align-items:center;gap:13px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.tx-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex-shrink:0;background:var(--sage-tint)}
+.tx .nm{font-size:14.5px;font-weight:600}
+.tx .cat{font-size:12px;color:var(--ink2);margin-top:1px}
+.tx .amt{margin-left:auto;font-size:15px;font-weight:600}
+.tx .amt.in{color:var(--sage)}
+.tx.risk{background:var(--amber-tint);border-radius:14px;padding-left:12px;padding-right:12px;border-bottom:1px solid transparent}
+.aya-inline{background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:12px 14px;font-size:13px;color:#8a5a1e;display:flex;gap:9px;margin:6px 0 4px;line-height:1.45}
+.aya-inline .f{width:20px;height:20px;border-radius:50%;background:var(--amber);display:grid;place-items:center;font-size:10px;flex-shrink:0;color:#fff}
+
+/* VOCÊ */
+.score-wrap{text-align:center;margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px 20px;box-shadow:var(--shadow)}
+.ring{width:150px;height:150px;margin:6px auto 12px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .center{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
+.ring .center b{font-family:'Fraunces',serif;font-size:44px;font-weight:500;color:var(--sage);line-height:1}
+.ring .center span{font-size:11px;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.score-wrap .msg2{font-size:14px;color:var(--ink2);line-height:1.5;max-width:250px;margin:0 auto}
+.streak{display:flex;justify-content:center;gap:6px;margin-top:16px}
+.streak i{width:26px;height:26px;border-radius:8px;background:var(--sage-tint);display:grid;place-items:center;font-size:12px;color:var(--sage);font-weight:600}
+.streak i.off{background:var(--line);color:var(--ink2)}
+.profile-pick{margin-top:14px}
+.pp-opt{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:9px;cursor:pointer;transition:.15s}
+.pp-opt.sel{border-color:var(--sage);background:var(--sage-tint)}
+.pp-opt .e{font-size:22px}
+.pp-opt .nm{font-size:14px;font-weight:600}
+.pp-opt .d{font-size:12px;color:var(--ink2);margin-top:1px}
+.pp-opt .rd{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--line)}
+.pp-opt.sel .rd{border-color:var(--sage);background:var(--sage);box-shadow:inset 0 0 0 3px #fff}
+
+/* TAB BAR */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:88px;background:rgba(255,255,255,.86);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:flex-start;padding-top:11px;z-index:40}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;background:0;border:0;cursor:pointer;color:var(--ink2);font-family:inherit;font-size:10.5px;font-weight:600;width:56px;transition:color .2s}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.9}
+.tab.active{color:var(--sage)}
+.tab.center .cwrap{width:52px;height:52px;margin-top:-18px;border-radius:50%;background:linear-gradient(135deg,#2F7D5B,#276849);display:grid;place-items:center;box-shadow:0 8px 20px rgba(47,125,91,.4)}
+.tab.center .cwrap span{font-size:20px}
+.tab.center{font-size:10.5px}
+
+/* CALMA MODAL */
+.calma{position:absolute;inset:0;z-index:80;background:linear-gradient(180deg,#F8EFDD,#F1E4C9);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 32px;
+  opacity:0;pointer-events:none;transition:opacity .5s}
+.calma.show{opacity:1;pointer-events:auto}
+.calma .halo{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,var(--amber-soft));display:grid;place-items:center;font-size:46px;margin-bottom:26px;animation:breatheBig 4.5s ease-in-out infinite;box-shadow:0 0 60px rgba(224,164,88,.4)}
+@keyframes breatheBig{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(224,164,88,.3)}50%{transform:scale(1.08);box-shadow:0 0 70px rgba(224,164,88,.55)}}
+.calma h1{font-family:'Fraunces',serif;font-size:38px;font-weight:500;color:#8a5a1e;letter-spacing:-.02em;margin-bottom:14px}
+.calma p{font-size:16px;color:#7a5a2a;line-height:1.55;max-width:290px;margin-bottom:8px}
+.calma .breath-hint{font-size:12.5px;color:#a98545;letter-spacing:.12em;text-transform:uppercase;margin:18px 0 26px}
+.calma .acts{width:100%;max-width:300px;display:flex;flex-direction:column;gap:11px}
+.calma .b1{background:#8a5a1e;color:#fff;border:0;font-family:inherit;font-size:15px;font-weight:600;padding:16px;border-radius:16px;cursor:pointer}
+.calma .b2{background:rgba(138,90,30,.09);color:#8a5a1e;border:0;font-family:inherit;font-size:14px;font-weight:600;padding:15px;border-radius:16px;cursor:pointer}
+.calma .b3{background:0;color:#a98545;border:0;font-family:inherit;font-size:13px;padding:8px;cursor:pointer;text-decoration:underline}
+
+.demo-tag{position:absolute;top:52px;right:16px;background:var(--ink);color:#fff;font-size:10px;font-weight:600;padding:5px 10px;border-radius:20px;z-index:50;letter-spacing:.03em;opacity:.85}
+.toast{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:14px;z-index:70;opacity:0;transition:.3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="demo-tag">protótipo</div>
+  <div class="screen">
+
+  <!-- ============ HOJE ============ -->
+  <section class="view active" id="v-hoje">
+    <div class="h-greet" id="greet">Boa noite,</div>
+    <div class="h-name">Thomas</div>
+
+    <div class="hero">
+      <div class="lbl">você pode gastar hoje</div>
+      <div class="breathe"><span class="amount"><small>R$</small>87</span></div>
+      <div class="sub" id="hero-sub">Já paguei suas contas do mês e separei sua reserva. O resto é seu, tranquilo.</div>
+    </div>
+
+    <div class="bars">
+      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num">R$ 350</div></div>
+      <div class="bar"><div class="t"><span class="dot" style="background:var(--amber)"></span>Comprometido</div><div class="v num small">R$ 890</div></div>
+      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small">R$ 1.820</div></div>
+    </div>
+
+    <div class="aya-card">
+      <span class="ico">🌿</span>
+      <div class="who"><span class="aya-face">✦</span> Aya percebeu</div>
+      <p id="aya-hoje-txt">Você gastou R$ 312 no iFood esse mês — 23% a mais que no mês passado. Quer que eu crie uma meta suave pra isso?</p>
+      <button class="cta" onclick="go('aya')">Conversar</button>
+    </div>
+
+    <div class="sec-title">Seus cofres</div>
+    <div class="mini-cofres">
+      <div class="cofre-row">
+        <div class="cofre-ic" style="background:var(--amber-tint)">🧾</div>
+        <div><div class="nm">Contas do mês</div><div class="meta">aluguel, luz, internet</div></div>
+        <div class="val"><b class="num">R$ 890</b></div>
+      </div>
+      <div class="cofre-row">
+        <div class="cofre-ic" style="background:var(--sage-tint)">🛟</div>
+        <div style="flex:1"><div class="nm">Reserva de emergência</div>
+          <div class="prog"><i style="width:30%"></i></div>
+        </div>
+        <div class="val"><b class="num">R$ 1.500</b><div class="meta">de R$ 6.000</div></div>
+      </div>
+      <div class="cofre-row">
+        <div class="cofre-ic" style="background:#eef1ff">✈️</div>
+        <div style="flex:1"><div class="nm">Viagem</div>
+          <div class="prog"><i style="width:11%;background:#8ea0e8"></i></div>
+        </div>
+        <div class="val"><b class="num">R$ 320</b><div class="meta">de R$ 3.000</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COFRES ============ -->
+  <section class="view" id="v-cofres">
+    <div class="eyebrow">Cofres</div>
+    <div class="h-name" style="margin-top:4px">Seu dinheiro,<br>já organizado</div>
+
+    <div class="dinheiro-entrou">
+      <div class="head"><span class="pulse"></span><h3>Caiu agora na sua conta</h3></div>
+      <div class="amt num">+ R$ 4.200,00</div>
+      <div class="cap">Salário · via Open Finance · há 2 min</div>
+      <button class="split-btn" id="splitBtn" onclick="doSplit()">Deixar a Aya organizar</button>
+      <div class="split-note">Você aprova. Nada sai da sua conta sem seu ok.</div>
+    </div>
+
+    <div class="sec-title" id="splitTitle" style="display:none">A Aya separou assim</div>
+    <div id="splitList">
+      <div class="cofre-big" data-i="0"><div class="top"><div class="cofre-ic" style="background:var(--amber-tint)">🧾</div><div><div class="nm">Contas do mês</div><div class="pct">50% · essenciais</div></div><div class="amt num">R$ 2.100</div></div><div class="desc">Aluguel, luz, internet e cartão. Já reservado — você não vai gastar sem querer.</div></div>
+      <div class="cofre-big" data-i="1"><div class="top"><div class="cofre-ic" style="background:var(--sage-tint)">🛟</div><div><div class="nm">Reserva</div><div class="pct">20% · seu futuro</div></div><div class="amt num">R$ 840</div></div><div class="desc">Rendendo 100% do CDI desde já. Faltam 5 meses pra sua reserva de 6 meses.</div></div>
+      <div class="cofre-big" data-i="2"><div class="top"><div class="cofre-ic" style="background:#eef1ff">✈️</div><div><div class="nm">Sonho: Viagem</div><div class="pct">10% · o que te move</div></div><div class="amt num">R$ 420</div></div><div class="desc">Todo mês um pedacinho. Sem sentir. É assim que o sonho vira data.</div></div>
+      <div class="cofre-big" data-i="3"><div class="top"><div class="cofre-ic" style="background:var(--sage-tint)">🌿</div><div><div class="nm">Livre pra viver</div><div class="pct">20% · sem culpa</div></div><div class="amt num">R$ 840</div></div><div class="desc">Esse é 100% seu. Role, saia, peça o iFood. Você já cuidou do resto.</div></div>
+    </div>
+
+    <div class="toggle-row" style="margin-top:16px"><div class="txt">Arredondar compras<small>Troco vai pro cofre, tipo R$ 27 → guarda R$ 3</small></div><div class="sw"></div></div>
+    <div class="toggle-row"><div class="txt">Separar toda vez que entrar<small>Automático, sem você pensar</small></div><div class="sw"></div></div>
+  </section>
+
+  <!-- ============ AYA (chat) ============ -->
+  <section class="view" id="v-aya">
+    <div class="chat-head">
+      <div class="big-face">✦</div>
+      <div><div class="nm">Aya</div><div class="st">● cuidando do seu dinheiro</div></div>
+    </div>
+    <div class="chat-scroll" id="chat">
+      <div class="msg aya">Oi Thomas 🌿 Tô de olho por aqui. Pode me perguntar qualquer coisa — ou é só falar quando bater aquela vontade de gastar.</div>
+      <div class="msg aya">Quer começar por onde?</div>
+      <div class="chips">
+        <button class="chip" onclick="ask('Quanto gastei com iFood?')">Quanto gastei com iFood?</button>
+        <button class="chip" onclick="ask('Posso comprar um tênis de R$ 500?')">Posso gastar R$ 500?</button>
+        <button class="chip" onclick="ask('Como tá minha reserva?')">Como tá minha reserva?</button>
+      </div>
+    </div>
+    <div class="composer">
+      <input id="chatInput" placeholder="Fala comigo…" onkeydown="if(event.key==='Enter')sendChat()">
+      <span class="mic">🎙️</span>
+      <button class="send" onclick="sendChat()">↑</button>
+    </div>
+  </section>
+
+  <!-- ============ MOVIMENTO ============ -->
+  <section class="view" id="v-mov">
+    <div class="eyebrow">Movimento</div>
+    <div class="h-name" style="margin-top:4px">Tudo em tempo real</div>
+    <p style="font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5">Conectado aos seus bancos pelo Open Finance. A Aya categoriza e fica de olho pra você.</p>
+
+    <div class="day-label">Hoje</div>
+    <div class="tx risk">
+      <div class="tx-ic" style="background:var(--amber-tint)">🌙</div>
+      <div><div class="nm">Pix — Loja de tênis</div><div class="cat">23:47 · compra por impulso?</div></div>
+      <div class="amt num">− R$ 800</div>
+    </div>
+    <div class="aya-inline"><span class="f">✦</span><span>Esse é grande e fora do seu padrão de horário. Toquei em você antes de confirmar — lembra? Você respirou e decidiu com calma. 💛</span></div>
+
+    <div class="tx"><div class="tx-ic">🍔</div><div><div class="nm">iFood</div><div class="cat">20:12 · alimentação</div></div><div class="amt num">− R$ 52</div></div>
+    <div class="tx"><div class="tx-ic">🚗</div><div><div class="nm">Uber</div><div class="cat">18:30 · transporte</div></div><div class="amt num">− R$ 24</div></div>
+
+    <div class="day-label">Ontem</div>
+    <div class="tx"><div class="tx-ic" style="background:var(--sage-tint)">💰</div><div><div class="nm">Salário</div><div class="cat">Pix recebido · renda</div></div><div class="amt num in">+ R$ 4.200</div></div>
+    <div class="tx"><div class="tx-ic">🛒</div><div><div class="nm">Mercado Extra</div><div class="cat">essenciais</div></div><div class="amt num">− R$ 187</div></div>
+    <div class="tx"><div class="tx-ic">📺</div><div><div class="nm">Netflix</div><div class="cat">assinatura recorrente</div></div><div class="amt num">− R$ 44,90</div></div>
+
+    <button class="split-btn" style="margin-top:22px;background:var(--amber)" onclick="showCalma()">▶︎ Simular gasto de risco (ver o momento Calma)</button>
+  </section>
+
+  <!-- ============ VOCÊ ============ -->
+  <section class="view" id="v-voce">
+    <div class="eyebrow">Você</div>
+    <div class="h-name" style="margin-top:4px">Sua evolução</div>
+
+    <div class="score-wrap">
+      <div class="ring">
+        <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="#E4E8E5" stroke-width="12"/><circle cx="75" cy="75" r="66" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="120"/></svg>
+        <div class="center"><b>71</b><span>Saúde</span></div>
+      </div>
+      <div class="msg2">Subiu <b style="color:var(--sage)">+8 pontos</b> esse mês. Você guardou em 6 dos últimos 7 dias. Tá vindo.</div>
+      <div class="streak">
+        <i>S</i><i>T</i><i>Q</i><i>Q</i><i>S</i><i class="off">S</i><i>D</i>
+      </div>
+    </div>
+
+    <div class="sec-title">Como a Aya fala com você</div>
+    <div class="profile-pick">
+      <div class="pp-opt sel" data-p="aperto" onclick="setProfile(this,'aperto')"><span class="e">🌧️</span><div><div class="nm">Vivo no aperto</div><div class="d">Foco em sair do vermelho, sem julgamento</div></div><div class="rd"></div></div>
+      <div class="pp-opt" data-p="auto" onclick="setProfile(this,'auto')"><span class="e">💼</span><div><div class="nm">Autônomo / MEI</div><div class="d">Separa imposto, 13º e mistura PF com PJ</div></div><div class="rd"></div></div>
+      <div class="pp-opt" data-p="impulso" onclick="setProfile(this,'impulso')"><span class="e">⚡</span><div><div class="nm">Gasto por impulso</div><div class="d">Aya te segura mais na hora da tentação</div></div><div class="rd"></div></div>
+    </div>
+    <p style="font-size:12px;color:var(--ink2);text-align:center;margin-top:14px;line-height:1.5">Mesmo app. A Aya só muda o jeito de cuidar de você.</p>
+  </section>
+
+  </div><!-- screen -->
+
+  <!-- CALMA overlay -->
+  <div class="calma" id="calma">
+    <div class="halo">🌿</div>
+    <h1>Calma.</h1>
+    <p><b>R$ 800</b> às 23h47. Isso é bem mais que seu gasto normal a essa hora.</p>
+    <p style="font-size:14px">Não vim te impedir. Só respira comigo 3 segundos antes.</p>
+    <div class="breath-hint">inspira… segura… solta…</div>
+    <div class="acts">
+      <button class="b1" onclick="hideCalma('Beleza. Guardei os R$ 800 na sua reserva 🌿')">Vou deixar pra depois</button>
+      <button class="b2" onclick="hideCalma('Feito. Mas amanhã a gente conversa sobre isso 💛')">Quero comprar mesmo assim</button>
+      <button class="b3" onclick="hideCalma('')">Me conta o que tá rolando</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- TAB BAR -->
+  <nav class="tabbar">
+    <button class="tab active" data-v="hoje" onclick="go('hoje')">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg>Hoje</button>
+    <button class="tab" data-v="cofres" onclick="go('cofres')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 6V4h8v2"/></svg>Cofres</button>
+    <button class="tab center" data-v="aya" onclick="go('aya')">
+      <div class="cwrap"><span>✦</span></div>Aya</button>
+    <button class="tab" data-v="mov" onclick="go('mov')">
+      <svg viewBox="0 0 24 24"><path d="M4 18V9M9 18V5M14 18v-6M19 18v-9"/></svg>Movimento</button>
+    <button class="tab" data-v="voce" onclick="go('voce')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>Você</button>
+  </nav>
+</div>
+
+<script>
+function go(v){
+  document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
+  document.getElementById('v-'+v).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  document.getElementById('v-'+v).scrollTop=0;
+}
+function toast(t){if(!t)return;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('show'),2600);}
+
+/* split animation */
+function doSplit(){
+  document.getElementById('splitBtn').textContent='Organizado ✓';
+  document.getElementById('splitBtn').style.background='var(--sage-soft)';
+  document.getElementById('splitTitle').style.display='block';
+  document.querySelectorAll('#splitList .cofre-big').forEach((c,i)=>{
+    setTimeout(()=>c.classList.add('show'),120+i*160);
+  });
+  setTimeout(()=>toast('R$ 4.200 separados em 4 cofres 🌿'),700);
+}
+/* start cofres hidden */
+window.addEventListener('load',()=>{document.getElementById('splitTitle').style.display='none';});
+
+/* calma modal */
+function showCalma(){document.getElementById('calma').classList.add('show');}
+function hideCalma(t){document.getElementById('calma').classList.remove('show');toast(t);}
+
+/* chat */
+const answers={
+  'Quanto gastei com iFood?':'Esse mês, R$ 312 em iFood 🍔 — 23% a mais que no mês passado. Nada de pânico. Se quiser, crio um limite suave de R$ 250 e te aviso quando chegar perto. Topa?',
+  'Posso comprar um tênis de R$ 500?':'Você tem R$ 840 no cofre Livre, então dá sim 👟 Mas te conto: se guardar esses R$ 500, sua reserva fecha 1 mês antes. Decisão sua — só quis te mostrar os dois caminhos.',
+  'Como tá minha reserva?':'Tá em R$ 1.500 de R$ 6.000 (25%) 🛟 No ritmo de agora, você fecha em ~5 meses. Já rendendo 100% do CDI. Você tá indo melhor do que acha.'
+};
+function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function ask(q){pushMsg('me',q);setTimeout(()=>pushMsg('aya',answers[q]||'Boa pergunta 🌿 No app de verdade eu puxo isso dos seus dados via Open Finance e te respondo na hora.'),450);}
+function sendChat(){const i=document.getElementById('chatInput');if(!i.value.trim())return;const q=i.value.trim();i.value='';pushMsg('me',q);setTimeout(()=>pushMsg('aya',answers[q]||'Entendi 🌿 No app real eu respondo isso olhando sua conta em tempo real. Aqui é só uma amostra do jeito que eu falo com você.'),450);}
+
+/* profile */
+const profileData={
+  aperto:{greet:'Boa noite,',sub:'Já paguei suas contas do mês e separei sua reserva. O resto é seu, tranquilo.',aya:'Você gastou R$ 312 no iFood esse mês. Sem cobrança — bora só ajustar juntos pra sobrar mais no fim do mês?'},
+  auto:{greet:'E aí, chefe.',sub:'Já separei seu imposto e uma margem de 13º. O que tá livre já dá pra respirar.',aya:'Entrou R$ 4.200 de cliente. Guardei 15% pro imposto antes que vire dor de cabeça. Quer ver o resumo do mês?'},
+  impulso:{greet:'Opa,',sub:'Já guardei o que importa. O resto é seu — e eu te seguro se bater a vontade. 😉',aya:'Notei 3 compras por impulso essa semana 👀 Nada grave. Quer que eu te dê um toque quando passar de R$ 100 fora do plano?'}
+};
+function setProfile(el,p){
+  document.querySelectorAll('.pp-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  const d=profileData[p];
+  document.getElementById('greet').textContent=d.greet;
+  document.getElementById('hero-sub').textContent=d.sub;
+  document.getElementById('aya-hoje-txt').textContent=d.aya;
+  toast('Aya agora fala no seu tom 🌿');
+}
+</script>
+</body>
+</html>
