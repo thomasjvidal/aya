@@ -183,6 +183,19 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .toast{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:14px;z-index:70;opacity:0;transition:.3s;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* AUTH GATE */
+.auth-gate{position:absolute;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center}
+.auth-gate.hidden{display:none}
+.auth-gate .halo{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#bff0d7,#4C9C7A);display:grid;place-items:center;font-size:26px;color:#fff;margin-bottom:14px}
+.auth-gate h1{font-size:28px;margin-bottom:4px}
+.auth-gate p{font-size:13.5px;color:var(--ink2);margin-bottom:22px}
+.auth-gate form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px}
+.auth-gate input{border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)}
+.auth-gate button[type=submit]{background:var(--sage);color:#fff;border:0;font-family:inherit;font-size:14.5px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;margin-top:4px}
+.auth-gate button[type=submit]:disabled{opacity:.6}
+.auth-gate .linklike{background:0;border:0;color:var(--sage);font-family:inherit;font-size:13px;margin-top:14px;cursor:pointer;text-decoration:underline}
+.auth-gate .err{color:var(--rose);font-size:12.5px;margin-top:12px;min-height:16px;max-width:280px}
+
 /* mobile-first: em telas de celular real, o app ocupa a tela inteira em vez de mostrar a moldura de mockup */
 @media (max-width:640px){
   body{padding:0;background:var(--paper)}
@@ -195,12 +208,26 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 <div class="phone">
   <div class="notch"></div>
   <div class="demo-tag">protótipo</div>
+
+  <div class="auth-gate hidden" id="authGate">
+    <div class="halo">✦</div>
+    <h1 class="serif">Aya</h1>
+    <p>Sua companhia financeira.</p>
+    <form id="authForm">
+      <input id="authEmail" type="email" placeholder="seu e-mail" autocomplete="email" required>
+      <input id="authPassword" type="password" placeholder="senha (mín. 6 caracteres)" autocomplete="current-password" minlength="6" required>
+      <button type="submit" id="authSubmitBtn">Entrar</button>
+    </form>
+    <button class="linklike" id="authToggleMode" type="button">Não tem conta? Criar agora</button>
+    <p class="err" id="authError"></p>
+  </div>
+
   <div class="screen">
 
   <!-- ============ HOJE ============ -->
   <section class="view active" id="v-hoje">
     <div class="h-greet" id="greet">Boa noite,</div>
-    <div class="h-name">Thomas</div>
+    <div class="h-name" id="h-name-txt">Você</div>
 
     <div class="hero">
       <div class="lbl">você pode gastar hoje</div>
@@ -315,11 +342,19 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="tx"><div class="tx-ic">📺</div><div><div class="nm">Netflix</div><div class="cat">assinatura recorrente</div></div><div class="amt num">− R$ 44,90</div></div>
 
     <button class="split-btn" style="margin-top:22px;background:var(--amber)" onclick="showCalma()">▶︎ Simular gasto de risco (ver o momento Calma)</button>
+
+    <div class="sec-title">Favoritos</div>
+    <p style="font-size:12.5px;color:var(--ink2);margin:-6px 4px 12px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
+    <form id="favForm" style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+      <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
+    </form>
+    <div id="favList" class="mini-cofres"></div>
   </section>
 
   <!-- ============ VOCÊ ============ -->
-  <section class="view" id="v-voce">
-    <div class="eyebrow">Você</div>
+  <section class="view" id="v-perfil">
+    <div class="eyebrow">Perfil</div>
     <div class="h-name" style="margin-top:4px">Sua evolução</div>
 
     <div class="score-wrap">
@@ -340,6 +375,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="pp-opt" data-p="impulso" onclick="setProfile(this,'impulso')"><span class="e">⚡</span><div><div class="nm">Gasto por impulso</div><div class="d">Aya te segura mais na hora da tentação</div></div><div class="rd"></div></div>
     </div>
     <p style="font-size:12px;color:var(--ink2);text-align:center;margin-top:14px;line-height:1.5">Mesmo app. A Aya só muda o jeito de cuidar de você.</p>
+
+    <div class="sec-title">Avisos da Aya no seu iPhone</div>
+    <div class="toggle-row" id="pushRow" style="cursor:pointer" onclick="enablePush()">
+      <div class="txt">Ativar notificações da Aya<small>Pra ela conseguir te avisar antes de uma compra</small></div>
+      <div class="sw" id="pushSw" style="background:var(--line)"></div>
+    </div>
+    <div id="pushSetup" style="display:none;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;font-size:12.5px;color:var(--ink2);line-height:1.6"></div>
+
+    <button onclick="logout()" style="margin-top:20px;width:100%;background:0;border:1px solid var(--line);color:var(--ink2);font-family:inherit;font-size:13px;font-weight:600;padding:12px;border-radius:14px;cursor:pointer">Sair da conta</button>
   </section>
 
   </div><!-- screen -->
@@ -370,11 +414,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="cwrap"><span>✦</span></div>Aya</button>
     <button class="tab" data-v="mov" onclick="go('mov')">
       <svg viewBox="0 0 24 24"><path d="M4 18V9M9 18V5M14 18v-6M19 18v-9"/></svg>Movimento</button>
-    <button class="tab" data-v="voce" onclick="go('voce')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>Você</button>
+    <button class="tab" data-v="perfil" onclick="go('perfil')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>Perfil</button>
   </nav>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 function go(v){
   document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
@@ -439,15 +484,192 @@ const profileData={
   auto:{greet:'E aí, chefe.',sub:'Já separei seu imposto e uma margem de 13º. O que tá livre já dá pra respirar.',aya:'Entrou R$ 4.200 de cliente. Guardei 15% pro imposto antes que vire dor de cabeça. Quer ver o resumo do mês?'},
   impulso:{greet:'Opa,',sub:'Já guardei o que importa. O resto é seu — e eu te seguro se bater a vontade. 😉',aya:'Notei 3 compras por impulso essa semana 👀 Nada grave. Quer que eu te dê um toque quando passar de R$ 100 fora do plano?'}
 };
-function setProfile(el,p){
-  document.querySelectorAll('.pp-opt').forEach(o=>o.classList.remove('sel'));
-  el.classList.add('sel');
-  const d=profileData[p];
+function applyProfileCopy(p){
+  const d=profileData[p]||profileData.aperto;
+  document.querySelectorAll('.pp-opt').forEach(o=>o.classList.toggle('sel',o.dataset.p===p));
   document.getElementById('greet').textContent=d.greet;
   document.getElementById('hero-sub').textContent=d.sub;
   document.getElementById('aya-hoje-txt').textContent=d.aya;
-  toast('Aya agora fala no seu tom 🌿');
 }
+async function setProfile(el,p){
+  applyProfileCopy(p);
+  toast('Aya agora fala no seu tom 🌿');
+  if(supabaseClient && currentUser){
+    await supabaseClient.from('profiles').update({estilo:p}).eq('id',currentUser.id);
+  }
+}
+
+/* ================= AUTENTICAÇÃO (Supabase) ================= */
+let supabaseClient=null;
+let currentUser=null;
+let authMode='login';
+
+async function initApp(){
+  let cfg={};
+  try{ cfg=await fetch('/api/config').then(r=>r.json()); }catch(e){}
+  window.__vapidPublicKey=cfg.vapidPublicKey||null;
+
+  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey){
+    document.getElementById('authGate').classList.remove('hidden');
+    document.getElementById('authError').style.color='var(--ink2)';
+    document.getElementById('authError').textContent='Login ainda não configurado neste ambiente.';
+    document.getElementById('authSubmitBtn').disabled=true;
+    return;
+  }
+
+  supabaseClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session){ await onAuthed(session); } else { document.getElementById('authGate').classList.remove('hidden'); }
+
+  supabaseClient.auth.onAuthStateChange((_event,session)=>{
+    if(session) onAuthed(session);
+    else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); }
+  });
+}
+
+async function onAuthed(session){
+  currentUser=session.user;
+  document.getElementById('authGate').classList.add('hidden');
+  await loadProfile();
+  await loadFavoritos();
+}
+
+async function loadProfile(){
+  if(!supabaseClient||!currentUser)return;
+  const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(error||!data)return;
+  document.getElementById('h-name-txt').textContent=data.nome||'Você';
+  applyProfileCopy(data.estilo||'aperto');
+}
+
+async function logout(){
+  if(supabaseClient) await supabaseClient.auth.signOut();
+}
+
+document.getElementById('authToggleMode').addEventListener('click',()=>{
+  authMode=authMode==='login'?'signup':'login';
+  document.getElementById('authSubmitBtn').textContent=authMode==='login'?'Entrar':'Criar conta';
+  document.getElementById('authToggleMode').textContent=authMode==='login'?'Não tem conta? Criar agora':'Já tenho conta, entrar';
+  document.getElementById('authError').textContent='';
+});
+
+document.getElementById('authForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const errEl=document.getElementById('authError');
+  errEl.style.color='var(--rose)';
+  errEl.textContent='';
+  if(!supabaseClient){ errEl.textContent='Ainda carregando, tenta de novo em instantes.'; return; }
+  const btn=document.getElementById('authSubmitBtn');
+  btn.disabled=true;
+  const originalLabel=btn.textContent;
+  btn.textContent='Um instante…';
+  try{
+    if(authMode==='login'){
+      const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }else{
+      const {error}=await supabaseClient.auth.signUp({email,password});
+      if(error)throw error;
+      errEl.style.color='var(--sage)';
+      errEl.textContent='Conta criada! Se pedir confirmação, olha seu e-mail — senão já tenta entrar.';
+    }
+  }catch(err){
+    errEl.style.color='var(--rose)';
+    errEl.textContent=err.message||'Não consegui entrar. Confere e-mail/senha.';
+  }
+  btn.disabled=false;
+  btn.textContent=originalLabel;
+});
+
+/* ================= FAVORITOS ================= */
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+document.getElementById('favForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const input=document.getElementById('favUrl');
+  const url=input.value.trim();
+  if(!url)return;
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  let titulo=url;
+  try{ titulo=new URL(url).hostname.replace('www.',''); }catch(err){}
+  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url});
+  if(!error){ input.value=''; await loadFavoritos(); toast('Salvei nos seus favoritos 🌿'); }
+  else{ toast('Não consegui salvar agora 😕'); }
+});
+
+async function loadFavoritos(){
+  if(!supabaseClient||!currentUser)return;
+  const list=document.getElementById('favList');
+  if(!list)return;
+  const {data,error}=await supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false});
+  if(error||!data||!data.length){
+    list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
+    return;
+  }
+  list.innerHTML=data.map(f=>`
+    <div class="cofre-row">
+      <div class="cofre-ic" style="background:var(--sage-tint)">🔗</div>
+      <div style="flex:1;min-width:0">
+        <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
+        <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
+      </div>
+      <button onclick="removeFavorito('${f.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer;flex-shrink:0">×</button>
+    </div>
+  `).join('');
+}
+
+async function removeFavorito(id){
+  if(!supabaseClient)return;
+  await supabaseClient.from('favoritos').delete().eq('id',id);
+  await loadFavoritos();
+}
+
+/* ================= PUSH NOTIFICATIONS ================= */
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+
+async function enablePush(){
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){ toast('Esse navegador não suporta notificações 😕'); return; }
+  if(!window.__vapidPublicKey){ toast('Notificações ainda não configuradas 🌿'); return; }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Sem permissão de notificação 🌿'); return; }
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    const sub=await reg.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:urlBase64ToUint8Array(window.__vapidPublicKey)
+    });
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    const res=await fetch('/api/push/subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({subscription:sub.toJSON(),accessToken:session.access_token})
+    });
+    const json=await res.json();
+    document.getElementById('pushSw').style.background='var(--sage)';
+    if(json.nudgeToken){
+      const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&app=Amazon`;
+      const setup=document.getElementById('pushSetup');
+      setup.style.display='block';
+      setup.innerHTML='Notificações ativadas ✓<br><br>Agora no app <b>Atalhos</b> do iPhone: crie uma Automação Pessoal → "App" → escolha o app de compras → "Está Aberto" → ação "Obter Conteúdo de URL", desativando "Perguntar Antes de Executar":<br><br><code style="word-break:break-all;font-size:11px">'+escapeHtml(url)+'</code>';
+    }
+    toast('Notificações da Aya ativadas 🌿');
+  }catch(err){
+    toast('Não consegui ativar agora 😕');
+  }
+}
+
+window.addEventListener('load',initApp);
 </script>
 </body>
 </html>
