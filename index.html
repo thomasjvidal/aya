@@ -744,6 +744,13 @@ async function enablePush(){
       body:JSON.stringify({subscription:sub.toJSON(),accessToken:session.access_token})
     });
     const json=await res.json();
+    if(!res.ok||!json.nudgeToken){
+      const setup=document.getElementById('pushSetup');
+      setup.style.display='block';
+      setup.innerHTML=`<div style="color:var(--rose);font-weight:600;margin-bottom:6px">Não consegui concluir a ativação</div><div>${escapeHtml(json.error||'Erro desconhecido')}${json.detail?'<br><small>'+escapeHtml(String(json.detail))+'</small>':''}</div>`;
+      toast('Deu um erro ao salvar a inscrição 😕');
+      return;
+    }
     document.getElementById('pushSw').style.background='var(--sage)';
     if(json.nudgeToken){
       const bancoUrl=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=banco&app=Banco`;
@@ -781,6 +788,9 @@ async function enablePush(){
     }
     toast('Notificações da Aya ativadas 🌿');
   }catch(err){
+    const setup=document.getElementById('pushSetup');
+    setup.style.display='block';
+    setup.innerHTML=`<div style="color:var(--rose);font-weight:600;margin-bottom:6px">Não consegui ativar</div><div>${escapeHtml(err && err.message ? err.message : String(err))}</div>${!window.matchMedia('(display-mode: standalone)').matches?'<div style="margin-top:8px">No iPhone, notificação só funciona se o app estiver instalado na Tela de Início (não numa aba do Safari).</div>':''}`;
     toast('Não consegui ativar agora 😕');
   }
 }
