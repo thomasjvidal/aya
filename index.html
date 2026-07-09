@@ -214,6 +214,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <h1 class="serif">Aya</h1>
     <p>Sua companhia financeira.</p>
     <form id="authForm">
+      <input id="authName" type="text" placeholder="seu nome" autocomplete="name" style="display:none">
       <input id="authEmail" type="email" placeholder="seu e-mail" autocomplete="email" required>
       <input id="authPassword" type="password" placeholder="senha (mín. 6 caracteres)" autocomplete="current-password" minlength="6" required>
       <button type="submit" id="authSubmitBtn">Entrar</button>
@@ -367,6 +368,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <i>S</i><i>T</i><i>Q</i><i>Q</i><i>S</i><i class="off">S</i><i>D</i>
       </div>
     </div>
+
+    <div class="sec-title">Seu nome</div>
+    <form id="nomeForm" style="display:flex;gap:8px;margin-bottom:6px">
+      <input id="nomeInput" placeholder="Como a Aya deve te chamar?" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+      <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 16px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
+    </form>
 
     <div class="sec-title">Como a Aya fala com você</div>
     <div class="profile-pick">
@@ -540,8 +547,23 @@ async function loadProfile(){
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
   if(error||!data)return;
   document.getElementById('h-name-txt').textContent=data.nome||'Você';
+  document.getElementById('nomeInput').value=data.nome||'';
   applyProfileCopy(data.estilo||'aperto');
 }
+
+document.getElementById('nomeForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  const nome=document.getElementById('nomeInput').value.trim();
+  if(!nome)return;
+  const {error}=await supabaseClient.from('profiles').update({nome}).eq('id',currentUser.id);
+  if(!error){
+    document.getElementById('h-name-txt').textContent=nome;
+    toast('Nome atualizado 🌿');
+  }else{
+    toast('Não consegui salvar agora 😕');
+  }
+});
 
 async function logout(){
   if(supabaseClient) await supabaseClient.auth.signOut();
@@ -549,6 +571,7 @@ async function logout(){
 
 document.getElementById('authToggleMode').addEventListener('click',()=>{
   authMode=authMode==='login'?'signup':'login';
+  document.getElementById('authName').style.display=authMode==='signup'?'block':'none';
   document.getElementById('authSubmitBtn').textContent=authMode==='login'?'Entrar':'Criar conta';
   document.getElementById('authToggleMode').textContent=authMode==='login'?'Não tem conta? Criar agora':'Já tenho conta, entrar';
   document.getElementById('authError').textContent='';
@@ -556,6 +579,7 @@ document.getElementById('authToggleMode').addEventListener('click',()=>{
 
 document.getElementById('authForm').addEventListener('submit',async(e)=>{
   e.preventDefault();
+  const nome=document.getElementById('authName').value.trim();
   const email=document.getElementById('authEmail').value.trim();
   const password=document.getElementById('authPassword').value;
   const errEl=document.getElementById('authError');
@@ -571,7 +595,7 @@ document.getElementById('authForm').addEventListener('submit',async(e)=>{
       const {error}=await supabaseClient.auth.signInWithPassword({email,password});
       if(error)throw error;
     }else{
-      const {error}=await supabaseClient.auth.signUp({email,password});
+      const {error}=await supabaseClient.auth.signUp({email,password,options:{data:nome?{nome}:{}}});
       if(error)throw error;
       errEl.style.color='var(--sage)';
       errEl.textContent='Conta criada! Se pedir confirmação, olha seu e-mail — senão já tenta entrar.';
