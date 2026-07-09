@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 module.exports = async (req, res) => {
   const token = req.query.token;
   const app = (req.query.app || '').trim();
+  const tipo = (req.query.tipo || '').trim();
 
   if (!token) {
     res.status(400).json({ error: 'Faltou o parâmetro token' });
@@ -33,11 +34,18 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const body = app
-    ? `Vi que você abriu ${app} 🌿 Calma — quer conversar comigo antes de decidir?`
-    : 'Calma 🌿 Quer conversar comigo antes de decidir essa compra?';
+  let body, url;
+  if (tipo === 'banco') {
+    body = 'Vi que você abriu o banco 🌿 Rolou alguma coisa? Toca aqui pra eu registrar rapidinho.';
+    url = '/#add';
+  } else {
+    body = app
+      ? `Vi que você abriu ${app} 🌿 Calma — quer conversar comigo antes de decidir?`
+      : 'Calma 🌿 Quer conversar comigo antes de decidir essa compra?';
+    url = '/#aya';
+  }
 
-  const payload = JSON.stringify({ title: 'Aya', body, url: '/#aya' });
+  const payload = JSON.stringify({ title: 'Aya', body, url });
 
   try {
     await webpush.sendNotification(
