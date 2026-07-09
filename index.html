@@ -661,6 +661,19 @@ function urlBase64ToUint8Array(base64String){
   return arr;
 }
 
+function copyNudgeUrl(){
+  const input=document.getElementById('nudgeUrlInput');
+  if(!input)return;
+  input.select();
+  input.setSelectionRange(0,99999);
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(input.value).then(()=>toast('Link copiado 📋')).catch(()=>toast('Copia manualmente ali em cima'));
+  }else{
+    document.execCommand('copy');
+    toast('Link copiado 📋');
+  }
+}
+
 async function enablePush(){
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   if(!('serviceWorker' in navigator)||!('PushManager' in window)){ toast('Esse navegador não suporta notificações 😕'); return; }
@@ -685,7 +698,22 @@ async function enablePush(){
       const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&app=Amazon`;
       const setup=document.getElementById('pushSetup');
       setup.style.display='block';
-      setup.innerHTML='Notificações ativadas ✓<br><br>Agora no app <b>Atalhos</b> do iPhone: crie uma Automação Pessoal → "App" → escolha o app de compras → "Está Aberto" → ação "Obter Conteúdo de URL", desativando "Perguntar Antes de Executar":<br><br><code style="word-break:break-all;font-size:11px">'+escapeHtml(url)+'</code>';
+      setup.innerHTML=`
+        <div style="font-weight:600;color:var(--ink);margin-bottom:10px">Notificações ativadas ✓ — falta 1 configuração no seu iPhone</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input readonly value="${escapeHtml(url)}" id="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+          <button type="button" onclick="copyNudgeUrl()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+        </div>
+        <ol style="padding-left:18px;margin:0 0 12px">
+          <li>Toque em <b>Copiar</b> ali em cima</li>
+          <li>Abra o app <b>Atalhos</b> (ou toque no botão abaixo)</li>
+          <li>Aba <b>Automação</b> → <b>+</b> → <b>App</b></li>
+          <li>Escolha o app de compras (ex: Amazon) → <b>Está Aberto</b> → Próximo</li>
+          <li>Adicione a ação <b>Obter Conteúdo de URL</b> e cole o link (Copiar → Colar)</li>
+          <li>Desative <b>Perguntar Antes de Executar</b> → Concluído</li>
+        </ol>
+        <a href="shortcuts://" style="display:block;text-align:center;background:var(--sage-tint);color:var(--sage);border-radius:12px;padding:11px;font-weight:600;font-size:13px;text-decoration:none">Abrir app Atalhos</a>
+      `;
     }
     toast('Notificações da Aya ativadas 🌿');
   }catch(err){
