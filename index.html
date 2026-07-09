@@ -395,6 +395,23 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
   </div><!-- screen -->
 
+  <!-- QUICK ADD (abre quando toca na notificação do banco) -->
+  <div class="auth-gate hidden" id="quickAdd" style="z-index:95">
+    <div class="halo">🌿</div>
+    <h1 class="serif">O que rolou?</h1>
+    <p>Registra rapidinho — fica salvo no seu extrato de verdade.</p>
+    <form id="quickAddForm">
+      <input id="qaDesc" type="text" placeholder="Ex: Pix recebido, Mercado, Uber…" required>
+      <input id="qaValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor (R$)" required>
+      <div style="display:flex;gap:10px;width:100%;justify-content:center;margin:2px 0">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="entrada" checked> Entrou</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida"> Saiu</label>
+      </div>
+      <button type="submit">Salvar</button>
+    </form>
+    <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
+  </div>
+
   <!-- CALMA overlay -->
   <div class="calma" id="calma">
     <div class="halo">🌿</div>
@@ -540,7 +557,41 @@ async function onAuthed(session){
   document.getElementById('authGate').classList.add('hidden');
   await loadProfile();
   await loadFavoritos();
+  checkQuickAddHash();
 }
+
+/* ================= QUICK ADD ================= */
+function openQuickAdd(){
+  if(!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  document.getElementById('quickAdd').classList.remove('hidden');
+}
+function closeQuickAdd(){
+  document.getElementById('quickAdd').classList.add('hidden');
+  if(location.hash==='#add') history.replaceState(null,'',location.pathname+location.search);
+}
+function checkQuickAddHash(){
+  if(location.hash==='#add') openQuickAdd();
+}
+window.addEventListener('hashchange',checkQuickAddHash);
+
+document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  const descricao=document.getElementById('qaDesc').value.trim();
+  const valor=parseFloat(document.getElementById('qaValor').value);
+  const tipo=document.querySelector('input[name="qaTipo"]:checked').value;
+  if(!descricao||!valor||isNaN(valor))return;
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo});
+  if(!error){
+    toast('Registrado 🌿');
+    document.getElementById('qaDesc').value='';
+    document.getElementById('qaValor').value='';
+    closeQuickAdd();
+    go('mov');
+  }else{
+    toast('Não consegui salvar agora 😕');
+  }
+});
 
 async function loadProfile(){
   if(!supabaseClient||!currentUser)return;
@@ -661,8 +712,8 @@ function urlBase64ToUint8Array(base64String){
   return arr;
 }
 
-function copyNudgeUrl(){
-  const input=document.getElementById('nudgeUrlInput');
+function copyNudgeUrl(btn){
+  const input=btn&&btn.previousElementSibling?btn.previousElementSibling:document.querySelector('.nudgeUrlInput');
   if(!input)return;
   input.select();
   input.setSelectionRange(0,99999);
@@ -695,20 +746,33 @@ async function enablePush(){
     const json=await res.json();
     document.getElementById('pushSw').style.background='var(--sage)';
     if(json.nudgeToken){
-      const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&app=Amazon`;
+      const bancoUrl=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=banco&app=Banco`;
+      const compraUrl=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=compra&app=Loja`;
       const setup=document.getElementById('pushSetup');
       setup.style.display='block';
       setup.innerHTML=`
-        <div style="font-weight:600;color:var(--ink);margin-bottom:10px">Notificações ativadas ✓ — falta 1 configuração no seu iPhone</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input readonly value="${escapeHtml(url)}" id="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
-          <button type="button" onclick="copyNudgeUrl()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+        <div style="font-weight:600;color:var(--ink);margin-bottom:10px">Notificações ativadas ✓ — falta configurar no seu iPhone</div>
+
+        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">🏦 Quando abrir o app do banco</div>
+        <p style="margin:0 0 8px">Pra registrar rapidinho o que rolou (tipo um Pix que caiu)</p>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input readonly value="${escapeHtml(bancoUrl)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+          <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
         </div>
+
+        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">🛍️ Quando abrir um app de compras</div>
+        <p style="margin:0 0 8px">Pra Aya puxar assunto antes de você decidir (Amazon, Shopee, Mercado Livre…)</p>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input readonly value="${escapeHtml(compraUrl)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+          <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+        </div>
+
+        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">Como configurar (repete pra cada app que quiser)</div>
         <ol style="padding-left:18px;margin:0 0 12px">
-          <li>Toque em <b>Copiar</b> ali em cima</li>
+          <li>Toque em <b>Copiar</b> no link certo ali em cima</li>
           <li>Abra o app <b>Atalhos</b> (ou toque no botão abaixo)</li>
           <li>Aba <b>Automação</b> → <b>+</b> → <b>App</b></li>
-          <li>Escolha o app de compras (ex: Amazon) → <b>Está Aberto</b> → Próximo</li>
+          <li>Escolha o app (banco ou loja) → <b>Está Aberto</b> → Próximo</li>
           <li>Adicione a ação <b>Obter Conteúdo de URL</b> e cole o link (Copiar → Colar)</li>
           <li>Desative <b>Perguntar Antes de Executar</b> → Concluído</li>
         </ol>
