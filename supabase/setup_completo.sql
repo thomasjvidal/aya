@@ -25,6 +25,12 @@ alter table public.cofres
   check (tipo in ('livre','contas','guardado'));
 
 alter table public.cofres
+  add column if not exists notas text;
+
+alter table public.cofres
+  add column if not exists concluido boolean not null default true;
+
+alter table public.cofres
   add column if not exists meta_tipo text not null default 'valor'
   check (meta_tipo in ('valor','percentual'));
 
