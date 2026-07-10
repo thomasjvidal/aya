@@ -355,13 +355,11 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="score-wrap">
       <div class="ring">
-        <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="#E4E8E5" stroke-width="12"/><circle cx="75" cy="75" r="66" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="120"/></svg>
-        <div class="center"><b>71</b><span>Saúde</span></div>
+        <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="#E4E8E5" stroke-width="12"/><circle id="scoreRing" cx="75" cy="75" r="66" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="415"/></svg>
+        <div class="center"><b id="scoreValue">0</b><span>Saúde</span></div>
       </div>
-      <div class="msg2">Subiu <b style="color:var(--sage)">+8 pontos</b> esse mês. Você guardou em 6 dos últimos 7 dias. Tá vindo.</div>
-      <div class="streak">
-        <i>S</i><i>T</i><i>Q</i><i>Q</i><i>S</i><i class="off">S</i><i>D</i>
-      </div>
+      <div class="msg2" id="scoreMsg">Ainda sem histórico — comece registrando um movimento ou criando um cofre.</div>
+      <div class="streak" id="streakRow"></div>
     </div>
 
     <div class="sec-title">Seu nome</div>
@@ -558,6 +556,7 @@ async function onAuthed(session){
   await loadCofres();
   await loadHomeData();
   await loadMovimentos();
+  await loadPerfilStats();
   checkQuickAddHash();
 }
 
@@ -594,6 +593,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     }
     await loadMovimentos();
     await loadHomeData();
+    await loadPerfilStats();
     go('mov');
   }else{
     toast('Não consegui salvar agora 😕');
@@ -602,16 +602,20 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
 
 async function distribuirPercentuais(valorEntrada){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('meta_tipo','percentual').not('percentual','is',null);
-  if(!cofres||!cofres.length){ toast('Registrado 🌿'); return; }
+  const {data:cofres,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('meta_tipo','percentual').not('percentual','is',null);
+  if(selectErr){ toast('Registrado, mas não consegui checar os % 😕'); return; }
+  if(!cofres||!cofres.length){ toast('Registrado 🌿 (nenhum cofre com % configurado ainda)'); return; }
   const partes=[];
+  const falhas=[];
   for(const c of cofres){
     const parte=Math.round((valorEntrada*(Number(c.percentual)||0)/100)*100)/100;
     if(parte<=0)continue;
-    await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte}).eq('id',c.id);
+    const {error}=await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte}).eq('id',c.id);
+    if(error){ falhas.push(c.nome); continue; }
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
   }
-  toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
+  if(falhas.length)toast(`Deu erro separando: ${falhas.join(', ')} 😕`);
+  else toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
 }
 
 async function organizarEntrada(){
@@ -627,6 +631,7 @@ async function organizarEntrada(){
   await loadCofres();
   await loadHomeData();
   await loadMovimentos();
+  await loadPerfilStats();
 }
 
 async function loadProfile(){
@@ -797,6 +802,7 @@ async function salvarCofre(){
   toast(id?'Cofre atualizado 🌿':'Cofre criado 🌿');
   await loadCofres();
   await loadHomeData();
+  await loadPerfilStats();
 }
 
 async function deleteCofre(id){
@@ -804,6 +810,7 @@ async function deleteCofre(id){
   await supabaseClient.from('cofres').delete().eq('id',id);
   await loadCofres();
   await loadHomeData();
+  await loadPerfilStats();
 }
 
 function cofreCardHtml(c,editable){
@@ -898,6 +905,45 @@ async function loadMovimentos(){
       <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
     </div>
   `).join('');
+}
+
+/* ================= PERFIL: nota e sequência reais ================= */
+async function loadPerfilStats(){
+  if(!supabaseClient||!currentUser)return;
+  const desde=new Date(); desde.setDate(desde.getDate()-6); desde.setHours(0,0,0,0);
+  const [{data:movs},{data:cofres}]=await Promise.all([
+    supabaseClient.from('movimentos').select('created_at').gte('created_at',desde.toISOString()),
+    supabaseClient.from('cofres').select('valor_meta,percentual,valor_atual')
+  ]);
+  const diasSemana=['D','S','T','Q','Q','S','S'];
+  const hoje=new Date();
+  const dias=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(hoje); d.setDate(hoje.getDate()-i);
+    const ativo=(movs||[]).some(m=>new Date(m.created_at).toDateString()===d.toDateString());
+    dias.push({label:diasSemana[d.getDay()],ativo});
+  }
+  const streakRow=document.getElementById('streakRow');
+  if(streakRow)streakRow.innerHTML=dias.map(d=>`<i class="${d.ativo?'':'off'}">${d.label}</i>`).join('');
+
+  const diasAtivos=dias.filter(d=>d.ativo).length;
+  const cofresComMeta=(cofres||[]).filter(c=>c.valor_meta||c.percentual).length;
+  const temAtividade=(movs&&movs.length)||(cofres&&cofres.length);
+  const score=temAtividade?Math.min(100,Math.round(25+diasAtivos*8+cofresComMeta*6)):0;
+
+  const scoreEl=document.getElementById('scoreValue');
+  if(scoreEl)scoreEl.textContent=score;
+  const ring=document.getElementById('scoreRing');
+  if(ring){
+    const circ=415;
+    ring.setAttribute('stroke-dashoffset',String(Math.round(circ-(circ*score/100))));
+  }
+  const msgEl=document.getElementById('scoreMsg');
+  if(msgEl){
+    msgEl.innerHTML=temAtividade
+      ? `Você registrou algo em <b style="color:var(--sage)">${diasAtivos} dos últimos 7 dias</b>${cofresComMeta?`, com ${cofresComMeta} cofre(s) com meta definida`:''}.`
+      : 'Ainda sem histórico — comece registrando um movimento ou criando um cofre.';
+  }
 }
 
 /* ================= PUSH NOTIFICATIONS ================= */
