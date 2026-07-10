@@ -248,7 +248,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button class="cta" onclick="go('aya')">Conversar</button>
     </div>
 
-    <div class="sec-title">Seus cofres</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Seus cofres</span>
+      <button type="button" onclick="irCriarCofre()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">+ Criar cofre</button>
+    </div>
     <div class="mini-cofres" id="miniCofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
@@ -259,18 +262,20 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="eyebrow">Cofres</div>
     <div class="h-name" style="margin-top:4px">Seu dinheiro,<br>do seu jeito</div>
 
-    <div class="dinheiro-entrou">
-      <div class="head"><span class="pulse"></span><h3>Organizar uma entrada</h3></div>
-      <input id="organizarValor" type="number" step="0.01" placeholder="Quanto entrou? (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--paper);color:var(--ink);margin:10px 0 8px">
-      <input id="organizarDesc" type="text" placeholder="De onde? (ex: Salário)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--paper);color:var(--ink);margin-bottom:4px">
-      <button class="split-btn" onclick="organizarEntrada()">Deixar a Aya organizar</button>
-      <div class="split-note">Distribui na hora pelos cofres com % configurado. Sem % em nenhum cofre? Só registra a entrada.</div>
+    <div class="dinheiro-entrou" id="pendenteCard">
+      <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
 
     <button class="split-btn" style="margin-top:16px" onclick="openCofreForm()">+ Criar cofre</button>
 
     <div id="cofreFormWrap" style="display:none;margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)">
       <input type="hidden" id="cofreId">
+      <div id="cofrePresets" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px">
+        <button type="button" onclick="usarPreset('Contas do mês','contas','🧾')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🧾 Contas do mês</button>
+        <button type="button" onclick="usarPreset('Reserva de emergência','guardado','🛟')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🛟 Reserva de emergência</button>
+        <button type="button" onclick="usarPreset('Sonho / Viagem','guardado','✈️')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✈️ Sonho / Viagem</button>
+        <button type="button" onclick="usarPreset('Livre pra gastar','livre','🌿')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🌿 Livre pra gastar</button>
+      </div>
       <input id="cofreNome" placeholder="Nome (ex: Reserva de emergência)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <select id="cofreTipo" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
         <option value="livre">Livre pra gastar</option>
@@ -564,6 +569,7 @@ async function onAuthed(session){
   await loadHomeData();
   await loadMovimentos();
   await loadPerfilStats();
+  await loadPendentes();
   checkQuickAddHash();
   checkCalmaHash();
 }
@@ -594,14 +600,11 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     document.getElementById('qaDesc').value='';
     document.getElementById('qaValor').value='';
     closeQuickAdd();
-    if(tipo==='entrada'){
-      await distribuirPercentuais(valor);
-    }else{
-      toast('Registrado 🌿');
-    }
+    toast(tipo==='entrada'?'Registrado 🌿 Vai em Cofres pra organizar quando quiser':'Registrado 🌿');
     await loadMovimentos();
     await loadHomeData();
     await loadPerfilStats();
+    await loadPendentes();
     go('mov');
   }else{
     toast('Não consegui salvar agora 😕');
@@ -626,16 +629,39 @@ async function distribuirPercentuais(valorEntrada){
   else toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
 }
 
-async function organizarEntrada(){
-  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
-  const valor=parseFloat(document.getElementById('organizarValor').value);
-  const descricao=document.getElementById('organizarDesc').value.trim()||'Entrada';
-  if(!valor||isNaN(valor)){ toast('Coloca um valor 🌿'); return; }
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo:'entrada'});
-  if(error){ toast('Não consegui registrar agora 😕'); return; }
-  document.getElementById('organizarValor').value='';
-  document.getElementById('organizarDesc').value='';
-  await distribuirPercentuais(valor);
+async function loadPendentes(){
+  if(!supabaseClient||!currentUser)return;
+  const card=document.getElementById('pendenteCard');
+  if(!card)return;
+  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
+  if(error){
+    card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml(error.message||'')}</p>`;
+    return;
+  }
+  const pend=data||[];
+  if(!pend.length){
+    card.innerHTML='<div class="head"><span class="pulse" style="background:var(--line)"></span><h3>Tudo organizado</h3></div><div class="cap" style="margin-top:6px">Registra uma entrada na aba Movimento que ela aparece aqui pra você organizar.</div>';
+    return;
+  }
+  const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
+  card.innerHTML=`
+    <div class="head"><span class="pulse"></span><h3>Dinheiro esperando organização</h3></div>
+    <div class="amt num">+ ${formatBRL(total)}</div>
+    <div class="cap">${pend.length} entrada${pend.length>1?'s':''} registrada${pend.length>1?'s':''} no Movimento, ainda não distribuída${pend.length>1?'s':''}</div>
+    <button class="split-btn" onclick="organizarPendentes()">Deixar a Aya organizar</button>
+    <div class="split-note">Distribui pelos cofres com % configurado. Sem % em nenhum? Só marca como organizado.</div>
+  `;
+}
+
+async function organizarPendentes(){
+  if(!supabaseClient||!currentUser)return;
+  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
+  if(error||!pend||!pend.length)return;
+  const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
+  await distribuirPercentuais(total);
+  const ids=pend.map(m=>m.id);
+  await supabaseClient.from('movimentos').update({organizado:true}).in('id',ids);
+  await loadPendentes();
   await loadCofres();
   await loadHomeData();
   await loadMovimentos();
@@ -764,6 +790,7 @@ function toggleCofreMetaTipo(){
 
 function openCofreForm(cofre){
   document.getElementById('cofreFormWrap').style.display='block';
+  document.getElementById('cofrePresets').style.display=cofre?'none':'flex';
   document.getElementById('cofreId').value=cofre?cofre.id:'';
   document.getElementById('cofreNome').value=cofre?cofre.nome:'';
   document.getElementById('cofreTipo').value=cofre?(cofre.tipo||'guardado'):'guardado';
@@ -774,6 +801,17 @@ function openCofreForm(cofre){
   const metaTipo=cofre&&cofre.meta_tipo==='percentual'?'percentual':'valor';
   document.querySelector(`input[name="cofreMetaTipo"][value="${metaTipo}"]`).checked=true;
   toggleCofreMetaTipo();
+}
+function usarPreset(nome,tipo,icone){
+  document.getElementById('cofreNome').value=nome;
+  document.getElementById('cofreTipo').value=tipo;
+  document.getElementById('cofreIcone').value=icone;
+  document.getElementById('cofreNome').focus();
+  document.getElementById('cofreNome').select();
+}
+function irCriarCofre(){
+  go('cofres');
+  openCofreForm();
 }
 function closeCofreForm(){
   document.getElementById('cofreFormWrap').style.display='none';

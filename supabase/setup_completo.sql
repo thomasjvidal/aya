@@ -42,6 +42,9 @@ create table if not exists public.movimentos (
   created_at timestamptz not null default now()
 );
 
+alter table public.movimentos
+  add column if not exists organizado boolean not null default false;
+
 create table if not exists public.favoritos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
