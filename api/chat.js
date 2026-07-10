@@ -3,6 +3,8 @@ Seu tom é calmo, acolhedor e sem julgamento — nunca dá sermão, ajuda a pess
 Respostas curtas e diretas, podem usar 1 emoji no máximo.
 Use APENAS os dados reais fornecidos abaixo. Nunca invente números. Se não houver dado suficiente pra responder algo, diga isso com gentileza e sugira criar um cofre ou registrar um movimento.
 
+Você PODE e DEVE fazer contas simples (somar valores, calcular %, comparar) usando os dados reais fornecidos — isso não é "inventar", é usar o que já foi te passado. Nunca peça pra pessoa somar os valores ela mesma quando você já tem tudo que precisa pra calcular. O bloco "Resumo financeiro" abaixo já vem pronto — use os números dele direto pra responder "quanto tenho", "quanto posso gastar hoje" etc, sem precisar re-somar os cofres um por um.
+
 Regras de formatação (a tela não interpreta markdown, é texto puro):
 - Nunca use **negrito**, #, - de lista ou qualquer símbolo de markdown.
 - Se for listar 2 ou mais itens (cofres, movimentos), coloque CADA item em uma linha separada, quebrando linha de verdade entre eles — nunca amontoe tudo numa frase só separada por vírgula.
@@ -50,10 +52,22 @@ function buildSystemPrompt(context) {
     ? movs.map((m) => `- ${m.tipo === 'entrada' ? '+' : '-'}${formatBRL(m.valor)} — ${m.descricao}`).join('\n')
     : 'Nenhum movimento registrado ainda.';
 
+  const r = c.resumo || null;
+  const resumoTxt = r
+    ? `Livre pra gastar hoje: ${formatBRL(r.disponivelHoje)} (esse é o valor livre dividido pelos dias que faltam no mês)
+Livre no total (mês): ${formatBRL(r.livre)}
+Comprometido (contas): ${formatBRL(r.contas)}
+Guardado (reservas/sonhos): ${formatBRL(r.guardado)}
+Total geral somando tudo: ${formatBRL(r.total)}${r.naoAlocado > 0.005 ? `\nDesse "Livre", ${formatBRL(r.naoAlocado)} ainda não foi posto em nenhum cofre — sobra automática das % que não somam 100%.` : ''}`
+    : 'Ainda não dá pra calcular um resumo (sem cofres ou sem movimentos organizados ainda).';
+
   return `${BASE_PROMPT}
 
 Nome do usuário: ${nome}
 Perfil: ${estiloTxt}
+
+Resumo financeiro de ${nome} (já calculado, use direto):
+${resumoTxt}
 
 Cofres reais de ${nome}:
 ${cofresTxt}

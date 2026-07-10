@@ -49,6 +49,9 @@ create table if not exists public.movimentos (
 );
 
 alter table public.movimentos
+  add column if not exists cofre_id uuid references public.cofres(id) on delete set null;
+
+alter table public.movimentos
   add column if not exists organizado boolean not null default false;
 
 create table if not exists public.favoritos (
