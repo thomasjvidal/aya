@@ -290,7 +290,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="percentual" onchange="toggleCofreMetaTipo()"> % de cada entrada</label>
       </div>
       <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-      <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+      <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" oninput="atualizarHintPercentual()" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui.</p>
 
       <div style="display:flex;gap:8px;margin-top:2px">
@@ -786,6 +786,28 @@ function toggleCofreMetaTipo(){
   document.getElementById('cofreValorMeta').style.display=tipo==='valor'?'block':'none';
   document.getElementById('cofrePercentual').style.display=tipo==='percentual'?'block':'none';
   document.getElementById('cofrePercentualHint').style.display=tipo==='percentual'?'block':'none';
+  if(tipo==='percentual')atualizarHintPercentual();
+}
+
+function atualizarHintPercentual(){
+  const hint=document.getElementById('cofrePercentualHint');
+  if(!hint)return;
+  const idAtual=document.getElementById('cofreId').value;
+  const usados=(cofresCache||[])
+    .filter(c=>c.meta_tipo==='percentual'&&String(c.id)!==String(idAtual))
+    .reduce((s,c)=>s+Number(c.percentual||0),0);
+  const restante=Math.max(0,100-usados);
+  const digitado=parseFloat(document.getElementById('cofrePercentual').value)||0;
+  const total=usados+digitado;
+  let msg=usados>0
+    ? `Seus outros cofres já usam ${usados}% de cada entrada. Restam ${restante}% disponíveis.`
+    : 'Nenhum outro cofre usa % ainda — pode usar até 100%.';
+  if(digitado>0){
+    msg+=total>100
+      ? ` ⚠️ Com esse valor o total fica em ${total}% (passou de 100%).`
+      : ` Com esse valor, o total fica em ${total}%.`;
+  }
+  hint.textContent=msg;
 }
 
 function openCofreForm(cofre){
