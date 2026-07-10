@@ -260,6 +260,14 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="eyebrow">Cofres</div>
     <div class="h-name" style="margin-top:4px">Seu dinheiro,<br>do seu jeito</div>
 
+    <div class="dinheiro-entrou">
+      <div class="head"><span class="pulse"></span><h3>Organizar uma entrada</h3></div>
+      <input id="organizarValor" type="number" step="0.01" placeholder="Quanto entrou? (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--paper);color:var(--ink);margin:10px 0 8px">
+      <input id="organizarDesc" type="text" placeholder="De onde? (ex: Salário)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--paper);color:var(--ink);margin-bottom:4px">
+      <button class="split-btn" onclick="organizarEntrada()">Deixar a Aya organizar</button>
+      <div class="split-note">Distribui na hora pelos cofres com % configurado. Sem % em nenhum cofre? Só registra a entrada.</div>
+    </div>
+
     <button class="split-btn" style="margin-top:16px" onclick="openCofreForm()">+ Criar cofre</button>
 
     <div id="cofreFormWrap" style="display:none;margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)">
@@ -300,12 +308,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div><div class="nm">Aya</div><div class="st">● cuidando do seu dinheiro</div></div>
     </div>
     <div class="chat-scroll" id="chat">
-      <div class="msg aya">Oi Thomas 🌿 Tô de olho por aqui. Pode me perguntar qualquer coisa — ou é só falar quando bater aquela vontade de gastar.</div>
+      <div class="msg aya">Oi 🌿 Tô de olho por aqui, já vendo seus cofres e movimentos de verdade. Pode me perguntar qualquer coisa — ou é só falar quando bater aquela vontade de gastar.</div>
       <div class="msg aya">Quer começar por onde?</div>
       <div class="chips">
-        <button class="chip" onclick="ask('Quanto gastei com iFood?')">Quanto gastei com iFood?</button>
-        <button class="chip" onclick="ask('Posso comprar um tênis de R$ 500?')">Posso gastar R$ 500?</button>
-        <button class="chip" onclick="ask('Como tá minha reserva?')">Como tá minha reserva?</button>
+        <button class="chip" onclick="ask('Como tá minha grana hoje?')">Como tá minha grana hoje?</button>
+        <button class="chip" onclick="ask('Como tá meus cofres?')">Como tá meus cofres?</button>
+        <button class="chip" onclick="ask('O que você recomenda pra mim?')">O que você recomenda?</button>
       </div>
     </div>
     <div class="composer">
@@ -450,6 +458,21 @@ let chatBusy=false;
 function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
 function pushTyping(){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg aya';d.id='typing';d.textContent='digitando…';c.appendChild(d);c.scrollTop=c.scrollHeight;}
 function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+async function buildChatContext(){
+  if(!supabaseClient||!currentUser)return null;
+  const [cofresRes,movsRes,perfilRes]=await Promise.all([
+    supabaseClient.from('cofres').select('*'),
+    supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(10),
+    supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single()
+  ]);
+  return {
+    nome:perfilRes.data?.nome,
+    estilo:perfilRes.data?.estilo,
+    cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null})),
+    movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao}))
+  };
+}
+
 async function askAya(q){
   if(chatBusy||!q.trim())return;
   chatBusy=true;
@@ -457,10 +480,11 @@ async function askAya(q){
   chatHistory.push({role:'user',content:q});
   pushTyping();
   try{
+    const context=await buildChatContext();
     const res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:q,history:chatHistory.slice(-10)})
+      body:JSON.stringify({message:q,history:chatHistory.slice(-10),context})
     });
     const data=await res.json();
     removeTyping();
@@ -588,6 +612,21 @@ async function distribuirPercentuais(valorEntrada){
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
   }
   toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
+}
+
+async function organizarEntrada(){
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  const valor=parseFloat(document.getElementById('organizarValor').value);
+  const descricao=document.getElementById('organizarDesc').value.trim()||'Entrada';
+  if(!valor||isNaN(valor)){ toast('Coloca um valor 🌿'); return; }
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo:'entrada'});
+  if(error){ toast('Não consegui registrar agora 😕'); return; }
+  document.getElementById('organizarValor').value='';
+  document.getElementById('organizarDesc').value='';
+  await distribuirPercentuais(valor);
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
 }
 
 async function loadProfile(){
