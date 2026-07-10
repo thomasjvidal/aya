@@ -114,11 +114,16 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .chat-head .st{font-size:12px;color:var(--sage);font-weight:500}
 .chat-scroll{display:flex;flex-direction:column;gap:11px;margin-top:16px;padding-bottom:8px}
 .msg{max-width:80%;padding:12px 15px;border-radius:19px;font-size:14px;line-height:1.5;white-space:pre-wrap}
+#v-aya{display:flex;flex-direction:column;overflow:hidden}
+#v-aya .chat-head{flex-shrink:0}
+#v-aya .chat-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#v-aya .chat-scroll::-webkit-scrollbar{display:none}
+.aya-footer{flex-shrink:0;padding-top:8px}
 .msg.aya{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:var(--shadow)}
 .msg.me{background:var(--sage);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .chip{background:var(--sage-tint);color:var(--sage);border:0;font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 13px;border-radius:20px;cursor:pointer}
-.composer{position:absolute;left:14px;right:14px;bottom:92px;display:flex;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:6px 6px 6px 16px;box-shadow:0 6px 18px rgba(24,37,36,.1)}
+.composer{display:flex;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:6px 6px 6px 16px;box-shadow:0 6px 18px rgba(24,37,36,.1)}
 .composer input{flex:1;border:0;outline:0;font-family:inherit;font-size:14px;background:transparent;color:var(--ink)}
 .composer .send{width:38px;height:38px;border-radius:50%;background:var(--sage);border:0;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0}
 .composer .mic{font-size:18px;color:var(--ink2);cursor:pointer}
@@ -326,12 +331,14 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <button class="chip" onclick="ask('O que você recomenda pra mim?')">O que você recomenda?</button>
       </div>
     </div>
-    <div id="salvarMemoriaWrap" style="display:none;position:absolute;left:14px;right:14px;bottom:150px;text-align:center;z-index:45">
-      <button type="button" onclick="salvarMemoriaCofre()" style="background:var(--card);border:1px solid var(--sage);color:var(--sage);font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow)">💾 Salvar isso no cofre <span id="salvarMemoriaNome"></span></button>
-    </div>
-    <div class="composer">
-      <input id="chatInput" placeholder="Fala comigo…" onkeydown="if(event.key==='Enter')sendChat()">
-      <button class="send" onclick="sendChat()">↑</button>
+    <div class="aya-footer">
+      <div id="salvarMemoriaWrap" style="display:none;text-align:center;margin-bottom:8px">
+        <button type="button" onclick="salvarMemoriaCofre()" style="background:var(--card);border:1px solid var(--sage);color:var(--sage);font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow)">💾 Salvar isso no cofre <span id="salvarMemoriaNome"></span></button>
+      </div>
+      <div class="composer">
+        <input id="chatInput" placeholder="Fala comigo…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="send" onclick="sendChat()">↑</button>
+      </div>
     </div>
   </section>
 
@@ -474,7 +481,7 @@ window.addEventListener('hashchange',checkCalmaHash);
 /* chat */
 let chatHistory=[];
 let chatBusy=false;
-function scrollChatToBottom(){const v=document.getElementById('v-aya');if(v)v.scrollTop=v.scrollHeight;}
+function scrollChatToBottom(){const c=document.getElementById('chat');if(c)c.scrollTop=c.scrollHeight;}
 function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);scrollChatToBottom();return d;}
 function pushTyping(){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg aya';d.id='typing';d.textContent='digitando…';c.appendChild(d);scrollChatToBottom();}
 function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
