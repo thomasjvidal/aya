@@ -272,8 +272,16 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </select>
       <input id="cofreIcone" placeholder="Emoji (opcional, ex: 🛟)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <input id="cofreValorAtual" type="number" step="0.01" placeholder="Quanto já tem (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-      <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:10px">
-      <div style="display:flex;gap:8px">
+
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="valor" checked onchange="toggleCofreMetaTipo()"> Meta em R$</label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="percentual" onchange="toggleCofreMetaTipo()"> % de cada entrada</label>
+      </div>
+      <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+      <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+      <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui.</p>
+
+      <div style="display:flex;gap:8px;margin-top:2px">
         <button onclick="salvarCofre()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:11px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
         <button onclick="closeCofreForm()" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:12px;padding:11px;font-family:inherit;font-weight:600;cursor:pointer">Cancelar</button>
       </div>
@@ -552,10 +560,14 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   if(!descricao||!valor||isNaN(valor))return;
   const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo});
   if(!error){
-    toast('Registrado 🌿');
     document.getElementById('qaDesc').value='';
     document.getElementById('qaValor').value='';
     closeQuickAdd();
+    if(tipo==='entrada'){
+      await distribuirPercentuais(valor);
+    }else{
+      toast('Registrado 🌿');
+    }
     await loadMovimentos();
     await loadHomeData();
     go('mov');
@@ -563,6 +575,20 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     toast('Não consegui salvar agora 😕');
   }
 });
+
+async function distribuirPercentuais(valorEntrada){
+  if(!supabaseClient||!currentUser)return;
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('meta_tipo','percentual').not('percentual','is',null);
+  if(!cofres||!cofres.length){ toast('Registrado 🌿'); return; }
+  const partes=[];
+  for(const c of cofres){
+    const parte=Math.round((valorEntrada*(Number(c.percentual)||0)/100)*100)/100;
+    if(parte<=0)continue;
+    await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte}).eq('id',c.id);
+    partes.push(`${formatBRL(parte)} → ${c.nome}`);
+  }
+  toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
+}
 
 async function loadProfile(){
   if(!supabaseClient||!currentUser)return;
@@ -677,6 +703,13 @@ async function removeFavorito(id){
 function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 const TIPO_ICONE={livre:'🌿',contas:'🧾',guardado:'🛟'};
 
+function toggleCofreMetaTipo(){
+  const tipo=document.querySelector('input[name="cofreMetaTipo"]:checked').value;
+  document.getElementById('cofreValorMeta').style.display=tipo==='valor'?'block':'none';
+  document.getElementById('cofrePercentual').style.display=tipo==='percentual'?'block':'none';
+  document.getElementById('cofrePercentualHint').style.display=tipo==='percentual'?'block':'none';
+}
+
 function openCofreForm(cofre){
   document.getElementById('cofreFormWrap').style.display='block';
   document.getElementById('cofreId').value=cofre?cofre.id:'';
@@ -685,6 +718,10 @@ function openCofreForm(cofre){
   document.getElementById('cofreIcone').value=cofre?(cofre.icone||''):'';
   document.getElementById('cofreValorAtual').value=cofre?cofre.valor_atual:'';
   document.getElementById('cofreValorMeta').value=cofre&&cofre.valor_meta?cofre.valor_meta:'';
+  document.getElementById('cofrePercentual').value=cofre&&cofre.percentual?cofre.percentual:'';
+  const metaTipo=cofre&&cofre.meta_tipo==='percentual'?'percentual':'valor';
+  document.querySelector(`input[name="cofreMetaTipo"][value="${metaTipo}"]`).checked=true;
+  toggleCofreMetaTipo();
 }
 function closeCofreForm(){
   document.getElementById('cofreFormWrap').style.display='none';
@@ -697,17 +734,26 @@ async function salvarCofre(){
   const tipo=document.getElementById('cofreTipo').value;
   const icone=document.getElementById('cofreIcone').value.trim()||TIPO_ICONE[tipo]||'🧾';
   const valor_atual=parseFloat(document.getElementById('cofreValorAtual').value)||0;
+  const meta_tipo=document.querySelector('input[name="cofreMetaTipo"]:checked').value;
   const valorMetaRaw=document.getElementById('cofreValorMeta').value;
-  const valor_meta=valorMetaRaw?parseFloat(valorMetaRaw):null;
+  const percentualRaw=document.getElementById('cofrePercentual').value;
+  const valor_meta=meta_tipo==='valor'&&valorMetaRaw?parseFloat(valorMetaRaw):null;
+  const percentual=meta_tipo==='percentual'&&percentualRaw?parseFloat(percentualRaw):null;
   if(!nome){ toast('Dá um nome pro cofre 🌿'); return; }
 
+  const payload={nome,tipo,icone,valor_atual,valor_meta,meta_tipo,percentual};
   let error;
   if(id){
-    ({error}=await supabaseClient.from('cofres').update({nome,tipo,icone,valor_atual,valor_meta}).eq('id',id));
+    ({error}=await supabaseClient.from('cofres').update(payload).eq('id',id));
   }else{
-    ({error}=await supabaseClient.from('cofres').insert({user_id:currentUser.id,nome,tipo,icone,valor_atual,valor_meta}));
+    ({error}=await supabaseClient.from('cofres').insert({user_id:currentUser.id,...payload}));
   }
-  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  if(error){
+    document.getElementById('cofreFormWrap').insertAdjacentHTML('beforeend',`<p style="color:var(--rose);font-size:12px;margin-top:8px" class="cofreErr">${escapeHtml(error.message||'Erro desconhecido')}</p>`);
+    document.querySelectorAll('.cofreErr').forEach((el,i,arr)=>{if(i<arr.length-1)el.remove();});
+    toast('Não consegui salvar agora 😕');
+    return;
+  }
   closeCofreForm();
   toast(id?'Cofre atualizado 🌿':'Cofre criado 🌿');
   await loadCofres();
@@ -723,6 +769,7 @@ async function deleteCofre(id){
 
 function cofreCardHtml(c,editable){
   const prog=c.valor_meta?Math.min(100,Math.round((c.valor_atual/c.valor_meta)*100)):null;
+  const metaLabel=c.meta_tipo==='percentual'&&c.percentual?`<div class="meta">${c.percentual}% de cada entrada</div>`:(c.valor_meta?`<div class="meta">de ${formatBRL(c.valor_meta)}</div>`:'');
   return `
     <div class="cofre-row">
       <div class="cofre-ic" style="background:var(--sage-tint)">${escapeHtml(c.icone||'🧾')}</div>
@@ -730,7 +777,7 @@ function cofreCardHtml(c,editable){
         <div class="nm">${escapeHtml(c.nome)}</div>
         ${prog!==null?`<div class="prog"><i style="width:${prog}%"></i></div>`:''}
       </div>
-      <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${c.valor_meta?`<div class="meta">de ${formatBRL(c.valor_meta)}</div>`:''}</div>
+      <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${metaLabel}</div>
       ${editable?`<button onclick='editCofreById("${c.id}")' style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;margin-left:6px">✎</button><button onclick="deleteCofre('${c.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer">×</button>`:''}
     </div>
   `;

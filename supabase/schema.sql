@@ -1,5 +1,7 @@
--- Aya - schema inicial
--- Rode isso no Supabase: Dashboard > SQL Editor > New query > cola tudo > Run
+-- Aya - schema inicial (histórico)
+-- ATENÇÃO: use supabase/setup_completo.sql em vez deste arquivo — ele é
+-- mais novo, idempotente e inclui as colunas adicionadas depois (tipo,
+-- meta_tipo, percentual).
 
 create extension if not exists "pgcrypto";
 
