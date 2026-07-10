@@ -24,6 +24,13 @@ alter table public.cofres
   add column if not exists tipo text not null default 'guardado'
   check (tipo in ('livre','contas','guardado'));
 
+alter table public.cofres
+  add column if not exists meta_tipo text not null default 'valor'
+  check (meta_tipo in ('valor','percentual'));
+
+alter table public.cofres
+  add column if not exists percentual numeric;
+
 create table if not exists public.movimentos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
