@@ -207,19 +207,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 <body>
 <div class="phone">
   <div class="notch"></div>
-  <div class="demo-tag">protótipo</div>
 
-  <div class="auth-gate hidden" id="authGate">
+  <div class="auth-gate" id="authGate">
     <div class="halo">✦</div>
     <h1 class="serif">Aya</h1>
-    <p>Sua companhia financeira.</p>
-    <form id="authForm">
+    <p id="authTagline">Carregando…</p>
+    <form id="authForm" style="display:none">
       <input id="authName" type="text" placeholder="seu nome" autocomplete="name" style="display:none">
       <input id="authEmail" type="email" placeholder="seu e-mail" autocomplete="email" required>
       <input id="authPassword" type="password" placeholder="senha (mín. 6 caracteres)" autocomplete="current-password" minlength="6" required>
       <button type="submit" id="authSubmitBtn">Entrar</button>
     </form>
-    <button class="linklike" id="authToggleMode" type="button">Não tem conta? Criar agora</button>
+    <button class="linklike" id="authToggleMode" type="button" style="display:none">Não tem conta? Criar agora</button>
     <p class="err" id="authError"></p>
   </div>
 
@@ -318,7 +317,6 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
     <div class="composer">
       <input id="chatInput" placeholder="Fala comigo…" onkeydown="if(event.key==='Enter')sendChat()">
-      <span class="mic">🎙️</span>
       <button class="send" onclick="sendChat()">↑</button>
     </div>
   </section>
@@ -336,8 +334,6 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div id="movList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
-
-    <button class="split-btn" style="margin-top:22px;background:var(--amber)" onclick="showCalma()">▶︎ Simular gasto de risco (ver o momento Calma)</button>
 
     <div class="sec-title">Favoritos</div>
     <p style="font-size:12.5px;color:var(--ink2);margin:-6px 4px 12px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
@@ -409,13 +405,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   <div class="calma" id="calma">
     <div class="halo">🌿</div>
     <h1>Calma.</h1>
-    <p><b>R$ 800</b> às 23h47. Isso é bem mais que seu gasto normal a essa hora.</p>
+    <p>Vi que você abriu um app de compras. O que você tá pensando em levar?</p>
     <p style="font-size:14px">Não vim te impedir. Só respira comigo 3 segundos antes.</p>
     <div class="breath-hint">inspira… segura… solta…</div>
     <div class="acts">
-      <button class="b1" onclick="hideCalma('Beleza. Guardei os R$ 800 na sua reserva 🌿')">Vou deixar pra depois</button>
-      <button class="b2" onclick="hideCalma('Feito. Mas amanhã a gente conversa sobre isso 💛')">Quero comprar mesmo assim</button>
-      <button class="b3" onclick="hideCalma('')">Me conta o que tá rolando</button>
+      <button class="b1" onclick="abrirChatDaCalma()">Conversar com a Aya</button>
+      <button class="b3" onclick="hideCalma('Beleza, tô aqui se precisar 🌿')">Só respirar, sem conversar</button>
     </div>
   </div>
 
@@ -448,7 +443,19 @@ function toast(t){if(!t)return;const el=document.getElementById('toast');el.text
 
 /* calma modal */
 function showCalma(){document.getElementById('calma').classList.add('show');}
-function hideCalma(t){document.getElementById('calma').classList.remove('show');toast(t);}
+function hideCalma(t){
+  document.getElementById('calma').classList.remove('show');
+  if(location.hash==='#calma')history.replaceState(null,'',location.pathname+location.search);
+  toast(t);
+}
+function abrirChatDaCalma(){
+  hideCalma('');
+  go('aya');
+}
+function checkCalmaHash(){
+  if(location.hash==='#calma')showCalma();
+}
+window.addEventListener('hashchange',checkCalmaHash);
 
 /* chat */
 let chatHistory=[];
@@ -499,17 +506,10 @@ function ask(q){askAya(q);}
 function sendChat(){const i=document.getElementById('chatInput');const q=i.value.trim();if(!q)return;i.value='';askAya(q);}
 
 /* profile */
-const profileData={
-  aperto:{greet:'Boa noite,',sub:'Já paguei suas contas do mês e separei sua reserva. O resto é seu, tranquilo.',aya:'Você gastou R$ 312 no iFood esse mês. Sem cobrança — bora só ajustar juntos pra sobrar mais no fim do mês?'},
-  auto:{greet:'E aí, chefe.',sub:'Já separei seu imposto e uma margem de 13º. O que tá livre já dá pra respirar.',aya:'Entrou R$ 4.200 de cliente. Guardei 15% pro imposto antes que vire dor de cabeça. Quer ver o resumo do mês?'},
-  impulso:{greet:'Opa,',sub:'Já guardei o que importa. O resto é seu — e eu te seguro se bater a vontade. 😉',aya:'Notei 3 compras por impulso essa semana 👀 Nada grave. Quer que eu te dê um toque quando passar de R$ 100 fora do plano?'}
-};
+const profileGreetings={aperto:'Boa noite,',auto:'E aí, chefe.',impulso:'Opa,'};
 function applyProfileCopy(p){
-  const d=profileData[p]||profileData.aperto;
   document.querySelectorAll('.pp-opt').forEach(o=>o.classList.toggle('sel',o.dataset.p===p));
-  document.getElementById('greet').textContent=d.greet;
-  document.getElementById('hero-sub').textContent=d.sub;
-  document.getElementById('aya-hoje-txt').textContent=d.aya;
+  document.getElementById('greet').textContent=profileGreetings[p]||profileGreetings.aperto;
 }
 async function setProfile(el,p){
   applyProfileCopy(p);
@@ -530,22 +530,29 @@ async function initApp(){
   window.__vapidPublicKey=cfg.vapidPublicKey||null;
 
   if(!cfg.supabaseUrl||!cfg.supabaseAnonKey){
-    document.getElementById('authGate').classList.remove('hidden');
+    document.getElementById('authTagline').textContent='Sua companhia financeira.';
     document.getElementById('authError').style.color='var(--ink2)';
     document.getElementById('authError').textContent='Login ainda não configurado neste ambiente.';
     document.getElementById('authSubmitBtn').disabled=true;
+    document.getElementById('authForm').style.display='flex';
     return;
   }
 
   supabaseClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
 
   const {data:{session}}=await supabaseClient.auth.getSession();
-  if(session){ await onAuthed(session); } else { document.getElementById('authGate').classList.remove('hidden'); }
+  if(session){ await onAuthed(session); } else { showAuthForm(); }
 
   supabaseClient.auth.onAuthStateChange((_event,session)=>{
     if(session) onAuthed(session);
-    else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); }
+    else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); showAuthForm(); }
   });
+}
+
+function showAuthForm(){
+  document.getElementById('authTagline').textContent='Sua companhia financeira.';
+  document.getElementById('authForm').style.display='flex';
+  document.getElementById('authToggleMode').style.display='block';
 }
 
 async function onAuthed(session){
@@ -558,6 +565,7 @@ async function onAuthed(session){
   await loadMovimentos();
   await loadPerfilStats();
   checkQuickAddHash();
+  checkCalmaHash();
 }
 
 /* ================= QUICK ADD ================= */
@@ -866,6 +874,13 @@ async function loadHomeData(){
   const bL=document.getElementById('barLivre'); if(bL)bL.textContent=formatBRL(livre);
   const bC=document.getElementById('barComprometido'); if(bC)bC.textContent=formatBRL(contas);
   const bG=document.getElementById('barGuardado'); if(bG)bG.textContent=formatBRL(guardado);
+
+  const subEl=document.getElementById('hero-sub');
+  if(subEl){
+    subEl.textContent=list.length
+      ? `Você tem ${list.length} cofre${list.length>1?'s':''} organizando ${formatBRL(contas+guardado)}. O que sobra é seu, tranquilo.`
+      : 'Crie seus cofres que eu calculo isso de verdade.';
+  }
 
   const miniList=document.getElementById('miniCofresList');
   if(miniList){
