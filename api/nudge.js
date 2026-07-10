@@ -40,9 +40,9 @@ module.exports = async (req, res) => {
     url = '/#add';
   } else {
     body = app
-      ? `Vi que você abriu ${app} 🌿 Calma — quer conversar comigo antes de decidir?`
-      : 'Calma 🌿 Quer conversar comigo antes de decidir essa compra?';
-    url = '/#aya';
+      ? `Vi que você abriu ${app} 🌿 Calma — respira 3 segundos comigo antes de decidir.`
+      : 'Calma 🌿 Respira 3 segundos comigo antes de decidir essa compra.';
+    url = '/#calma';
   }
 
   const payload = JSON.stringify({ title: 'Aya', body, url });
