@@ -113,7 +113,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .chat-head .nm{font-size:19px;font-weight:600}
 .chat-head .st{font-size:12px;color:var(--sage);font-weight:500}
 .chat-scroll{display:flex;flex-direction:column;gap:11px;margin-top:16px;padding-bottom:8px}
-.msg{max-width:80%;padding:12px 15px;border-radius:19px;font-size:14px;line-height:1.5}
+.msg{max-width:80%;padding:12px 15px;border-radius:19px;font-size:14px;line-height:1.5;white-space:pre-wrap}
 .msg.aya{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:var(--shadow)}
 .msg.me{background:var(--sage);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
@@ -291,7 +291,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
       <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" oninput="atualizarHintPercentual()" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-      <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui.</p>
+      <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui. Mudar o % não move o que já está guardado — só vale pras próximas entradas.</p>
+
+      <textarea id="cofreNotas" placeholder="O que a Aya deve lembrar sobre esse cofre? (ex: doo via Pix toda segunda, invisto pela XP...)" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);margin-bottom:10px;resize:vertical"></textarea>
 
       <div style="display:flex;gap:8px;margin-top:2px">
         <button onclick="salvarCofre()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:11px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
@@ -299,7 +301,11 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
     </div>
 
-    <div class="sec-title">Seus cofres</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Seus cofres</span>
+      <button type="button" onclick="redistribuirCofres()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">🔄 Redistribuir</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink2);margin:-8px 4px 12px;line-height:1.4">Recalcula o que já está guardado nos cofres com % configurado, usando as % de agora.</p>
     <div id="cofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
@@ -319,6 +325,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <button class="chip" onclick="ask('Como tá meus cofres?')">Como tá meus cofres?</button>
         <button class="chip" onclick="ask('O que você recomenda pra mim?')">O que você recomenda?</button>
       </div>
+    </div>
+    <div id="salvarMemoriaWrap" style="display:none;position:absolute;left:14px;right:14px;bottom:150px;text-align:center;z-index:45">
+      <button type="button" onclick="salvarMemoriaCofre()" style="background:var(--card);border:1px solid var(--sage);color:var(--sage);font-family:inherit;font-size:12px;font-weight:600;padding:8px 14px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow)">💾 Salvar isso no cofre <span id="salvarMemoriaNome"></span></button>
     </div>
     <div class="composer">
       <input id="chatInput" placeholder="Fala comigo…" onkeydown="if(event.key==='Enter')sendChat()">
@@ -465,8 +474,9 @@ window.addEventListener('hashchange',checkCalmaHash);
 /* chat */
 let chatHistory=[];
 let chatBusy=false;
-function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
-function pushTyping(){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg aya';d.id='typing';d.textContent='digitando…';c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function scrollChatToBottom(){const v=document.getElementById('v-aya');if(v)v.scrollTop=v.scrollHeight;}
+function pushMsg(cls,txt){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);scrollChatToBottom();return d;}
+function pushTyping(){const c=document.getElementById('chat');const d=document.createElement('div');d.className='msg aya';d.id='typing';d.textContent='digitando…';c.appendChild(d);scrollChatToBottom();}
 function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
 async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
@@ -478,7 +488,7 @@ async function buildChatContext(){
   return {
     nome:perfilRes.data?.nome,
     estilo:perfilRes.data?.estilo,
-    cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null})),
+    cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null,notas:c.notas||null,precisaAtencao:c.concluido===false})),
     movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao}))
   };
 }
@@ -509,6 +519,38 @@ async function askAya(q){
 }
 function ask(q){askAya(q);}
 function sendChat(){const i=document.getElementById('chatInput');const q=i.value.trim();if(!q)return;i.value='';askAya(q);}
+
+/* ================= COFRE FOCADO NO CHAT (memória) ================= */
+let cofreFocado=null;
+async function iniciarConversaCofre(id){
+  const c=cofresCache.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  cofreFocado=c;
+  document.getElementById('salvarMemoriaNome').textContent=c.nome;
+  document.getElementById('salvarMemoriaWrap').style.display='block';
+  go('aya');
+  let msg=`Quero cuidar do cofre "${c.nome}" agora. Ele tem ${formatBRL(c.valor_atual)}`;
+  if(c.valor_meta)msg+=` de meta ${formatBRL(c.valor_meta)}`;
+  if(c.meta_tipo==='percentual'&&c.percentual)msg+=`, recebendo ${c.percentual}% de cada entrada`;
+  if(c.notas)msg+=`. O que você já sabe: ${c.notas}`;
+  msg+='. Me ajuda a decidir o próximo passo com esse dinheiro?';
+  await askAya(msg);
+}
+
+async function salvarMemoriaCofre(){
+  if(!cofreFocado||!supabaseClient){ return; }
+  const msgs=document.querySelectorAll('#chat .msg.aya');
+  const ultima=msgs.length?msgs[msgs.length-1].textContent:'';
+  if(!ultima){ toast('Ainda não tem nada da Aya pra guardar 🌿'); return; }
+  const notaAnterior=cofreFocado.notas?cofreFocado.notas+' | ':'';
+  const novaNota=(notaAnterior+ultima).slice(0,600);
+  const {error}=await supabaseClient.from('cofres').update({notas:novaNota}).eq('id',cofreFocado.id);
+  if(error){ toast('Não consegui guardar agora 😕'); return; }
+  toast(`Guardado no cofre ${cofreFocado.nome} 🌿`);
+  document.getElementById('salvarMemoriaWrap').style.display='none';
+  cofreFocado=null;
+  await loadCofres();
+}
 
 /* profile */
 const profileGreetings={aperto:'Boa noite,',auto:'E aí, chefe.',impulso:'Opa,'};
@@ -621,7 +663,7 @@ async function distribuirPercentuais(valorEntrada){
   for(const c of cofres){
     const parte=Math.round((valorEntrada*(Number(c.percentual)||0)/100)*100)/100;
     if(parte<=0)continue;
-    const {error}=await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte}).eq('id',c.id);
+    const {error}=await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte,concluido:false}).eq('id',c.id);
     if(error){ falhas.push(c.nome); continue; }
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
   }
@@ -820,6 +862,7 @@ function openCofreForm(cofre){
   document.getElementById('cofreValorAtual').value=cofre?cofre.valor_atual:'';
   document.getElementById('cofreValorMeta').value=cofre&&cofre.valor_meta?cofre.valor_meta:'';
   document.getElementById('cofrePercentual').value=cofre&&cofre.percentual?cofre.percentual:'';
+  document.getElementById('cofreNotas').value=cofre&&cofre.notas?cofre.notas:'';
   const metaTipo=cofre&&cofre.meta_tipo==='percentual'?'percentual':'valor';
   document.querySelector(`input[name="cofreMetaTipo"][value="${metaTipo}"]`).checked=true;
   toggleCofreMetaTipo();
@@ -851,9 +894,10 @@ async function salvarCofre(){
   const percentualRaw=document.getElementById('cofrePercentual').value;
   const valor_meta=meta_tipo==='valor'&&valorMetaRaw?parseFloat(valorMetaRaw):null;
   const percentual=meta_tipo==='percentual'&&percentualRaw?parseFloat(percentualRaw):null;
+  const notas=document.getElementById('cofreNotas').value.trim()||null;
   if(!nome){ toast('Dá um nome pro cofre 🌿'); return; }
 
-  const payload={nome,tipo,icone,valor_atual,valor_meta,meta_tipo,percentual};
+  const payload={nome,tipo,icone,valor_atual,valor_meta,meta_tipo,percentual,notas};
   let error;
   if(id){
     ({error}=await supabaseClient.from('cofres').update(payload).eq('id',id));
@@ -881,16 +925,54 @@ async function deleteCofre(id){
   await loadPerfilStats();
 }
 
+async function toggleCofreConcluido(id){
+  if(!supabaseClient)return;
+  const c=cofresCache.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const novo=c.concluido===false;
+  await supabaseClient.from('cofres').update({concluido:novo}).eq('id',id);
+  await loadCofres();
+  await loadHomeData();
+  toast(novo?'Marcado como em dia 🌿':'Marcado pra dar atenção 🌿');
+}
+
+async function redistribuirCofres(){
+  if(!supabaseClient||!currentUser)return;
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  if(!percentuais.length){ toast('Nenhum cofre com % configurado ainda 🌿'); return; }
+  const pool=percentuais.reduce((s,c)=>s+Number(c.valor_atual||0),0);
+  if(pool<=0){ toast('Não tem dinheiro nesses cofres pra redistribuir ainda 🌿'); return; }
+  const somaPercent=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+  const mudancas=[];
+  for(const c of percentuais){
+    const novo=Math.round((pool*(Number(c.percentual)||0)/100)*100)/100;
+    if(Math.abs(novo-Number(c.valor_atual||0))>0.01)mudancas.push(`${c.nome}: ${formatBRL(c.valor_atual)} → ${formatBRL(novo)}`);
+    await supabaseClient.from('cofres').update({valor_atual:novo}).eq('id',c.id);
+  }
+  await loadCofres();
+  await loadHomeData();
+  await loadPerfilStats();
+  if(!mudancas.length){ toast('Já estava tudo redistribuído certinho 🌿'); return; }
+  const aviso=Math.round(somaPercent)!==100?` (suas % somam ${somaPercent}%, não 100%)`:'';
+  toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
+}
+
 function cofreCardHtml(c,editable){
   const prog=c.valor_meta?Math.min(100,Math.round((c.valor_atual/c.valor_meta)*100)):null;
   const metaLabel=c.meta_tipo==='percentual'&&c.percentual?`<div class="meta">${c.percentual}% de cada entrada</div>`:(c.valor_meta?`<div class="meta">de ${formatBRL(c.valor_meta)}</div>`:'');
+  const pendente=c.concluido===false;
+  const dotColor=pendente?'var(--amber)':'var(--sage)';
+  const dotTitle=pendente?'Precisa de atenção — toca pra marcar como resolvido':'Em dia — toca se precisar de atenção';
+  const statusDot=`<span onclick='toggleCofreConcluido("${c.id}")' title="${dotTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor};margin-right:6px;cursor:pointer;vertical-align:middle"></span>`;
+  const cardStyle=pendente?'border-color:var(--amber-soft);background:var(--amber-tint)':'';
   return `
-    <div class="cofre-row">
+    <div class="cofre-row" style="${cardStyle}">
       <div class="cofre-ic" style="background:var(--sage-tint)">${escapeHtml(c.icone||'🧾')}</div>
       <div style="flex:1;min-width:0">
-        <div class="nm">${escapeHtml(c.nome)}</div>
+        <div class="nm">${statusDot}${escapeHtml(c.nome)}</div>
         ${prog!==null?`<div class="prog"><i style="width:${prog}%"></i></div>`:''}
       </div>
+      <button onclick='iniciarConversaCofre("${c.id}")' title="Conversar sobre esse cofre" style="background:0;border:0;color:var(--sage);font-size:14px;cursor:pointer;margin-right:4px">▶</button>
       <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${metaLabel}</div>
       ${editable?`<button onclick='editCofreById("${c.id}")' style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;margin-left:6px">✎</button><button onclick="deleteCofre('${c.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer">×</button>`:''}
     </div>
