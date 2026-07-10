@@ -1,17 +1,48 @@
-const SYSTEM_PROMPT = `Você é a Aya, a assistente financeira de um app de organização financeira pessoal em português do Brasil.
+const BASE_PROMPT = `Você é a Aya, a assistente financeira pessoal de um app de organização financeira em português do Brasil.
 Seu tom é calmo, acolhedor e sem julgamento — nunca dá sermão, ajuda a pessoa a decidir com clareza.
 Respostas curtas (2-4 frases), diretas, podem usar 1 emoji no máximo.
+Use APENAS os dados reais fornecidos abaixo. Nunca invente números. Se não houver dado suficiente pra responder algo, diga isso com gentileza e sugira criar um cofre ou registrar um movimento.`;
 
-Contexto financeiro atual do usuário (dados de exemplo do protótipo):
-- Livre para gastar hoje: R$ 87
-- Livre (mês): R$ 350 | Comprometido: R$ 890 | Guardado: R$ 1.820
-- Cofre "Contas do mês": R$ 890 (aluguel, luz, internet)
-- Cofre "Reserva de emergência": R$ 1.500 de R$ 6.000 (25%, rendendo 100% do CDI)
-- Cofre "Viagem": R$ 320 de R$ 3.000
-- Gastou R$ 312 em iFood esse mês (23% a mais que mês passado)
-- Salário de R$ 4.200 recebido via Open Finance
+function formatBRL(v) {
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
 
-Use esses números quando fizer sentido para responder. Se a pergunta não tiver relação com dinheiro, responda com gentileza e traga a conversa de volta para finanças se possível.`;
+function buildSystemPrompt(context) {
+  const c = context || {};
+  const nome = c.nome || 'a pessoa usando o app';
+  const estiloMap = {
+    aperto: 'vive no aperto — foco em sair do vermelho, sem julgamento',
+    auto: 'autônomo/MEI — separa imposto, 13º, mistura PF com PJ',
+    impulso: 'gasta por impulso — precisa de mais freio na hora da tentação',
+  };
+  const estiloTxt = estiloMap[c.estilo] || 'perfil ainda não definido';
+
+  const cofres = Array.isArray(c.cofres) ? c.cofres : [];
+  const cofresTxt = cofres.length
+    ? cofres.map((cf) => {
+        let linha = `- "${cf.nome}" (${cf.tipo || 'guardado'}): ${formatBRL(cf.valor_atual)}`;
+        if (cf.valor_meta) linha += ` de meta ${formatBRL(cf.valor_meta)}`;
+        if (cf.percentual) linha += `, recebe ${cf.percentual}% de cada entrada registrada`;
+        return linha;
+      }).join('\n')
+    : 'Nenhum cofre criado ainda.';
+
+  const movs = Array.isArray(c.movimentosRecentes) ? c.movimentosRecentes : [];
+  const movsTxt = movs.length
+    ? movs.map((m) => `- ${m.tipo === 'entrada' ? '+' : '-'}${formatBRL(m.valor)} — ${m.descricao}`).join('\n')
+    : 'Nenhum movimento registrado ainda.';
+
+  return `${BASE_PROMPT}
+
+Nome do usuário: ${nome}
+Perfil: ${estiloTxt}
+
+Cofres reais de ${nome}:
+${cofresTxt}
+
+Últimos movimentos registrados por ${nome}:
+${movsTxt}`;
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -19,7 +50,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const { message, history } = req.body || {};
+  const { message, history, context } = req.body || {};
   if (!message || typeof message !== 'string') {
     res.status(400).json({ error: 'Missing "message" field' });
     return;
@@ -32,7 +63,7 @@ module.exports = async (req, res) => {
   }
 
   const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: buildSystemPrompt(context) },
     ...(Array.isArray(history) ? history.slice(-10) : []),
     { role: 'user', content: message },
   ];
