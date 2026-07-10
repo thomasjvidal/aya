@@ -1154,37 +1154,46 @@ async function enablePush(){
     }
     document.getElementById('pushSw').style.background='var(--sage)';
     if(json.nudgeToken){
-      const bancoUrl=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=banco&app=Banco`;
-      const compraUrl=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=compra&app=Loja`;
+      const linkRow=(emoji,label,app,tipo,sub)=>{
+        const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
+        return `
+          <div style="margin-bottom:12px">
+            <div style="font-weight:600;color:var(--ink);font-size:13px;margin-bottom:2px">${emoji} ${label}</div>
+            ${sub?`<div style="font-size:11.5px;color:var(--ink2);margin-bottom:6px">${sub}</div>`:''}
+            <div style="display:flex;gap:8px">
+              <input readonly value="${escapeHtml(url)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+              <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+            </div>
+          </div>`;
+      };
+      const passo=(n,html)=>`
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:11px">
+          <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--sage);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${n}</span>
+          <span style="font-size:13px;line-height:1.5;padding-top:1px">${html}</span>
+        </div>`;
       const setup=document.getElementById('pushSetup');
       setup.style.display='block';
       setup.innerHTML=`
-        <div style="font-weight:600;color:var(--ink);margin-bottom:10px">Notificações ativadas ✓ — falta configurar no seu iPhone</div>
+        <div style="font-weight:700;color:var(--ink);font-size:14.5px;margin-bottom:4px">Notificações ativadas ✓</div>
+        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 14px">Falta 1 configuração no seu iPhone — escolhe o link do app que você quer e segue os passos abaixo.</p>
 
-        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">🏦 Quando abrir o app do banco</div>
-        <p style="margin:0 0 8px">Pra registrar rapidinho o que rolou (tipo um Pix que caiu)</p>
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <input readonly value="${escapeHtml(bancoUrl)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
-          <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
-        </div>
+        ${linkRow('🏦','Banco','Banco','banco','Pra registrar rapidinho o que rolou (tipo um Pix que caiu)')}
+        ${linkRow('📦','Amazon','Amazon','compra','')}
+        ${linkRow('👗','Shein','Shein','compra','')}
+        ${linkRow('🛒','Mercado Livre','Mercado Livre','compra','')}
+        ${linkRow('🛍️','Shopee','Shopee','compra','')}
+        ${linkRow('🏬','Outra loja','Loja','compra','Cola o nome do app na hora de escolher, no passo 4')}
 
-        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">🛍️ Quando abrir um app de compras</div>
-        <p style="margin:0 0 8px">Pra Aya puxar assunto antes de você decidir (Amazon, Shopee, Mercado Livre…)</p>
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <input readonly value="${escapeHtml(compraUrl)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
-          <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
-        </div>
+        <div style="font-weight:700;color:var(--ink);font-size:13.5px;margin:16px 0 12px">Como configurar (repete pra cada app acima)</div>
+        ${passo(1,'Toca em <b>Copiar</b> no link do app que você quer')}
+        ${passo(2,'Abre o app <b>Atalhos</b> (ou toca no botão verde abaixo)')}
+        ${passo(3,'Aba <b>Automação</b> (embaixo) → botão <b>+</b> no canto → <b>App</b>')}
+        ${passo(4,'Escolhe o app certo → marca <b>Está Aberto</b> → <b>Seguinte</b>')}
+        ${passo(5,'Toca em <b>Adicionar Ação</b>, busca <b>"Obter Conteúdo de URL"</b> e adiciona')}
+        ${passo(6,'Toca no campo <b>URL</b> que apareceu e cola o link (o que você copiou no passo 1)')}
+        ${passo(7,'Desativa <b>Perguntar Antes de Executar</b> → toca em <b>Concluído</b>')}
 
-        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">Como configurar (repete pra cada app que quiser)</div>
-        <ol style="padding-left:18px;margin:0 0 12px">
-          <li>Toque em <b>Copiar</b> no link certo ali em cima</li>
-          <li>Abra o app <b>Atalhos</b> (ou toque no botão abaixo)</li>
-          <li>Aba <b>Automação</b> → <b>+</b> → <b>App</b></li>
-          <li>Escolha o app (banco ou loja) → <b>Está Aberto</b> → Próximo</li>
-          <li>Adicione a ação <b>Obter Conteúdo de URL</b> e cole o link (Copiar → Colar)</li>
-          <li>Desative <b>Perguntar Antes de Executar</b> → Concluído</li>
-        </ol>
-        <a href="shortcuts://" style="display:block;text-align:center;background:var(--sage-tint);color:var(--sage);border-radius:12px;padding:11px;font-weight:600;font-size:13px;text-decoration:none">Abrir app Atalhos</a>
+        <a href="shortcuts://" style="display:block;text-align:center;background:var(--sage-tint);color:var(--sage);border-radius:12px;padding:11px;font-weight:600;font-size:13px;text-decoration:none;margin-top:6px">Abrir app Atalhos</a>
       `;
     }
     toast('Notificações da Aya ativadas 🌿');
