@@ -1314,6 +1314,8 @@ async function enablePush(){
     if(json.nudgeToken){
       const linkRow=(emoji,label,app,tipo,sub)=>{
         const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
+        const shortcutFileUrl=`${location.origin}/api/shortcut?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
+        const importUrl=`shortcuts://import-workflow?url=${encodeURIComponent(shortcutFileUrl)}&name=${encodeURIComponent('Aya - '+app)}`;
         return `
           <div style="margin-bottom:12px">
             <div style="font-weight:600;color:var(--ink);font-size:13px;margin-bottom:2px">${emoji} ${label}</div>
@@ -1322,6 +1324,7 @@ async function enablePush(){
               <input readonly value="${escapeHtml(url)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
               <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
             </div>
+            <a href="${importUrl}" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--sage);text-decoration:underline">✨ Tentar adicionar em 1 toque (beta)</a>
           </div>`;
       };
       const passo=(n,html)=>`
@@ -1333,7 +1336,8 @@ async function enablePush(){
       setup.style.display='block';
       setup.innerHTML=`
         <div style="font-weight:700;color:var(--ink);font-size:14.5px;margin-bottom:4px">Notificações ativadas ✓</div>
-        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 14px">Falta 1 configuração no seu iPhone — escolhe o link do app que você quer e segue os passos abaixo.</p>
+        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 6px">Falta 1 configuração no seu iPhone — escolhe o link do app que você quer.</p>
+        <p style="font-size:11.5px;color:var(--ink2);margin:0 0 14px;background:var(--sage-tint);padding:8px 10px;border-radius:10px">✨ Cada app tem um botão "1 toque (beta)" — tenta ele primeiro. Se o iPhone disser que não confia no atalho, vai em Ajustes → Atalhos → Avançado → ative "Permitir Atalhos Não Confiáveis" e tenta de novo. Se mesmo assim não rolar, usa o passo a passo manual embaixo — esse sempre funciona.</p>
 
         ${linkRow('🏦','Banco','Banco','banco','Pra registrar rapidinho o que rolou (tipo um Pix que caiu)')}
         ${linkRow('📦','Amazon','Amazon','compra','')}
