@@ -950,9 +950,10 @@ async function redistribuirCofres(){
   const pool=percentuais.reduce((s,c)=>s+Number(c.valor_atual||0),0);
   if(pool<=0){ toast('Não tem dinheiro nesses cofres pra redistribuir ainda 🌿'); return; }
   const somaPercent=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+  if(somaPercent<=0){ toast('Configura um % maior que 0 nos cofres 🌿'); return; }
   const mudancas=[];
   for(const c of percentuais){
-    const novo=Math.round((pool*(Number(c.percentual)||0)/100)*100)/100;
+    const novo=Math.round((pool*(Number(c.percentual)||0)/somaPercent)*100)/100;
     if(Math.abs(novo-Number(c.valor_atual||0))>0.01)mudancas.push(`${c.nome}: ${formatBRL(c.valor_atual)} → ${formatBRL(novo)}`);
     await supabaseClient.from('cofres').update({valor_atual:novo}).eq('id',c.id);
   }
@@ -960,7 +961,7 @@ async function redistribuirCofres(){
   await loadHomeData();
   await loadPerfilStats();
   if(!mudancas.length){ toast('Já estava tudo redistribuído certinho 🌿'); return; }
-  const aviso=Math.round(somaPercent)!==100?` (suas % somam ${somaPercent}%, não 100%)`:'';
+  const aviso=Math.round(somaPercent)!==100?` (isso é só entre esses cofres — suas % somam ${somaPercent}%, o resto continua livre na Hoje)`:'';
   toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
 }
 
@@ -1008,10 +1009,17 @@ function editCofreById(id){
 
 async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
+  const [{data:cofres},{data:entradas}]=await Promise.all([
+    supabaseClient.from('cofres').select('*').order('created_at',{ascending:true}),
+    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true)
+  ]);
   const list=cofres||[];
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
-  const livre=sum('livre'),contas=sum('contas'),guardado=sum('guardado');
+  const contas=sum('contas'),guardado=sum('guardado');
+  const totalOrganizado=(entradas||[]).reduce((s,m)=>s+Number(m.valor||0),0);
+  const totalNosCofres=list.reduce((s,c)=>s+Number(c.valor_atual||0),0);
+  const naoAlocado=Math.max(0,totalOrganizado-totalNosCofres);
+  const livre=sum('livre')+naoAlocado;
 
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
