@@ -360,7 +360,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
-    <div class="sec-title">Histórico</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Histórico</span>
+      <select id="movFiltroCofre" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
+        <option value="">Todos os cofres</option>
+      </select>
+    </div>
     <div id="movList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
@@ -423,9 +428,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <input id="qaDesc" type="text" placeholder="Ex: Pix recebido, Mercado, Uber…" required>
       <input id="qaValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor (R$)" required>
       <div style="display:flex;gap:10px;width:100%;justify-content:center;margin:2px 0">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="entrada" checked> Entrou</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida"> Saiu</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="entrada" checked onchange="toggleQaCofre()"> Entrou</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida" onchange="toggleQaCofre()"> Saiu</label>
       </div>
+      <select id="qaCofre" style="display:none;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
+        <option value="">De qual cofre? (opcional)</option>
+      </select>
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
@@ -597,9 +605,11 @@ async function buildChatContext(){
     supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(10),
     supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single()
   ]);
+  const resumo=await calcResumoFinanceiro(cofresRes.data||[]);
   return {
     nome:perfilRes.data?.nome,
     estilo:perfilRes.data?.estilo,
+    resumo,
     cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null,notas:c.notas||null,precisaAtencao:c.concluido===false})),
     movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao}))
   };
@@ -724,8 +734,21 @@ async function onAuthed(session){
   await loadMovimentos();
   await loadPerfilStats();
   await loadPendentes();
+  await checkPushStatus();
   checkQuickAddHash();
   checkCalmaHash();
+}
+
+async function checkPushStatus(){
+  const sw=document.getElementById('pushSw');
+  if(!sw)return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    if(!reg)return;
+    const sub=await reg.pushManager.getSubscription();
+    sw.style.background=sub?'var(--sage)':'var(--line)';
+  }catch(e){}
 }
 
 /* ================= QUICK ADD ================= */
@@ -742,19 +765,43 @@ function checkQuickAddHash(){
 }
 window.addEventListener('hashchange',checkQuickAddHash);
 
+function toggleQaCofre(){
+  const tipo=document.querySelector('input[name="qaTipo"]:checked').value;
+  const sel=document.getElementById('qaCofre');
+  if(!sel)return;
+  if(tipo==='saida'){
+    sel.style.display='block';
+    sel.innerHTML='<option value="">💰 Dinheiro livre (sem cofre)</option>'+
+      (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)} — ${formatBRL(c.valor_atual)}</option>`).join('');
+  }else{
+    sel.style.display='none';
+    sel.value='';
+  }
+}
+
 document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   e.preventDefault();
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   const descricao=document.getElementById('qaDesc').value.trim();
   const valor=parseFloat(document.getElementById('qaValor').value);
   const tipo=document.querySelector('input[name="qaTipo"]:checked').value;
+  const cofreId=tipo==='saida'?(document.getElementById('qaCofre').value||null):null;
   if(!descricao||!valor||isNaN(valor))return;
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo});
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo,cofre_id:cofreId});
   if(!error){
+    if(tipo==='saida'&&cofreId){
+      const c=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
+      if(c){
+        const novoValor=Math.max(0,Number(c.valor_atual||0)-valor);
+        await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
+      }
+    }
     document.getElementById('qaDesc').value='';
     document.getElementById('qaValor').value='';
+    document.getElementById('qaCofre').value='';
     closeQuickAdd();
     toast(tipo==='entrada'?'Registrado 🌿 Vai em Cofres pra organizar quando quiser':'Registrado 🌿');
+    await loadCofres();
     await loadMovimentos();
     await loadHomeData();
     await loadPerfilStats();
@@ -825,7 +872,10 @@ async function organizarPendentes(){
 async function loadProfile(){
   if(!supabaseClient||!currentUser)return;
   const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
-  if(error||!data)return;
+  if(error||!data){
+    toast('Não consegui carregar seu perfil 😕');
+    return;
+  }
   document.getElementById('h-name-txt').textContent=data.nome||'Você';
   document.getElementById('nomeInput').value=data.nome||'';
   applyProfileCopy(data.estilo||'aperto');
@@ -1112,24 +1162,31 @@ function editCofreById(id){
   go('cofres');
 }
 
-async function loadHomeData(){
-  if(!supabaseClient||!currentUser)return;
-  const [{data:cofres},{data:entradas}]=await Promise.all([
-    supabaseClient.from('cofres').select('*').order('created_at',{ascending:true}),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true)
+async function calcResumoFinanceiro(cofresJaCarregados){
+  const list=cofresJaCarregados||(await supabaseClient.from('cofres').select('*')).data||[];
+  const [{data:entradas},{data:saidasLivres}]=await Promise.all([
+    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true),
+    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null)
   ]);
-  const list=cofres||[];
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
   const totalOrganizado=(entradas||[]).reduce((s,m)=>s+Number(m.valor||0),0);
+  const totalGastoLivre=(saidasLivres||[]).reduce((s,m)=>s+Number(m.valor||0),0);
   const totalNosCofres=list.reduce((s,c)=>s+Number(c.valor_atual||0),0);
-  const naoAlocado=Math.max(0,totalOrganizado-totalNosCofres);
+  const naoAlocado=Math.max(0,totalOrganizado-totalNosCofres-totalGastoLivre);
   const livre=sum('livre')+naoAlocado;
-
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
   const diasRestantes=Math.max(1,fimDoMes-hoje.getDate()+1);
   const disponivelHoje=Math.floor(livre/diasRestantes);
+  return {livre,contas,guardado,naoAlocado,totalOrganizado,disponivelHoje,total:livre+contas+guardado};
+}
+
+async function loadHomeData(){
+  if(!supabaseClient||!currentUser)return;
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
+  const list=cofres||[];
+  const {livre,contas,guardado,disponivelHoje,naoAlocado}=await calcResumoFinanceiro(list);
 
   const heroEl=document.getElementById('heroAmount');
   if(heroEl)heroEl.innerHTML=`<small>R$</small>${disponivelHoje}`;
@@ -1204,22 +1261,54 @@ async function loadHomeData(){
 }
 
 /* ================= MOVIMENTO (real) ================= */
+function popularFiltroCofre(){
+  const sel=document.getElementById('movFiltroCofre');
+  if(!sel)return;
+  const atual=sel.value;
+  sel.innerHTML='<option value="">Todos os cofres</option><option value="__livre__">💰 Dinheiro livre (sem cofre)</option>'+
+    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+  sel.value=atual;
+}
+
+const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
 async function loadMovimentos(){
   if(!supabaseClient||!currentUser)return;
   const wrap=document.getElementById('movList');
   if(!wrap)return;
-  const {data,error}=await supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(50);
+  popularFiltroCofre();
+  const filtro=document.getElementById('movFiltroCofre')?document.getElementById('movFiltroCofre').value:'';
+  let query=supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(200);
+  if(filtro==='__livre__')query=query.is('cofre_id',null);
+  else if(filtro)query=query.eq('cofre_id',filtro);
+  const {data,error}=await query;
   if(error||!data||!data.length){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2);margin-top:6px">Nada registrado ainda. Quando abrir seu banco (com o aviso da Aya) ou salvar algo manualmente, aparece aqui.</p>';
     return;
   }
-  wrap.innerHTML=data.map(m=>`
-    <div class="tx">
-      <div class="tx-ic">${m.tipo==='entrada'?'💰':'💸'}</div>
-      <div><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div>
-      <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
-    </div>
-  `).join('');
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+
+  let html='';
+  let mesAtual=null;
+  for(const m of data){
+    const d=new Date(m.created_at);
+    const chaveMs=`${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
+    if(chaveMs!==mesAtual){
+      mesAtual=chaveMs;
+      html+=`<div class="day-label">${chaveMs}</div>`;
+    }
+    const cofre=m.cofre_id?cofreById[m.cofre_id]:null;
+    const origemTxt=m.tipo==='saida'?(cofre?`${escapeHtml(cofre.icone||'🧾')} ${escapeHtml(cofre.nome)}`:'💰 dinheiro livre'):'';
+    html+=`
+      <div class="tx">
+        <div class="tx-ic">${m.tipo==='entrada'?'💰':'💸'}</div>
+        <div><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}</div></div>
+        <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
+      </div>
+    `;
+  }
+  wrap.innerHTML=html;
 }
 
 /* ================= PERFIL: nota e sequência reais ================= */
