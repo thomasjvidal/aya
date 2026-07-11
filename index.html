@@ -787,7 +787,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const tipo=document.querySelector('input[name="qaTipo"]:checked').value;
   const cofreId=tipo==='saida'?(document.getElementById('qaCofre').value||null):null;
   if(!descricao||!valor||isNaN(valor))return;
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo,cofre_id:cofreId});
+  const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo,cofre_id:cofreId}).select('id').single();
   if(!error){
     if(tipo==='saida'&&cofreId){
       const c=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
@@ -800,13 +800,20 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     document.getElementById('qaValor').value='';
     document.getElementById('qaCofre').value='';
     closeQuickAdd();
-    toast(tipo==='entrada'?'Registrado 🌿 Vai em Cofres pra organizar quando quiser':'Registrado 🌿');
+    if(tipo==='entrada'){
+      // Vai pra Home na hora — é lá que os cofres e o "Livre pra gastar hoje" enchem animado na frente do usuário.
+      go('hoje');
+      await distribuirPercentuais(valor);
+      if(novoMov?.id)await supabaseClient.from('movimentos').update({organizado:true}).eq('id',novoMov.id);
+    }else{
+      toast('Registrado 🌿');
+      go('mov');
+    }
     await loadCofres();
     await loadMovimentos();
     await loadHomeData();
     await loadPerfilStats();
     await loadPendentes();
-    go('mov');
   }else{
     toast('Não consegui salvar agora 😕');
   }
