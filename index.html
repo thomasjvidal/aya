@@ -262,6 +262,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button class="cta" onclick="go('aya')">Conversar</button>
     </div>
 
+    <div id="atencaoAviso" style="display:none;margin:4px 0 10px"></div>
+
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
       <button type="button" onclick="irCriarCofre()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">+ Criar cofre</button>
@@ -391,6 +393,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
       <div class="msg2" id="scoreMsg">Ainda sem histórico — comece registrando um movimento ou criando um cofre.</div>
       <div class="streak" id="streakRow"></div>
+      <p style="font-size:11px;color:var(--ink2);margin-top:12px;line-height:1.4">Como calculamos: dias com algo registrado essa semana + quantos cofres têm meta ou % definido. Quanto mais você usa a Aya, maior a nota.</p>
     </div>
 
     <div class="sec-title">Seu nome</div>
@@ -443,7 +446,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   <div class="calma" id="calma">
     <div class="halo">🌿</div>
     <h1>Calma.</h1>
-    <p>Vi que você abriu um app de compras. O que você tá pensando em levar?</p>
+    <p id="calmaTexto">Vi que você abriu um app de compras. O que você tá pensando em levar?</p>
     <p style="font-size:14px">Não vim te impedir. Só respira comigo 3 segundos antes.</p>
     <div class="breath-hint">inspira… segura… solta…</div>
     <div class="acts">
@@ -490,18 +493,34 @@ function toggleVisaoGeral(){
 }
 
 /* calma modal */
-function showCalma(){document.getElementById('calma').classList.add('show');}
+let calmaApp=null;
+function showCalma(appNome){
+  calmaApp=appNome||null;
+  const txt=document.getElementById('calmaTexto');
+  if(txt){
+    txt.textContent=calmaApp
+      ? `Vi que você abriu ${calmaApp}. O que você tá pensando em levar?`
+      : 'Vi que você abriu um app de compras. O que você tá pensando em levar?';
+  }
+  document.getElementById('calma').classList.add('show');
+}
 function hideCalma(t){
   document.getElementById('calma').classList.remove('show');
-  if(location.hash==='#calma')history.replaceState(null,'',location.pathname+location.search);
+  if(location.hash.startsWith('#calma'))history.replaceState(null,'',location.pathname+location.search);
   toast(t);
 }
 function abrirChatDaCalma(){
+  const appNome=calmaApp;
   hideCalma('');
   go('aya');
+  if(appNome)askAya(`Abri ${appNome} agora. Me ajuda a decidir se é um bom momento pra comprar algo?`);
 }
 function checkCalmaHash(){
-  if(location.hash==='#calma')showCalma();
+  if(location.hash.startsWith('#calma')){
+    const partes=location.hash.split('=');
+    const appNome=partes.length>1?decodeURIComponent(partes[1]):null;
+    showCalma(appNome);
+  }
 }
 window.addEventListener('hashchange',checkCalmaHash);
 
@@ -600,10 +619,11 @@ function copiarTexto(texto,btn){
 }
 async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
-  const [cofresRes,movsRes,perfilRes]=await Promise.all([
+  const [cofresRes,movsRes,perfilRes,favRes]=await Promise.all([
     supabaseClient.from('cofres').select('*'),
     supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(10),
-    supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single()
+    supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single(),
+    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(10)
   ]);
   const resumo=await calcResumoFinanceiro(cofresRes.data||[]);
   return {
@@ -611,7 +631,8 @@ async function buildChatContext(){
     estilo:perfilRes.data?.estilo,
     resumo,
     cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null,notas:c.notas||null,precisaAtencao:c.concluido===false})),
-    movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao}))
+    movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao})),
+    favoritos:(favRes.data||[]).map(f=>({titulo:f.titulo,url:f.url}))
   };
 }
 
@@ -862,14 +883,18 @@ async function loadPendentes(){
   if(!card)return;
   const {data,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
   if(error){
+    card.style.display='block';
     card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml(error.message||'')}</p>`;
     return;
   }
   const pend=data||[];
   if(!pend.length){
-    card.innerHTML='<div class="head"><span class="pulse" style="background:var(--line)"></span><h3>Tudo organizado</h3></div><div class="cap" style="margin-top:6px">Registra uma entrada na aba Movimento que ela aparece aqui pra você organizar.</div>';
+    // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
+    // aparece de novo se sobrar algo pendente por algum motivo (ex: erro na distribuição).
+    card.style.display='none';
     return;
   }
+  card.style.display='block';
   const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
   card.innerHTML=`
     <div class="head"><span class="pulse"></span><h3>Dinheiro esperando organização</h3></div>
@@ -996,9 +1021,19 @@ async function loadFavoritos(){
         <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
         <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
       </div>
+      <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:0;border:0;color:var(--sage);font-size:14px;cursor:pointer;margin-right:2px">▶</button>
       <button onclick="removeFavorito('${f.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer;flex-shrink:0">×</button>
     </div>
   `).join('');
+}
+
+let favoritosCache=[];
+async function conversarSobreFavorito(id){
+  favoritosCache=(await supabaseClient.from('favoritos').select('*')).data||[];
+  const f=favoritosCache.find(x=>String(x.id)===String(id));
+  if(!f)return;
+  go('aya');
+  await askAya(`Salvei esse link nos meus favoritos: ${f.titulo} (${f.url}). É um bom momento pra comprar isso? Me ajuda a decidir.`);
 }
 
 async function removeFavorito(id){
@@ -1299,6 +1334,17 @@ async function loadHomeData(){
       miniList.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres. Cria o primeiro na aba Cofres 🌿</p>';
     }else{
       miniList.innerHTML=list.map(c=>cofreCardHtml(c,false)).join('');
+    }
+  }
+
+  const atencao=list.filter(c=>c.concluido===false);
+  const avisoEl=document.getElementById('atencaoAviso');
+  if(avisoEl){
+    if(atencao.length){
+      avisoEl.style.display='block';
+      avisoEl.innerHTML=`<button type="button" onclick="go('cofres')" style="width:100%;display:flex;align-items:center;gap:8px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:11px 13px;font-family:inherit;font-size:12.5px;color:#8a5a1e;cursor:pointer;text-align:left"><span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0"></span>${atencao.length} cofre${atencao.length>1?'s':''} precisa${atencao.length>1?'m':''} de atenção — toca pra ver</button>`;
+    }else{
+      avisoEl.style.display='none';
     }
   }
 
