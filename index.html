@@ -819,12 +819,31 @@ async function distribuirPercentuais(valorEntrada){
   if(!cofres||!cofres.length){ toast('Registrado 🌿 (nenhum cofre com % configurado ainda)'); return; }
   const partes=[];
   const falhas=[];
+  const atualizados=[];
   for(const c of cofres){
     const parte=Math.round((valorEntrada*(Number(c.percentual)||0)/100)*100)/100;
     if(parte<=0)continue;
-    const {error}=await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+parte,concluido:false}).eq('id',c.id);
+    const valorAntigo=Number(c.valor_atual||0);
+    const valorNovo=valorAntigo+parte;
+    const {error}=await supabaseClient.from('cofres').update({valor_atual:valorNovo,concluido:false}).eq('id',c.id);
     if(error){ falhas.push(c.nome); continue; }
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
+    atualizados.push({id:c.id,de:valorAntigo,para:valorNovo});
+  }
+  // Cofres enchem em sequência (stagger ~80ms), com o valor contando pra cima
+  // e um haptic leve por cofre — o "ver o dinheiro se organizando sozinho".
+  if(atualizados.length){
+    await new Promise((resolve)=>{
+      atualizados.forEach((a,i)=>{
+        setTimeout(()=>{
+          document.querySelectorAll(`[data-cofre-id="${a.id}"] .val b`).forEach((el)=>animarValor(el,a.de,a.para));
+          setTimeout(()=>{
+            vibrar('light');
+            if(i===atualizados.length-1){ vibrar('success'); resolve(); }
+          },650);
+        },i*80);
+      });
+    });
   }
   if(falhas.length)toast(`Deu erro separando: ${falhas.join(', ')} 😕`);
   else toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
@@ -983,6 +1002,25 @@ async function removeFavorito(id){
 
 /* ================= COFRES (reais) ================= */
 function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
+// Vibração tátil curta (fraca no iOS Safari — trocar por @capacitor/haptics se virar app nativo).
+function vibrar(tipo){
+  if(!('vibrate' in navigator))return;
+  const padroes={light:10,medium:20,success:[15,40,25]};
+  navigator.vibrate(padroes[tipo]||10);
+}
+// Anima um número subindo (ou descendo) de "de" até "para", em vez de trocar o valor seco.
+function animarValor(el,de,para,{duracao=650,formatar}={}){
+  if(!el)return;
+  const fmt=formatar||((v)=>'R$ '+Math.round(v).toLocaleString('pt-BR'));
+  const inicio=performance.now();
+  function passo(agora){
+    const t=Math.min(1,(agora-inicio)/duracao);
+    const eased=1-Math.pow(1-t,3);
+    el.textContent=fmt(de+(para-de)*eased);
+    if(t<1)requestAnimationFrame(passo);
+  }
+  requestAnimationFrame(passo);
+}
 const TIPO_ICONE={livre:'🌿',contas:'🧾',guardado:'🛟'};
 
 function toggleCofreMetaTipo(){
@@ -1129,7 +1167,7 @@ function cofreCardHtml(c,editable){
   const statusDot=`<span onclick='toggleCofreConcluido("${c.id}")' title="${dotTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor};margin-right:6px;cursor:pointer;vertical-align:middle"></span>`;
   const cardStyle=pendente?'border-color:var(--amber-soft);background:var(--amber-tint)':'';
   return `
-    <div class="cofre-row" style="${cardStyle}">
+    <div class="cofre-row" data-cofre-id="${c.id}" style="${cardStyle}">
       <div class="cofre-ic" style="background:var(--sage-tint)">${escapeHtml(c.icone||'🧾')}</div>
       <div style="flex:1;min-width:0">
         <div class="nm">${statusDot}${escapeHtml(c.nome)}</div>
@@ -1189,7 +1227,16 @@ async function loadHomeData(){
   const {livre,contas,guardado,disponivelHoje,naoAlocado}=await calcResumoFinanceiro(list);
 
   const heroEl=document.getElementById('heroAmount');
-  if(heroEl)heroEl.innerHTML=`<small>R$</small>${disponivelHoje}`;
+  if(heroEl){
+    const anterior=parseInt(heroEl.textContent.replace(/[^\d-]/g,''),10);
+    if(!heroEl.querySelector('#heroAmountVal')||isNaN(anterior)||anterior===disponivelHoje){
+      heroEl.innerHTML=`<small>R$</small><span id="heroAmountVal">${disponivelHoje}</span>`;
+    }else{
+      heroEl.innerHTML=`<small>R$</small><span id="heroAmountVal">${anterior}</span>`;
+      // "Livre pra gastar hoje" recalcula na frente do usuário — número sobe/desce animado.
+      animarValor(document.getElementById('heroAmountVal'),anterior,disponivelHoje,{formatar:(v)=>String(Math.round(v))});
+    }
+  }
   const bL=document.getElementById('barLivre'); if(bL)bL.textContent=formatBRL(livre);
   const bC=document.getElementById('barComprometido'); if(bC)bC.textContent=formatBRL(contas);
   const bG=document.getElementById('barGuardado'); if(bG)bG.textContent=formatBRL(guardado);
