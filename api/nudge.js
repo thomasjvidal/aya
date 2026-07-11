@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
     body = app
       ? `Vi que você abriu ${app} 🌿 Calma — respira 3 segundos comigo antes de decidir.`
       : 'Calma 🌿 Respira 3 segundos comigo antes de decidir essa compra.';
-    url = '/#calma';
+    url = app ? `/#calma=${encodeURIComponent(app)}` : '/#calma';
   }
 
   const payload = JSON.stringify({ title: 'Aya', body, url });

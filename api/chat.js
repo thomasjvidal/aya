@@ -61,6 +61,11 @@ Guardado (reservas/sonhos): ${formatBRL(r.guardado)}
 Total geral somando tudo: ${formatBRL(r.total)}${r.naoAlocado > 0.005 ? `\nDesse "Livre", ${formatBRL(r.naoAlocado)} ainda não foi posto em nenhum cofre — sobra automática das % que não somam 100%.` : ''}`
     : 'Ainda não dá pra calcular um resumo (sem cofres ou sem movimentos organizados ainda).';
 
+  const favoritos = Array.isArray(c.favoritos) ? c.favoritos : [];
+  const favoritosTxt = favoritos.length
+    ? favoritos.map((f) => `- ${f.titulo} (${f.url})`).join('\n')
+    : 'Nenhum favorito salvo ainda.';
+
   return `${BASE_PROMPT}
 
 Nome do usuário: ${nome}
@@ -73,7 +78,11 @@ Cofres reais de ${nome}:
 ${cofresTxt}
 
 Últimos movimentos registrados por ${nome}:
-${movsTxt}`;
+${movsTxt}
+
+Links que ${nome} salvou nos favoritos (coisas que quer comprar, ainda não decidiu):
+${favoritosTxt}
+Se fizer sentido na conversa (a pessoa perguntar sobre compras, dinheiro sobrando, ou mencionar algo parecido), você pode puxar assunto sobre um desses favoritos espontaneamente — pergunte se ela já decidiu sobre aquilo.`;
 }
 
 module.exports = async (req, res) => {
