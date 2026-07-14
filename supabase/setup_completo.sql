@@ -54,6 +54,14 @@ alter table public.movimentos
 alter table public.movimentos
   add column if not exists organizado boolean not null default false;
 
+create table if not exists public.distribuicoes (
+  id uuid primary key default gen_random_uuid(),
+  movimento_id uuid not null references public.movimentos(id) on delete cascade,
+  cofre_id uuid not null references public.cofres(id) on delete cascade,
+  valor numeric not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.favoritos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -76,6 +84,7 @@ create table if not exists public.push_subscriptions (
 alter table public.profiles enable row level security;
 alter table public.cofres enable row level security;
 alter table public.movimentos enable row level security;
+alter table public.distribuicoes enable row level security;
 alter table public.favoritos enable row level security;
 alter table public.push_subscriptions enable row level security;
 
@@ -90,6 +99,14 @@ create policy "cofres: dono le/edita" on public.cofres
 drop policy if exists "movimentos: dono le/edita" on public.movimentos;
 create policy "movimentos: dono le/edita" on public.movimentos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "distribuicoes: dono le/edita" on public.distribuicoes;
+create policy "distribuicoes: dono le/edita" on public.distribuicoes
+  for all using (
+    exists (select 1 from public.movimentos m where m.id = movimento_id and m.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.movimentos m where m.id = movimento_id and m.user_id = auth.uid())
+  );
 
 drop policy if exists "favoritos: dono le/edita" on public.favoritos;
 create policy "favoritos: dono le/edita" on public.favoritos
