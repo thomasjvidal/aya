@@ -1403,12 +1403,38 @@ async function loadMovimentos(){
     html+=`
       <div class="tx">
         <div class="tx-ic">${m.tipo==='entrada'?'💰':'💸'}</div>
-        <div><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}</div></div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}</div></div>
         <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
+        <button onclick='excluirMovimento("${m.id}")' title="Excluir" style="background:0;border:0;color:var(--ink2);font-size:17px;cursor:pointer;flex-shrink:0;margin-left:2px">×</button>
       </div>
     `;
   }
   wrap.innerHTML=html;
+}
+
+async function excluirMovimento(id){
+  if(!supabaseClient||!currentUser)return;
+  if(!confirm('Excluir esse registro?'))return;
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
+  if(!mov){ toast('Não achei esse registro 😕'); return; }
+  const {error}=await supabaseClient.from('movimentos').delete().eq('id',id);
+  if(error){ toast('Não consegui excluir agora 😕'); return; }
+
+  if(mov.tipo==='saida'&&mov.cofre_id){
+    const c=(cofresCache||[]).find(x=>String(x.id)===String(mov.cofre_id));
+    if(c)await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+Number(mov.valor||0)}).eq('id',mov.cofre_id);
+    toast('Excluído 🌿 Devolvi o valor pro cofre');
+  }else if(mov.tipo==='entrada'&&mov.organizado){
+    toast('Excluído 🌿 Se essa entrada já tinha sido distribuída em cofres, ajusta o valor deles manualmente se precisar');
+  }else{
+    toast('Excluído 🌿');
+  }
+
+  await loadCofres();
+  await loadMovimentos();
+  await loadHomeData();
+  await loadPerfilStats();
+  await loadPendentes();
 }
 
 /* ================= PERFIL: nota e sequência reais ================= */
