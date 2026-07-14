@@ -433,6 +433,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div style="display:flex;gap:10px;width:100%;justify-content:center;margin:2px 0">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="entrada" checked onchange="toggleQaCofre()"> Entrou</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida" onchange="toggleQaCofre()"> Saiu</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="esperado" onchange="toggleQaCofre()"> Vai entrar</label>
       </div>
       <select id="qaCofre" style="display:none;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
         <option value="">De qual cofre? (opcional)</option>
@@ -621,7 +622,7 @@ async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
   const [cofresRes,movsRes,perfilRes,favRes]=await Promise.all([
     supabaseClient.from('cofres').select('*'),
-    supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(10),
+    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(10),
     supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single(),
     supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(10)
   ]);
@@ -829,6 +830,9 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
       go('hoje');
       await distribuirPercentuais(valor,novoMov?.id);
       if(novoMov?.id)await supabaseClient.from('movimentos').update({organizado:true}).eq('id',novoMov.id);
+    }else if(tipo==='esperado'){
+      toast('Anotado 🌿 Te aviso pra confirmar quando cair.');
+      go('cofres');
     }else{
       toast('Registrado 🌿');
       go('mov');
@@ -885,28 +889,64 @@ async function loadPendentes(){
   if(!supabaseClient||!currentUser)return;
   const card=document.getElementById('pendenteCard');
   if(!card)return;
-  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
-  if(error){
+  const [{data:esperados,error:errEsperados},{data:pend,error:errPend}]=await Promise.all([
+    supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
+    supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false)
+  ]);
+  if(errEsperados||errPend){
     card.style.display='block';
-    card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml(error.message||'')}</p>`;
+    card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml((errEsperados||errPend).message||'')}</p>`;
     return;
   }
-  const pend=data||[];
-  if(!pend.length){
+  const listaEsperados=esperados||[];
+  const listaPend=pend||[];
+  if(!listaEsperados.length&&!listaPend.length){
     // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
-    // aparece de novo se sobrar algo pendente por algum motivo (ex: erro na distribuição).
+    // aparece de novo se tiver algo em "vai entrar" ou sobrar algo pendente por algum motivo.
     card.style.display='none';
     return;
   }
   card.style.display='block';
-  const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
-  card.innerHTML=`
-    <div class="head"><span class="pulse"></span><h3>Dinheiro esperando organização</h3></div>
-    <div class="amt num">+ ${formatBRL(total)}</div>
-    <div class="cap">${pend.length} entrada${pend.length>1?'s':''} registrada${pend.length>1?'s':''} no Movimento, ainda não distribuída${pend.length>1?'s':''}</div>
-    <button class="split-btn" onclick="organizarPendentes()">Deixar a Aya organizar</button>
-    <div class="split-note">Distribui pelos cofres com % configurado. Sem % em nenhum? Só marca como organizado.</div>
-  `;
+  let html='';
+  if(listaEsperados.length){
+    html+=`<div class="head"><span class="pulse"></span><h3>Vai entrar</h3></div>`;
+    html+=listaEsperados.map(m=>`
+      <div class="tx">
+        <div class="tx-ic">🕓</div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">ainda não caiu</div></div>
+        <div class="amt num in">+ ${formatBRL(m.valor)}</div>
+        <button class="split-btn" style="width:auto;padding:8px 12px;font-size:12.5px" onclick="confirmarChegada('${m.id}')">Chegou!</button>
+        <button onclick='excluirMovimento("${m.id}")' title="Cancelar" style="background:0;border:0;color:var(--ink2);font-size:17px;cursor:pointer;flex-shrink:0;margin-left:2px">×</button>
+      </div>
+    `).join('');
+  }
+  if(listaPend.length){
+    const total=listaPend.reduce((s,m)=>s+Number(m.valor||0),0);
+    html+=`
+      <div class="head"><span class="pulse"></span><h3>Dinheiro esperando organização</h3></div>
+      <div class="amt num">+ ${formatBRL(total)}</div>
+      <div class="cap">${listaPend.length} entrada${listaPend.length>1?'s':''} registrada${listaPend.length>1?'s':''} no Movimento, ainda não distribuída${listaPend.length>1?'s':''}</div>
+      <button class="split-btn" onclick="organizarPendentes()">Deixar a Aya organizar</button>
+      <div class="split-note">Distribui pelos cofres com % configurado. Sem % em nenhum? Só marca como organizado.</div>
+    `;
+  }
+  card.innerHTML=html;
+}
+
+async function confirmarChegada(id){
+  if(!supabaseClient||!currentUser)return;
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).eq('tipo','esperado').single();
+  if(!mov){ toast('Não achei esse registro 😕'); return; }
+  const {error}=await supabaseClient.from('movimentos').update({tipo:'entrada'}).eq('id',id);
+  if(error){ toast('Não consegui confirmar agora 😕'); return; }
+  go('hoje');
+  await distribuirPercentuais(Number(mov.valor||0),id);
+  await supabaseClient.from('movimentos').update({organizado:true}).eq('id',id);
+  await loadPendentes();
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
 }
 
 async function organizarPendentes(){
@@ -1385,7 +1425,7 @@ async function loadMovimentos(){
   if(!wrap)return;
   popularFiltroCofre();
   const filtro=document.getElementById('movFiltroCofre')?document.getElementById('movFiltroCofre').value:'';
-  let query=supabaseClient.from('movimentos').select('*').order('created_at',{ascending:false}).limit(200);
+  let query=supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(200);
   if(filtro==='__livre__')query=query.is('cofre_id',null);
   else if(filtro)query=query.eq('cofre_id',filtro);
   const {data,error}=await query;

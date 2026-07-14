@@ -54,6 +54,9 @@ alter table public.movimentos
 alter table public.movimentos
   add column if not exists organizado boolean not null default false;
 
+alter table public.movimentos drop constraint if exists movimentos_tipo_check;
+alter table public.movimentos add constraint movimentos_tipo_check check (tipo in ('entrada','saida','esperado'));
+
 create table if not exists public.distribuicoes (
   id uuid primary key default gen_random_uuid(),
   movimento_id uuid not null references public.movimentos(id) on delete cascade,
