@@ -733,9 +733,12 @@ async function initApp(){
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(session){ await onAuthed(session); } else { showAuthForm(); }
 
-  supabaseClient.auth.onAuthStateChange((_event,session)=>{
-    if(session) onAuthed(session);
-    else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); showAuthForm(); }
+  supabaseClient.auth.onAuthStateChange((event,session)=>{
+    if(event==='INITIAL_SESSION')return;
+    if(session){
+      if(event==='TOKEN_REFRESHED'&&currentUser&&currentUser.id===session.user.id){ currentUser=session.user; return; }
+      onAuthed(session);
+    }else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); showAuthForm(); }
   });
 }
 
@@ -824,7 +827,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     if(tipo==='entrada'){
       // Vai pra Home na hora — é lá que os cofres e o "Livre pra gastar hoje" enchem animado na frente do usuário.
       go('hoje');
-      await distribuirPercentuais(valor);
+      await distribuirPercentuais(valor,novoMov?.id);
       if(novoMov?.id)await supabaseClient.from('movimentos').update({organizado:true}).eq('id',novoMov.id);
     }else{
       toast('Registrado 🌿');
@@ -840,7 +843,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   }
 });
 
-async function distribuirPercentuais(valorEntrada){
+async function distribuirPercentuais(valorEntrada,movimentoId){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('meta_tipo','percentual').not('percentual','is',null);
   if(selectErr){ toast('Registrado, mas não consegui checar os % 😕'); return; }
@@ -855,6 +858,7 @@ async function distribuirPercentuais(valorEntrada){
     const valorNovo=valorAntigo+parte;
     const {error}=await supabaseClient.from('cofres').update({valor_atual:valorNovo,concluido:false}).eq('id',c.id);
     if(error){ falhas.push(c.nome); continue; }
+    if(movimentoId)await supabaseClient.from('distribuicoes').insert({movimento_id:movimentoId,cofre_id:c.id,valor:parte});
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
     atualizados.push({id:c.id,de:valorAntigo,para:valorNovo});
   }
@@ -909,10 +913,10 @@ async function organizarPendentes(){
   if(!supabaseClient||!currentUser)return;
   const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
   if(error||!pend||!pend.length)return;
-  const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
-  await distribuirPercentuais(total);
-  const ids=pend.map(m=>m.id);
-  await supabaseClient.from('movimentos').update({organizado:true}).in('id',ids);
+  for(const m of pend){
+    await distribuirPercentuais(Number(m.valor||0),m.id);
+    await supabaseClient.from('movimentos').update({organizado:true}).eq('id',m.id);
+  }
   await loadPendentes();
   await loadCofres();
   await loadHomeData();
@@ -922,7 +926,10 @@ async function organizarPendentes(){
 
 async function loadProfile(){
   if(!supabaseClient||!currentUser)return;
-  const {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
+  let {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(error||!data){
+    ({data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single());
+  }
   if(error||!data){
     toast('Não consegui carregar seu perfil 😕');
     return;
@@ -1417,6 +1424,13 @@ async function excluirMovimento(id){
   if(!confirm('Excluir esse registro?'))return;
   const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
   if(!mov){ toast('Não achei esse registro 😕'); return; }
+
+  let distribs=[];
+  if(mov.tipo==='entrada'){
+    const {data}=await supabaseClient.from('distribuicoes').select('*').eq('movimento_id',id);
+    distribs=data||[];
+  }
+
   const {error}=await supabaseClient.from('movimentos').delete().eq('id',id);
   if(error){ toast('Não consegui excluir agora 😕'); return; }
 
@@ -1424,8 +1438,18 @@ async function excluirMovimento(id){
     const c=(cofresCache||[]).find(x=>String(x.id)===String(mov.cofre_id));
     if(c)await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+Number(mov.valor||0)}).eq('id',mov.cofre_id);
     toast('Excluído 🌿 Devolvi o valor pro cofre');
-  }else if(mov.tipo==='entrada'&&mov.organizado){
-    toast('Excluído 🌿 Se essa entrada já tinha sido distribuída em cofres, ajusta o valor deles manualmente se precisar');
+  }else if(mov.tipo==='entrada'&&distribs.length){
+    const partes=[];
+    for(const d of distribs){
+      const c=(cofresCache||[]).find(x=>String(x.id)===String(d.cofre_id));
+      const nomeC=c?c.nome:'um cofre';
+      const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',d.cofre_id).single();
+      const base=cAtual?Number(cAtual.valor_atual||0):Number(c?.valor_atual||0);
+      const novoValor=Math.max(0,base-Number(d.valor||0));
+      await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',d.cofre_id);
+      partes.push(`${formatBRL(d.valor)} de ${nomeC}`);
+    }
+    toast(`Excluído 🌿 Devolvi ${partes.join(', ')}`);
   }else{
     toast('Excluído 🌿');
   }
