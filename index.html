@@ -379,9 +379,17 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="sec-title">Favoritos</div>
     <p style="font-size:12.5px;color:var(--ink2);margin:-6px 4px 12px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
-    <form id="favForm" style="display:flex;gap:8px;margin-bottom:12px">
-      <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
-      <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
+    <form id="favForm" style="margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+        <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+        <select id="favCofre" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+          <option value="">Vem do Livre</option>
+        </select>
+      </div>
     </form>
     <div id="favList" class="mini-cofres"></div>
   </section>
@@ -808,7 +816,6 @@ async function onAuthed(session){
   currentUser=session.user;
   document.getElementById('authGate').classList.add('hidden');
   await loadProfile();
-  await loadFavoritos();
   await loadCofres();
   await loadHomeData();
   await loadMovimentos();
@@ -1097,6 +1104,15 @@ document.getElementById('authForm').addEventListener('submit',async(e)=>{
 /* ================= FAVORITOS ================= */
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
+function popularFavCofre(){
+  const sel=document.getElementById('favCofre');
+  if(!sel)return;
+  const atual=sel.value;
+  sel.innerHTML='<option value="">Vem do Livre</option>'+
+    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+  sel.value=atual;
+}
+
 document.getElementById('favForm').addEventListener('submit',async(e)=>{
   e.preventDefault();
   const input=document.getElementById('favUrl');
@@ -1105,31 +1121,55 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   let titulo=url;
   try{ titulo=new URL(url).hostname.replace('www.',''); }catch(err){}
-  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url});
-  if(!error){ input.value=''; await loadFavoritos(); toast('Salvei nos seus favoritos 🌿'); }
-  else{ toast('Não consegui salvar agora 😕'); }
+  const precoRaw=document.getElementById('favPreco').value;
+  const preco=precoRaw?parseFloat(precoRaw):null;
+  const cofreId=document.getElementById('favCofre').value||null;
+  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,cofre_id:cofreId});
+  if(!error){
+    input.value='';
+    document.getElementById('favPreco').value='';
+    document.getElementById('favCofre').value='';
+    await loadFavoritos();
+    toast('Salvei nos seus favoritos 🌿');
+  }else{ toast('Não consegui salvar agora 😕'); }
 });
 
 async function loadFavoritos(){
   if(!supabaseClient||!currentUser)return;
   const list=document.getElementById('favList');
   if(!list)return;
+  popularFavCofre();
   const {data,error}=await supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false});
   if(error||!data||!data.length){
     list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
     return;
   }
-  list.innerHTML=data.map(f=>`
-    <div class="cofre-row">
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  list.innerHTML=data.map(f=>{
+    let statusHtml='';
+    let podeComprar=false;
+    if(f.preco){
+      const disponivel=f.cofre_id?Number(cofreById[f.cofre_id]?.valor_atual||0):Number(livreCache||0);
+      podeComprar=disponivel>=Number(f.preco);
+      const origem=f.cofre_id?(cofreById[f.cofre_id]?.nome||'cofre'):'Livre';
+      statusHtml=podeComprar
+        ? `<div class="meta" style="color:var(--sage);font-weight:600">🟢 Pode comprar — ${formatBRL(f.preco)}</div>`
+        : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} (de ${origem}) · ${formatBRL(f.preco)}</div>`;
+    }
+    return `
+    <div class="cofre-row" style="${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
       <div class="cofre-ic" style="background:var(--sage-tint)">🔗</div>
       <div style="flex:1;min-width:0">
         <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
         <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
+        ${statusHtml}
       </div>
       <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:0;border:0;color:var(--sage);font-size:14px;cursor:pointer;margin-right:2px">▶</button>
       <button onclick="removeFavorito('${f.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer;flex-shrink:0">×</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 let favoritosCache=[];
@@ -1502,11 +1542,13 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   return {livre,contas,guardado,naoAlocado,totalOrganizado,disponivelHoje,total:livre+contas+guardado};
 }
 
+let livreCache=0;
 async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
   const list=cofres||[];
   const {livre,contas,guardado,disponivelHoje,naoAlocado}=await calcResumoFinanceiro(list);
+  livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
   if(heroEl){
@@ -1598,6 +1640,8 @@ async function loadHomeData(){
       ayaTxt.textContent='Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿';
     }
   }
+
+  if(document.getElementById('favList'))await loadFavoritos();
 }
 
 /* ================= MOVIMENTO (real) ================= */
