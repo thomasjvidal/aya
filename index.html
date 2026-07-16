@@ -264,9 +264,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div id="atencaoAviso" style="display:none;margin:4px 0 10px"></div>
 
+    <div style="display:flex;gap:10px;margin:4px 0 18px">
+      <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
+      <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
+    </div>
+
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
-      <button type="button" onclick="irCriarCofre()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">+ Criar cofre</button>
     </div>
     <div class="mini-cofres" id="miniCofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
@@ -411,7 +415,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <p style="font-size:12px;color:var(--ink2);text-align:center;margin-top:14px;line-height:1.5">Mesmo app. A Aya só muda o jeito de cuidar de você.</p>
 
     <div class="sec-title">Avisos da Aya no seu iPhone</div>
-    <div class="toggle-row" id="pushRow" style="cursor:pointer" onclick="enablePush()">
+    <div class="toggle-row" id="pushRow" style="cursor:pointer" onclick="togglePush()">
       <div class="txt">Ativar notificações da Aya<small>Pra ela conseguir te avisar antes de uma compra</small></div>
       <div class="sw" id="pushSw" style="background:var(--line)"></div>
     </div>
@@ -441,6 +445,22 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
+  </div>
+
+  <!-- EDITAR MOVIMENTO -->
+  <div class="auth-gate hidden" id="editMov" style="z-index:95">
+    <div class="halo">✎</div>
+    <h1 class="serif">Editar registro</h1>
+    <p>Ajusta o que precisar. Se mudar o valor de uma saída ligada a um cofre, eu já ajusto o cofre.</p>
+    <form id="editMovForm">
+      <input type="hidden" id="emId">
+      <input id="emDesc" type="text" placeholder="Descrição" required>
+      <input id="emValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor (R$)" required>
+      <p id="emAviso" style="display:none;font-size:12px;color:var(--amber);background:var(--sage-tint);border-radius:10px;padding:8px 10px;line-height:1.4"></p>
+      <button type="submit">Salvar alterações</button>
+    </form>
+    <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirMovimentoDoEditor()">Excluir esse registro</button>
+    <button class="linklike" type="button" onclick="closeEditMov()">Fechar</button>
   </div>
 
   <!-- CALMA overlay -->
@@ -826,10 +846,10 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     document.getElementById('qaCofre').value='';
     closeQuickAdd();
     if(tipo==='entrada'){
-      // Vai pra Home na hora — é lá que os cofres e o "Livre pra gastar hoje" enchem animado na frente do usuário.
-      go('hoje');
-      await distribuirPercentuais(valor,novoMov?.id);
-      if(novoMov?.id)await supabaseClient.from('movimentos').update({organizado:true}).eq('id',novoMov.id);
+      // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
+      // assim dá pra conferir antes de distribuir.
+      toast('Registrado 🌿 Vai pra fila de organização dos cofres.');
+      go('cofres');
     }else if(tipo==='esperado'){
       toast('Anotado 🌿 Te aviso pra confirmar quando cair.');
       go('cofres');
@@ -968,6 +988,9 @@ async function loadProfile(){
   if(!supabaseClient||!currentUser)return;
   let {data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
   if(error||!data){
+    // Contas criadas antes do trigger handle_new_user existir podem nunca ter ganhado
+    // essa linha — em vez de falhar pra sempre, criamos ela aqui como fallback.
+    await supabaseClient.from('profiles').insert({id:currentUser.id,nome:'Você'});
     ({data,error}=await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single());
   }
   if(error||!data){
@@ -1291,16 +1314,20 @@ function editCofreById(id){
 
 async function calcResumoFinanceiro(cofresJaCarregados){
   const list=cofresJaCarregados||(await supabaseClient.from('cofres').select('*')).data||[];
-  const [{data:entradas},{data:saidasLivres}]=await Promise.all([
+  const [{data:entradas},{data:saidasLivres},{data:distribs}]=await Promise.all([
     supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null)
+    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null),
+    supabaseClient.from('distribuicoes').select('valor')
   ]);
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
   const totalOrganizado=(entradas||[]).reduce((s,m)=>s+Number(m.valor||0),0);
   const totalGastoLivre=(saidasLivres||[]).reduce((s,m)=>s+Number(m.valor||0),0);
-  const totalNosCofres=list.reduce((s,c)=>s+Number(c.valor_atual||0),0);
-  const naoAlocado=Math.max(0,totalOrganizado-totalNosCofres-totalGastoLivre);
+  // Usa o histórico de distribuições (fixo), não a soma atual dos cofres — senão gastar
+  // de um cofre "libera" esse valor de volta pro Livre, o que é errado: dinheiro gasto
+  // de um cofre já saiu, não deve reaparecer em nenhum outro lugar.
+  const totalDistribuido=(distribs||[]).reduce((s,d)=>s+Number(d.valor||0),0);
+  const naoAlocado=Math.max(0,totalOrganizado-totalDistribuido-totalGastoLivre);
   const livre=sum('livre')+naoAlocado;
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
@@ -1452,12 +1479,66 @@ async function loadMovimentos(){
         <div class="tx-ic">${m.tipo==='entrada'?'💰':'💸'}</div>
         <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}</div></div>
         <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
-        <button onclick='excluirMovimento("${m.id}")' title="Excluir" style="background:0;border:0;color:var(--ink2);font-size:17px;cursor:pointer;flex-shrink:0;margin-left:2px">×</button>
+        <button onclick='abrirEditarMovimento("${m.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;flex-shrink:0;margin-left:2px">✎</button>
       </div>
     `;
   }
   wrap.innerHTML=html;
 }
+
+async function abrirEditarMovimento(id){
+  if(!supabaseClient||!currentUser)return;
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
+  if(!mov){ toast('Não achei esse registro 😕'); return; }
+  document.getElementById('emId').value=mov.id;
+  document.getElementById('emDesc').value=mov.descricao;
+  document.getElementById('emValor').value=mov.valor;
+  const aviso=document.getElementById('emAviso');
+  if(mov.tipo==='entrada'&&mov.organizado){
+    aviso.style.display='block';
+    aviso.textContent='Essa entrada já foi organizada nos cofres. Mudar o valor aqui não reajusta o que já foi distribuído — se precisar corrigir isso, exclua e registre de novo.';
+  }else{
+    aviso.style.display='none';
+    aviso.textContent='';
+  }
+  document.getElementById('editMov').classList.remove('hidden');
+}
+function closeEditMov(){
+  document.getElementById('editMov').classList.add('hidden');
+}
+async function excluirMovimentoDoEditor(){
+  const id=document.getElementById('emId').value;
+  if(!id)return;
+  await excluirMovimento(id);
+  closeEditMov();
+}
+document.getElementById('editMovForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient||!currentUser)return;
+  const id=document.getElementById('emId').value;
+  const descricao=document.getElementById('emDesc').value.trim();
+  const valorNovo=parseFloat(document.getElementById('emValor').value);
+  if(!id||!descricao||isNaN(valorNovo))return;
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
+  if(!mov){ toast('Não achei esse registro 😕'); return; }
+  const {error}=await supabaseClient.from('movimentos').update({descricao,valor:valorNovo}).eq('id',id);
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  if(mov.tipo==='saida'&&mov.cofre_id&&valorNovo!==Number(mov.valor)){
+    const delta=Number(mov.valor)-valorNovo; // volta a diferença pro cofre (ou tira mais, se aumentou)
+    const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',mov.cofre_id).single();
+    if(cAtual){
+      const novoValorCofre=Math.max(0,Number(cAtual.valor_atual||0)+delta);
+      await supabaseClient.from('cofres').update({valor_atual:novoValorCofre}).eq('id',mov.cofre_id);
+    }
+  }
+  closeEditMov();
+  toast('Atualizado 🌿');
+  await loadCofres();
+  await loadMovimentos();
+  await loadHomeData();
+  await loadPerfilStats();
+  await loadPendentes();
+});
 
 async function excluirMovimento(id){
   if(!supabaseClient||!currentUser)return;
@@ -1560,6 +1641,31 @@ function copyNudgeUrl(btn){
   }else{
     document.execCommand('copy');
     toast('Link copiado 📋');
+  }
+}
+
+async function togglePush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){ toast('Esse navegador não suporta notificações 😕'); return; }
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    const sub=reg?await reg.pushManager.getSubscription():null;
+    if(sub) await disablePush(sub);
+    else await enablePush();
+  }catch(e){
+    toast('Não consegui mudar as notificações agora 😕');
+  }
+}
+
+async function disablePush(sub){
+  try{
+    if(supabaseClient) await supabaseClient.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+    await sub.unsubscribe();
+    document.getElementById('pushSw').style.background='var(--line)';
+    const setup=document.getElementById('pushSetup');
+    if(setup) setup.style.display='none';
+    toast('Notificações desativadas 🌿');
+  }catch(e){
+    toast('Não consegui desativar agora 😕');
   }
 }
 
