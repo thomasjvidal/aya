@@ -400,8 +400,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="eyebrow">Perfil</div>
 
     <div style="text-align:center;margin:10px 0 22px">
-      <div class="avatar-round" id="avatarRound">V</div>
+      <div class="avatar-round" id="avatarRound" style="cursor:pointer;overflow:hidden" onclick="document.getElementById('avatarFile').click()">V</div>
+      <input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
       <div id="perfilNomeTxt" style="margin-top:10px;font-size:20px;font-weight:600">Você</div>
+      <button type="button" id="avatarRemoverBtn" onclick="removerAvatar()" style="display:none;background:0;border:0;color:var(--ink2);font-family:inherit;font-size:11.5px;text-decoration:underline;cursor:pointer;margin-top:2px">Remover foto</button>
     </div>
 
     <div class="score-wrap">
@@ -1050,10 +1052,12 @@ async function loadProfile(){
   }
   document.getElementById('h-name-txt').textContent=data.nome||'Você';
   document.getElementById('nomeInput').value=data.nome||'';
+  perfilFotoUrl=data.foto_url||null;
   aplicarNomePerfil(data.nome||'Você');
   applyProfileCopy(data.estilo||'aperto');
 }
 
+let perfilFotoUrl=null;
 function avatarIniciais(nome){
   const partes=(nome||'').trim().split(/\s+/).filter(Boolean);
   if(!partes.length)return'?';
@@ -1061,10 +1065,15 @@ function avatarIniciais(nome){
   const ultima=partes.length>1?partes[partes.length-1][0]:'';
   return(primeira+ultima).toUpperCase();
 }
+function atualizarAvatar(){
+  const av=document.getElementById('avatarRound');
+  if(av)av.innerHTML=perfilFotoUrl?`<img src="${escapeHtml(perfilFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:escapeHtml(avatarIniciais(document.getElementById('perfilNomeTxt')?.textContent||''));
+  const btn=document.getElementById('avatarRemoverBtn'); if(btn)btn.style.display=perfilFotoUrl?'inline-block':'none';
+}
 function aplicarNomePerfil(nome){
-  const av=document.getElementById('avatarRound'); if(av)av.textContent=avatarIniciais(nome);
   const nt=document.getElementById('perfilNomeTxt'); if(nt)nt.textContent=nome;
   const nd=document.getElementById('nomeDisplayTxt'); if(nd)nd.textContent=nome;
+  atualizarAvatar();
 }
 function toggleNomeEdit(mostrar){
   document.getElementById('nomeDisplayRow').style.display=mostrar?'none':'flex';
@@ -1087,6 +1096,36 @@ document.getElementById('nomeForm').addEventListener('submit',async(e)=>{
     toast('Não consegui salvar agora 😕');
   }
 });
+
+async function uploadAvatar(e){
+  const file=e.target.files&&e.target.files[0];
+  e.target.value='';
+  if(!file)return;
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  if(!file.type.startsWith('image/')){ toast('Isso não é uma imagem 😕'); return; }
+  if(file.size>5*1024*1024){ toast('Imagem grande demais (máx 5MB) 😕'); return; }
+  toast('Enviando foto…');
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path=`${currentUser.id}/avatar.${ext}`;
+  const {error:upErr}=await supabaseClient.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type});
+  if(upErr){ toast('Não consegui enviar a foto 😕'); return; }
+  const {data:pub}=supabaseClient.storage.from('avatars').getPublicUrl(path);
+  const fotoUrl=pub.publicUrl+'?t='+Date.now();
+  const {error}=await supabaseClient.from('profiles').update({foto_url:fotoUrl}).eq('id',currentUser.id);
+  if(error){ toast('Não consegui salvar a foto 😕'); return; }
+  perfilFotoUrl=fotoUrl;
+  atualizarAvatar();
+  toast('Foto atualizada 🌿');
+}
+
+async function removerAvatar(){
+  if(!supabaseClient||!currentUser)return;
+  const {error}=await supabaseClient.from('profiles').update({foto_url:null}).eq('id',currentUser.id);
+  if(error){ toast('Não consegui remover agora 😕'); return; }
+  perfilFotoUrl=null;
+  atualizarAvatar();
+  toast('Foto removida 🌿');
+}
 
 async function logout(){
   if(supabaseClient) await supabaseClient.auth.signOut();

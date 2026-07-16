@@ -10,6 +10,29 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+alter table public.profiles
+  add column if not exists foto_url text;
+
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatars: leitura publica" on storage.objects;
+create policy "avatars: leitura publica" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatars: dono envia" on storage.objects;
+create policy "avatars: dono envia" on storage.objects
+  for insert with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "avatars: dono atualiza" on storage.objects;
+create policy "avatars: dono atualiza" on storage.objects
+  for update using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "avatars: dono remove" on storage.objects;
+create policy "avatars: dono remove" on storage.objects
+  for delete using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
 create table if not exists public.cofres (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
