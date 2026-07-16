@@ -65,6 +65,16 @@ create table if not exists public.distribuicoes (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.contas_fixas (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nome text not null,
+  valor numeric not null,
+  cofre_id uuid references public.cofres(id) on delete set null,
+  icone text not null default '🧾',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.favoritos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -73,6 +83,9 @@ create table if not exists public.favoritos (
   preco numeric,
   created_at timestamptz not null default now()
 );
+
+alter table public.favoritos
+  add column if not exists cofre_id uuid references public.cofres(id) on delete set null;
 
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -88,6 +101,7 @@ alter table public.profiles enable row level security;
 alter table public.cofres enable row level security;
 alter table public.movimentos enable row level security;
 alter table public.distribuicoes enable row level security;
+alter table public.contas_fixas enable row level security;
 alter table public.favoritos enable row level security;
 alter table public.push_subscriptions enable row level security;
 
@@ -110,6 +124,10 @@ create policy "distribuicoes: dono le/edita" on public.distribuicoes
   ) with check (
     exists (select 1 from public.movimentos m where m.id = movimento_id and m.user_id = auth.uid())
   );
+
+drop policy if exists "contas_fixas: dono le/edita" on public.contas_fixas;
+create policy "contas_fixas: dono le/edita" on public.contas_fixas
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "favoritos: dono le/edita" on public.favoritos;
 create policy "favoritos: dono le/edita" on public.favoritos
