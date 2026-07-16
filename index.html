@@ -144,12 +144,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .aya-inline .f{width:20px;height:20px;border-radius:50%;background:var(--amber);display:grid;place-items:center;font-size:10px;flex-shrink:0;color:#fff}
 
 /* VOCÊ */
+.avatar-round{width:76px;height:76px;border-radius:50%;margin:0 auto;background:radial-gradient(circle at 35% 30%,#bff0d7,#4C9C7A);display:grid;place-items:center;font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:#fff}
 .score-wrap{text-align:center;margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px 20px;box-shadow:var(--shadow)}
-.ring{width:150px;height:150px;margin:6px auto 12px;position:relative}
+.ring{width:150px;height:150px;margin:6px auto 4px;position:relative}
 .ring svg{transform:rotate(-90deg)}
-.ring .center{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
-.ring .center b{font-family:'Fraunces',serif;font-size:44px;font-weight:500;color:var(--sage);line-height:1}
-.ring .center span{font-size:11px;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.score-num{margin-bottom:10px}
+.score-num b{font-family:'Fraunces',serif;font-size:40px;font-weight:500;color:var(--sage);line-height:1;display:block}
+.score-num span{font-size:11px;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;display:block}
 .score-wrap .msg2{font-size:14px;color:var(--ink2);line-height:1.5;max-width:250px;margin:0 auto}
 .streak{display:flex;justify-content:center;gap:6px;margin-top:16px}
 .streak i{width:26px;height:26px;border-radius:8px;background:var(--sage-tint);display:grid;place-items:center;font-size:12px;color:var(--sage);font-weight:600}
@@ -397,20 +398,28 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   <!-- ============ VOCÊ ============ -->
   <section class="view" id="v-perfil">
     <div class="eyebrow">Perfil</div>
-    <div class="h-name" style="margin-top:4px">Sua evolução</div>
+
+    <div style="text-align:center;margin:10px 0 22px">
+      <div class="avatar-round" id="avatarRound">V</div>
+      <div id="perfilNomeTxt" style="margin-top:10px;font-size:20px;font-weight:600">Você</div>
+    </div>
 
     <div class="score-wrap">
       <div class="ring">
         <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="#E4E8E5" stroke-width="12"/><circle id="scoreRing" cx="75" cy="75" r="66" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="415"/></svg>
-        <div class="center"><b id="scoreValue">0</b><span>Saúde</span></div>
       </div>
+      <div class="score-num"><b id="scoreValue">0</b><span>Score Aya</span></div>
       <div class="msg2" id="scoreMsg">Ainda sem histórico — comece registrando um movimento ou criando um cofre.</div>
       <div class="streak" id="streakRow"></div>
       <p style="font-size:11px;color:var(--ink2);margin-top:12px;line-height:1.4">Como calculamos: dias com algo registrado essa semana + quantos cofres têm meta ou % definido. Quanto mais você usa a Aya, maior a nota.</p>
     </div>
 
     <div class="sec-title">Seu nome</div>
-    <form id="nomeForm" style="display:flex;gap:8px;margin-bottom:6px">
+    <div id="nomeDisplayRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px">
+      <span id="nomeDisplayTxt" style="font-size:13.5px;font-weight:600;color:var(--ink)">Você</span>
+      <button type="button" onclick="toggleNomeEdit(true)" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Editar</button>
+    </div>
+    <form id="nomeForm" style="display:none;gap:8px;margin-bottom:6px">
       <input id="nomeInput" placeholder="Como a Aya deve te chamar?" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
       <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 16px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
     </form>
@@ -1041,7 +1050,26 @@ async function loadProfile(){
   }
   document.getElementById('h-name-txt').textContent=data.nome||'Você';
   document.getElementById('nomeInput').value=data.nome||'';
+  aplicarNomePerfil(data.nome||'Você');
   applyProfileCopy(data.estilo||'aperto');
+}
+
+function avatarIniciais(nome){
+  const partes=(nome||'').trim().split(/\s+/).filter(Boolean);
+  if(!partes.length)return'?';
+  const primeira=partes[0][0]||'';
+  const ultima=partes.length>1?partes[partes.length-1][0]:'';
+  return(primeira+ultima).toUpperCase();
+}
+function aplicarNomePerfil(nome){
+  const av=document.getElementById('avatarRound'); if(av)av.textContent=avatarIniciais(nome);
+  const nt=document.getElementById('perfilNomeTxt'); if(nt)nt.textContent=nome;
+  const nd=document.getElementById('nomeDisplayTxt'); if(nd)nd.textContent=nome;
+}
+function toggleNomeEdit(mostrar){
+  document.getElementById('nomeDisplayRow').style.display=mostrar?'none':'flex';
+  document.getElementById('nomeForm').style.display=mostrar?'flex':'none';
+  if(mostrar)document.getElementById('nomeInput').focus();
 }
 
 document.getElementById('nomeForm').addEventListener('submit',async(e)=>{
@@ -1052,6 +1080,8 @@ document.getElementById('nomeForm').addEventListener('submit',async(e)=>{
   const {error}=await supabaseClient.from('profiles').update({nome}).eq('id',currentUser.id);
   if(!error){
     document.getElementById('h-name-txt').textContent=nome;
+    aplicarNomePerfil(nome);
+    toggleNomeEdit(false);
     toast('Nome atualizado 🌿');
   }else{
     toast('Não consegui salvar agora 😕');
