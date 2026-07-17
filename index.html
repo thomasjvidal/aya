@@ -309,7 +309,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="valor" checked onchange="toggleCofreMetaTipo()"> Meta em R$</label>
-        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="percentual" onchange="toggleCofreMetaTipo()"> % de cada entrada</label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="percentual" onchange="toggleCofreMetaTipo();mostrarGuiaPercentualSeNovo()"> % de cada entrada</label>
       </div>
       <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" oninput="atualizarHintPercentual()" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
@@ -467,6 +467,14 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
   </div>
 
+  <!-- GUIA: como funciona % nos cofres -->
+  <div class="auth-gate hidden" id="guiaPercentual" style="z-index:98">
+    <div id="guiaConteudo"></div>
+    <div style="display:flex;gap:6px;justify-content:center;margin:16px 0 4px" id="guiaDots"></div>
+    <button type="button" id="guiaBtn" onclick="guiaProximo()" style="background:var(--sage);color:#fff;border:0;border-radius:14px;padding:14px 28px;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;margin-top:4px">Próximo</button>
+    <button class="linklike" type="button" onclick="fecharGuiaPercentual()">Pular</button>
+  </div>
+
   <!-- EDITAR MOVIMENTO -->
   <div class="auth-gate hidden" id="editMov" style="z-index:95">
     <div class="halo">✎</div>
@@ -490,7 +498,17 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="halo" id="cdIcone" style="margin:0 auto 8px">🧾</div>
       <h1 class="serif" id="cdNome" style="margin:0">Cofre</h1>
       <div class="num" id="cdValor" style="font-size:26px;font-weight:700;color:var(--sage);margin-top:4px">R$ 0</div>
-      <button class="linklike" type="button" id="cdConversar" style="margin-top:6px" onclick="iniciarConversaCofreDetalhe()">Conversar com a Aya sobre esse cofre</button>
+      <div id="cdOnde" style="display:none;font-size:12px;color:var(--ink2);margin-top:4px">📍</div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:8px">
+        <button class="linklike" type="button" id="cdConversar" style="margin:0" onclick="iniciarConversaCofreDetalhe()">Conversar com a Aya</button>
+        <button class="linklike" type="button" style="margin:0" onclick="toggleRendimentoForm()">+ Rendeu</button>
+      </div>
+      <div id="rendimentoForm" style="display:none;gap:8px;margin-top:10px;max-width:280px;margin-left:auto;margin-right:auto">
+        <div style="display:flex;gap:8px">
+          <input id="rendimentoValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Quanto rendeu (R$)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
+          <button type="button" onclick="lancarRendimento()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✓</button>
+        </div>
+      </div>
     </div>
 
     <div style="text-align:left">
@@ -1298,6 +1316,39 @@ function animarValor(el,de,para,{duracao=650,formatar}={}){
 }
 const TIPO_ICONE={livre:'🌿',contas:'🧾',guardado:'🛟'};
 
+/* ================= GUIA: como funciona % nos cofres ================= */
+const GUIA_PERCENTUAL_STEPS=[
+  {emoji:'🌿',titulo:'Cofres por porcentagem',texto:'Em vez de você lembrar de separar dinheiro toda vez, a Aya faz isso sozinha — na hora que você registra uma entrada.'},
+  {emoji:'💰',titulo:'Exemplo rápido',texto:'Digamos que você recebe R$1.000 de repente.'},
+  {emoji:'📦',titulo:'Você coloca 10% aqui',texto:'R$100 caem sozinhos nessa caixinha, sempre — sem você precisar transferir nada.'},
+  {emoji:'✨',titulo:'O resto é seu',texto:'O que sobra vai pras outras caixinhas (se você criar mais) ou fica livre pra gastar. É só isso.'}
+];
+let guiaPasso=0;
+function mostrarGuiaPercentualSeNovo(){
+  if(localStorage.getItem('aya_guia_percentual_visto'))return;
+  guiaPasso=0;
+  renderGuiaPasso();
+  document.getElementById('guiaPercentual').classList.remove('hidden');
+}
+function renderGuiaPasso(){
+  const s=GUIA_PERCENTUAL_STEPS[guiaPasso];
+  document.getElementById('guiaConteudo').innerHTML=`
+    <div class="halo" style="margin:0 auto 14px">${s.emoji}</div>
+    <h1 class="serif" style="margin-bottom:6px">${s.titulo}</h1>
+    <p style="max-width:280px">${s.texto}</p>
+  `;
+  document.getElementById('guiaDots').innerHTML=GUIA_PERCENTUAL_STEPS.map((_,i)=>`<span style="width:6px;height:6px;border-radius:50%;background:${i===guiaPasso?'var(--sage)':'var(--line)'}"></span>`).join('');
+  document.getElementById('guiaBtn').textContent=guiaPasso===GUIA_PERCENTUAL_STEPS.length-1?'Entendi, vamos lá':'Próximo';
+}
+function guiaProximo(){
+  if(guiaPasso<GUIA_PERCENTUAL_STEPS.length-1){ guiaPasso++; renderGuiaPasso(); }
+  else fecharGuiaPercentual();
+}
+function fecharGuiaPercentual(){
+  localStorage.setItem('aya_guia_percentual_visto','1');
+  document.getElementById('guiaPercentual').classList.add('hidden');
+}
+
 function toggleCofreMetaTipo(){
   const tipo=document.querySelector('input[name="cofreMetaTipo"]:checked').value;
   document.getElementById('cofreValorMeta').style.display=tipo==='valor'?'block':'none';
@@ -1341,6 +1392,11 @@ async function abrirCofreDetalhe(id){
   document.getElementById('cdIcone').textContent=c.icone||'🧾';
   document.getElementById('cdNome').textContent=c.nome;
   document.getElementById('cdValor').textContent=formatBRL(c.valor_atual);
+  const ondeEl=document.getElementById('cdOnde');
+  if(c.notas){ ondeEl.style.display='block'; ondeEl.textContent='📍 '+c.notas; }
+  else{ ondeEl.style.display='none'; }
+  document.getElementById('rendimentoForm').style.display='none';
+  document.getElementById('rendimentoValor').value='';
   document.getElementById('cofreDetalhe').classList.remove('hidden');
 
   const slot=document.getElementById('cofreDetalheFormSlot');
@@ -1353,16 +1409,18 @@ async function abrirCofreDetalhe(id){
   extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
   const {data,error}=await supabaseClient.from('movimentos').select('*').eq('cofre_id',id).order('created_at',{ascending:false}).limit(100);
   if(error||!data||!data.length){
-    extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída registrada com esse cofre ainda.</p>';
+    extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma movimentação registrada com esse cofre ainda.</p>';
     return;
   }
   extratoEl.innerHTML=data.map(m=>{
     const d=new Date(m.created_at);
+    const positivo=m.tipo==='rendimento';
+    const icone=positivo?'✨':'💸';
     return `
       <div class="tx">
-        <div class="tx-ic">💸</div>
+        <div class="tx-ic">${icone}</div>
         <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div>
-        <div class="amt num">− ${formatBRL(m.valor)}</div>
+        <div class="amt num${positivo?' in':''}">${positivo?'+':'−'} ${formatBRL(m.valor)}</div>
       </div>
     `;
   }).join('');
@@ -1388,6 +1446,33 @@ async function excluirCofreDoDetalhe(){
   ensureCofreFormInline();
   cofreDetalheId=null;
   toast('Cofre excluído 🌿');
+}
+
+function toggleRendimentoForm(){
+  const el=document.getElementById('rendimentoForm');
+  const mostrar=el.style.display==='none';
+  el.style.display=mostrar?'block':'none';
+  if(mostrar)document.getElementById('rendimentoValor').focus();
+}
+
+async function lancarRendimento(){
+  if(!supabaseClient||!currentUser||!cofreDetalheId)return;
+  const valor=parseFloat(document.getElementById('rendimentoValor').value);
+  if(!valor||isNaN(valor)){ toast('Coloca quanto rendeu 🌿'); return; }
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao:'Rendimento',valor,tipo:'rendimento',cofre_id:cofreDetalheId,organizado:true});
+  if(error){ toast('Não consegui registrar agora 😕'); return; }
+  const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',cofreDetalheId).single();
+  if(cAtual){
+    const novoValor=Number(cAtual.valor_atual||0)+valor;
+    await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreDetalheId);
+  }
+  vibrar('success');
+  toast(`Rendeu ${formatBRL(valor)} 🌿`);
+  await loadCofres();
+  await abrirCofreDetalhe(cofreDetalheId);
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
 }
 
 async function loadContasFixasDoCofre(cofreId){
@@ -1792,12 +1877,14 @@ async function loadMovimentos(){
       html+=`<div class="day-label">${chaveMs}</div>`;
     }
     const cofre=m.cofre_id?cofreById[m.cofre_id]:null;
-    const origemTxt=m.tipo==='saida'?(cofre?`${escapeHtml(cofre.icone||'🧾')} ${escapeHtml(cofre.nome)}`:'💰 dinheiro livre'):'';
+    const positivo=m.tipo==='entrada'||m.tipo==='rendimento';
+    const origemTxt=(m.tipo==='saida'||m.tipo==='rendimento')?(cofre?`${escapeHtml(cofre.icone||'🧾')} ${escapeHtml(cofre.nome)}`:'💰 dinheiro livre'):'';
+    const icone=m.tipo==='entrada'?'💰':(m.tipo==='rendimento'?'✨':'💸');
     html+=`
       <div class="tx">
-        <div class="tx-ic">${m.tipo==='entrada'?'💰':'💸'}</div>
+        <div class="tx-ic">${icone}</div>
         <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}</div></div>
-        <div class="amt num${m.tipo==='entrada'?' in':''}">${m.tipo==='entrada'?'+':'−'} ${formatBRL(m.valor)}</div>
+        <div class="amt num${positivo?' in':''}">${positivo?'+':'−'} ${formatBRL(m.valor)}</div>
         <button onclick='abrirEditarMovimento("${m.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;flex-shrink:0;margin-left:2px">✎</button>
       </div>
     `;
@@ -1842,8 +1929,9 @@ document.getElementById('editMovForm').addEventListener('submit',async(e)=>{
   if(!mov){ toast('Não achei esse registro 😕'); return; }
   const {error}=await supabaseClient.from('movimentos').update({descricao,valor:valorNovo}).eq('id',id);
   if(error){ toast('Não consegui salvar agora 😕'); return; }
-  if(mov.tipo==='saida'&&mov.cofre_id&&valorNovo!==Number(mov.valor)){
-    const delta=Number(mov.valor)-valorNovo; // volta a diferença pro cofre (ou tira mais, se aumentou)
+  if((mov.tipo==='saida'||mov.tipo==='rendimento')&&mov.cofre_id&&valorNovo!==Number(mov.valor)){
+    // saída: aumentar o valor tira mais do cofre. rendimento: aumentar o valor bota mais no cofre.
+    const delta=mov.tipo==='saida'?(Number(mov.valor)-valorNovo):(valorNovo-Number(mov.valor));
     const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',mov.cofre_id).single();
     if(cAtual){
       const novoValorCofre=Math.max(0,Number(cAtual.valor_atual||0)+delta);
@@ -1878,6 +1966,13 @@ async function excluirMovimento(id){
     const c=(cofresCache||[]).find(x=>String(x.id)===String(mov.cofre_id));
     if(c)await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+Number(mov.valor||0)}).eq('id',mov.cofre_id);
     toast('Excluído 🌿 Devolvi o valor pro cofre');
+  }else if(mov.tipo==='rendimento'&&mov.cofre_id){
+    const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',mov.cofre_id).single();
+    if(cAtual){
+      const novoValor=Math.max(0,Number(cAtual.valor_atual||0)-Number(mov.valor||0));
+      await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',mov.cofre_id);
+    }
+    toast('Excluído 🌿 Tirei o rendimento do cofre');
   }else if(mov.tipo==='entrada'&&distribs.length){
     const partes=[];
     for(const d of distribs){
