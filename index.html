@@ -962,18 +962,20 @@ async function loadPendentes(){
   if(!supabaseClient||!currentUser)return;
   const card=document.getElementById('pendenteCard');
   if(!card)return;
-  const [{data:esperados,error:errEsperados},{data:pend,error:errPend}]=await Promise.all([
+  const [{data:esperados,error:errEsperados},{data:pend,error:errPend},{data:semDestino,error:errDestino}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
-    supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false)
+    supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false),
+    supabaseClient.from('cofres').select('*').eq('concluido',false)
   ]);
-  if(errEsperados||errPend){
+  if(errEsperados||errPend||errDestino){
     card.style.display='block';
-    card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml((errEsperados||errPend).message||'')}</p>`;
+    card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml((errEsperados||errPend||errDestino).message||'')}</p>`;
     return;
   }
   const listaEsperados=esperados||[];
   const listaPend=pend||[];
-  if(!listaEsperados.length&&!listaPend.length){
+  const listaSemDestino=semDestino||[];
+  if(!listaEsperados.length&&!listaPend.length&&!listaSemDestino.length){
     // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
     // aparece de novo se tiver algo em "vai entrar" ou sobrar algo pendente por algum motivo.
     card.style.display='none';
@@ -981,6 +983,23 @@ async function loadPendentes(){
   }
   card.style.display='block';
   let html='';
+  if(listaSemDestino.length){
+    html+=`<div class="head"><span class="pulse"></span><h3>Dinheiro esperando destino</h3></div>
+      <p style="font-size:12px;color:var(--ink2);margin:-4px 0 10px;line-height:1.4">Essas caixinhas ganharam dinheiro novo. Diz pra onde foi (ou só confirma) que elas ficam verdes.</p>`;
+    html+=listaSemDestino.map(c=>`
+      <div style="background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:12px 13px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
+          <span style="font-weight:700;font-size:13.5px;color:var(--ink)">${escapeHtml(c.nome)}</span>
+          <span style="margin-left:auto;font-weight:700;font-size:13.5px" class="num">${formatBRL(c.valor_atual)}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input id="destino-${c.id}" placeholder="Pra onde foi? (opcional)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+          <button type="button" onclick="resolverCofrePendente('${c.id}')" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap">✓ Já resolvi</button>
+        </div>
+      </div>
+    `).join('');
+  }
   if(listaEsperados.length){
     html+=`<div class="head"><span class="pulse"></span><h3>Vai entrar</h3></div>`;
     html+=listaEsperados.map(m=>`
@@ -1520,6 +1539,20 @@ async function deleteCofre(id){
   await loadPerfilStats();
 }
 
+async function resolverCofrePendente(id){
+  if(!supabaseClient||!currentUser)return;
+  const input=document.getElementById(`destino-${id}`);
+  const nota=input?input.value.trim():'';
+  const payload={concluido:true};
+  if(nota)payload.notas=nota;
+  await supabaseClient.from('cofres').update(payload).eq('id',id);
+  vibrar('success');
+  toast('Boa 🌿 Confirmado');
+  await loadPendentes();
+  await loadCofres();
+  await loadHomeData();
+}
+
 async function toggleCofreConcluido(id){
   if(!supabaseClient)return;
   const c=cofresCache.find(x=>String(x.id)===String(id));
@@ -1692,8 +1725,15 @@ async function loadHomeData(){
   const avisoEl=document.getElementById('atencaoAviso');
   if(avisoEl){
     if(atencao.length){
+      const totalPendente=atencao.reduce((s,c)=>s+Number(c.valor_atual||0),0);
       avisoEl.style.display='block';
-      avisoEl.innerHTML=`<button type="button" onclick="go('cofres')" style="width:100%;display:flex;align-items:center;gap:8px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:11px 13px;font-family:inherit;font-size:12.5px;color:#8a5a1e;cursor:pointer;text-align:left"><span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0"></span>${atencao.length} cofre${atencao.length>1?'s':''} precisa${atencao.length>1?'m':''} de atenção — toca pra ver</button>`;
+      avisoEl.innerHTML=`<button type="button" onclick="go('cofres')" style="width:100%;display:flex;align-items:center;gap:10px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:16px;padding:14px 15px;font-family:inherit;cursor:pointer;text-align:left">
+        <span style="font-size:20px;flex-shrink:0">🌿</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-weight:700;font-size:13.5px;color:#8a5a1e">${formatBRL(totalPendente)} esperando destino</span>
+          <span style="display:block;font-size:12px;color:#8a5a1e;opacity:.85;margin-top:1px">${atencao.length} caixinha${atencao.length>1?'s':''} — toca pra dizer pra onde foi</span>
+        </span>
+      </button>`;
     }else{
       avisoEl.style.display='none';
     }
