@@ -304,8 +304,6 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <option value="contas">Contas / essenciais</option>
         <option value="guardado" selected>Guardado (reserva, sonho...)</option>
       </select>
-      <input id="cofreIcone" placeholder="Emoji (opcional, ex: 🛟)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-      <input id="cofreValorAtual" type="number" step="0.01" placeholder="Quanto já tem (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
 
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="valor" checked onchange="toggleCofreMetaTipo()"> Meta em R$</label>
@@ -315,7 +313,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" oninput="atualizarHintPercentual()" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui. Mudar o % não move o que já está guardado — só vale pras próximas entradas.</p>
 
-      <textarea id="cofreNotas" placeholder="O que a Aya deve lembrar sobre esse cofre? (ex: doo via Pix toda segunda, invisto pela XP...)" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);margin-bottom:10px;resize:vertical"></textarea>
+      <button type="button" onclick="toggleCofreMaisOpcoes()" id="cofreMaisOpcoesBtn" style="background:0;border:0;color:var(--ink2);font-family:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px 0;margin-bottom:8px">Mais opções (ícone, valor inicial, notas)</button>
+      <div id="cofreMaisOpcoes" style="display:none">
+        <input id="cofreIcone" placeholder="Emoji (opcional, ex: 🛟)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+        <input id="cofreValorAtual" type="number" step="0.01" placeholder="Quanto já tem (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+        <textarea id="cofreNotas" placeholder="O que a Aya deve lembrar sobre esse cofre? (ex: doo via Pix toda segunda, invisto pela XP...)" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);margin-bottom:10px;resize:vertical"></textarea>
+      </div>
 
       <div style="display:flex;gap:8px;margin-top:2px">
         <button onclick="salvarCofre()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:11px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
@@ -1546,6 +1549,15 @@ function openCofreForm(cofre){
   const metaTipo=cofre&&cofre.meta_tipo==='percentual'?'percentual':'valor';
   document.querySelector(`input[name="cofreMetaTipo"][value="${metaTipo}"]`).checked=true;
   toggleCofreMetaTipo();
+  // Editando um cofre que já tem ícone/valor/notas: mostra "mais opções" aberto de cara,
+  // senão parece que esses dados sumiram.
+  const temExtras=cofre&&(cofre.icone||cofre.valor_atual||cofre.notas);
+  document.getElementById('cofreMaisOpcoes').style.display=temExtras?'block':'none';
+  document.getElementById('cofreMaisOpcoesBtn').style.display=temExtras?'none':'block';
+}
+function toggleCofreMaisOpcoes(){
+  document.getElementById('cofreMaisOpcoes').style.display='block';
+  document.getElementById('cofreMaisOpcoesBtn').style.display='none';
 }
 function usarPreset(nome,tipo,icone){
   document.getElementById('cofreNome').value=nome;
