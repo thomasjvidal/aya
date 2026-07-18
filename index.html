@@ -260,15 +260,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <span class="ico">🌿</span>
       <div class="who"><span class="aya-face">✦</span> Aya percebeu</div>
       <p id="aya-hoje-txt">Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿</p>
-      <button class="cta" onclick="go('aya')">Conversar</button>
+      <button class="cta" style="width:75%" onclick="go('aya')">Conversar</button>
     </div>
 
-    <div id="atencaoAviso" style="display:none;margin:4px 0 10px"></div>
-
-    <div style="display:flex;gap:10px;margin:4px 0 18px">
+    <div style="display:flex;gap:10px;margin:14px 0 4px">
       <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
       <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
     </div>
+
+    <div id="atencaoAviso" style="display:none;margin:14px 0 4px"></div>
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
@@ -502,14 +502,22 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <h1 class="serif" id="cdNome" style="margin:0">Cofre</h1>
       <div class="num" id="cdValor" style="font-size:26px;font-weight:700;color:var(--sage);margin-top:4px">R$ 0</div>
       <div id="cdOnde" style="display:none;font-size:12px;color:var(--ink2);margin-top:4px">📍</div>
-      <div style="display:flex;gap:14px;justify-content:center;margin-top:8px">
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:8px;flex-wrap:wrap">
         <button class="linklike" type="button" id="cdConversar" style="margin:0" onclick="iniciarConversaCofreDetalhe()">Conversar com a Aya</button>
         <button class="linklike" type="button" style="margin:0" onclick="toggleRendimentoForm()">+ Rendeu</button>
+        <button class="linklike" type="button" style="margin:0" onclick="toggleSaidaCofreForm()">− Adicionar saída</button>
       </div>
       <div id="rendimentoForm" style="display:none;gap:8px;margin-top:10px;max-width:280px;margin-left:auto;margin-right:auto">
         <div style="display:flex;gap:8px">
           <input id="rendimentoValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Quanto rendeu (R$)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
           <button type="button" onclick="lancarRendimento()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✓</button>
+        </div>
+      </div>
+      <div id="saidaCofreForm" style="display:none;gap:8px;margin-top:10px;max-width:280px;margin-left:auto;margin-right:auto">
+        <div style="display:flex;gap:8px">
+          <input id="saidaCofreDesc" type="text" placeholder="Pra onde foi?" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
+          <input id="saidaCofreValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="R$" style="width:80px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
+          <button type="button" onclick="lancarSaidaCofre()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✓</button>
         </div>
       </div>
     </div>
@@ -531,7 +539,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <button type="button" onclick="adicionarContaFixa()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">+</button>
       </div>
 
-      <div class="sec-title" style="margin-top:14px">Editar</div>
+      <button type="button" onclick="toggleCofreDetalheForm()" style="background:0;border:0;color:var(--ink);font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;padding:0;margin-top:14px;display:flex;align-items:center;gap:6px">✎ Editar <span id="cofreDetalheFormSeta" style="font-size:11px;color:var(--ink2)">▾</span></button>
       <div id="cofreDetalheFormSlot"></div>
 
       <button type="button" style="margin-top:18px;width:100%;background:0;border:1px solid var(--rose);color:var(--rose);font-family:inherit;font-weight:600;font-size:13px;padding:12px;border-radius:14px;cursor:pointer" onclick="excluirCofreDoDetalhe()">Excluir cofre</button>
@@ -1006,17 +1014,24 @@ async function loadPendentes(){
   let html='';
   if(listaSemDestino.length){
     html+=`<div class="head"><span class="pulse"></span><h3>Dinheiro esperando destino</h3></div>
-      <p style="font-size:12px;color:var(--ink2);margin:-4px 0 10px;line-height:1.4">Essas caixinhas ganharam dinheiro novo. Diz pra onde foi (ou só confirma) que elas ficam verdes.</p>`;
+      <p style="font-size:12px;color:var(--ink2);margin:-4px 0 10px;line-height:1.4">Essas caixinhas ganharam dinheiro novo. Toca pra dizer pra onde foi (ou deixar guardado mesmo).</p>`;
     html+=listaSemDestino.map(c=>`
       <div style="background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:12px 13px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="togglePendenteCofre('${c.id}')">
           <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
           <span style="font-weight:700;font-size:13.5px;color:var(--ink)">${escapeHtml(c.nome)}</span>
           <span style="margin-left:auto;font-weight:700;font-size:13.5px" class="num">${formatBRL(c.valor_atual)}</span>
+          <span id="pendSeta-${c.id}" style="font-size:11px;color:var(--ink2)">▾</span>
         </div>
-        <div style="display:flex;gap:8px">
-          <input id="destino-${c.id}" placeholder="Pra onde foi? (opcional)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
-          <button type="button" onclick="resolverCofrePendente('${c.id}')" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap">✓ Já resolvi</button>
+        <div id="pendForm-${c.id}" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <input id="destino-${c.id}" placeholder="Pra onde foi?" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+            <input id="destinoValor-${c.id}" type="number" step="0.01" min="0" placeholder="R$" style="width:80px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <button type="button" onclick="deixarGuardadoPendente('${c.id}')" style="background:0;border:0;color:var(--ink2);font-family:inherit;font-size:11.5px;text-decoration:underline;cursor:pointer">Deixar guardado, só confirmar</button>
+            <button type="button" onclick="resolverCofrePendente('${c.id}')" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap">Registrar saída</button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -1387,6 +1402,14 @@ function ensureCofreFormInline(){
   if(wrap&&anchor&&wrap.parentElement!==anchor)anchor.appendChild(wrap);
 }
 
+function toggleCofreDetalheForm(){
+  const wrap=document.getElementById('cofreFormWrap');
+  const seta=document.getElementById('cofreDetalheFormSeta');
+  const abrir=wrap.style.display==='none';
+  wrap.style.display=abrir?'block':'none';
+  seta.textContent=abrir?'▴':'▾';
+}
+
 let cofreDetalheId=null;
 async function abrirCofreDetalhe(id){
   const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
@@ -1400,11 +1423,16 @@ async function abrirCofreDetalhe(id){
   else{ ondeEl.style.display='none'; }
   document.getElementById('rendimentoForm').style.display='none';
   document.getElementById('rendimentoValor').value='';
+  document.getElementById('saidaCofreForm').style.display='none';
+  document.getElementById('saidaCofreDesc').value='';
+  document.getElementById('saidaCofreValor').value='';
   document.getElementById('cofreDetalhe').classList.remove('hidden');
 
   const slot=document.getElementById('cofreDetalheFormSlot');
   slot.appendChild(document.getElementById('cofreFormWrap'));
   openCofreForm(c);
+  closeCofreForm();
+  document.getElementById('cofreDetalheFormSeta').textContent='▾';
 
   await loadContasFixasDoCofre(id);
 
@@ -1476,6 +1504,45 @@ async function lancarRendimento(){
   await loadHomeData();
   await loadMovimentos();
   await loadPerfilStats();
+}
+
+async function registrarSaidaCofre(cofreId,valor,descricao){
+  if(!supabaseClient||!currentUser)return false;
+  if(!valor||isNaN(valor)||valor<=0)return false;
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao:descricao||'Saída',valor,tipo:'saida',cofre_id:cofreId});
+  if(error)return false;
+  const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',cofreId).single();
+  if(cAtual){
+    const novoValor=Math.max(0,Number(cAtual.valor_atual||0)-valor);
+    await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
+  }
+  return true;
+}
+
+function toggleSaidaCofreForm(){
+  const el=document.getElementById('saidaCofreForm');
+  const mostrar=el.style.display==='none';
+  el.style.display=mostrar?'block':'none';
+  if(mostrar)document.getElementById('saidaCofreValor').focus();
+}
+
+async function lancarSaidaCofre(){
+  if(!cofreDetalheId)return;
+  const valor=parseFloat(document.getElementById('saidaCofreValor').value);
+  const descricao=document.getElementById('saidaCofreDesc').value.trim();
+  if(!valor||isNaN(valor)){ toast('Coloca quanto saiu 🌿'); return; }
+  const ok=await registrarSaidaCofre(cofreDetalheId,valor,descricao||'Saída');
+  if(!ok){ toast('Não consegui registrar agora 😕'); return; }
+  vibrar('success');
+  toast(`Registrado 🌿 −${formatBRL(valor)}`);
+  document.getElementById('saidaCofreDesc').value='';
+  document.getElementById('saidaCofreValor').value='';
+  await loadCofres();
+  await abrirCofreDetalhe(cofreDetalheId);
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
+  await loadPendentes();
 }
 
 async function loadContasFixasDoCofre(cofreId){
@@ -1576,6 +1643,8 @@ function somaPercentuaisExcluindo(id){
 }
 function closeCofreForm(){
   document.getElementById('cofreFormWrap').style.display='none';
+  const seta=document.getElementById('cofreDetalheFormSeta');
+  if(seta)seta.textContent='▾';
 }
 
 async function salvarCofre(){
@@ -1636,10 +1705,38 @@ async function deleteCofre(id){
   await loadPerfilStats();
 }
 
+function togglePendenteCofre(id){
+  const form=document.getElementById(`pendForm-${id}`);
+  const seta=document.getElementById(`pendSeta-${id}`);
+  if(!form)return;
+  const abrir=form.style.display==='none';
+  form.style.display=abrir?'block':'none';
+  if(seta)seta.textContent=abrir?'▴':'▾';
+}
+
 async function resolverCofrePendente(id){
   if(!supabaseClient||!currentUser)return;
-  const input=document.getElementById(`destino-${id}`);
-  const nota=input?input.value.trim():'';
+  const descInput=document.getElementById(`destino-${id}`);
+  const valorInput=document.getElementById(`destinoValor-${id}`);
+  const descricao=descInput?descInput.value.trim():'';
+  const valor=valorInput?parseFloat(valorInput.value):NaN;
+  if(!valor||isNaN(valor)){ toast('Coloca quanto você tirou 🌿'); return; }
+  const ok=await registrarSaidaCofre(id,valor,descricao||'Saída');
+  if(!ok){ toast('Não consegui registrar agora 😕'); return; }
+  await supabaseClient.from('cofres').update({concluido:true}).eq('id',id);
+  vibrar('success');
+  toast(`Registrado 🌿 −${formatBRL(valor)}`);
+  await loadPendentes();
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
+}
+
+async function deixarGuardadoPendente(id){
+  if(!supabaseClient||!currentUser)return;
+  const descInput=document.getElementById(`destino-${id}`);
+  const nota=descInput?descInput.value.trim():'';
   const payload={concluido:true};
   if(nota)payload.notas=nota;
   await supabaseClient.from('cofres').update(payload).eq('id',id);
@@ -1767,7 +1864,7 @@ async function loadHomeData(){
   const subEl=document.getElementById('hero-sub');
   if(subEl){
     subEl.textContent=list.length
-      ? `Você tem ${list.length} cofre${list.length>1?'s':''} organizando ${formatBRL(contas+guardado)}. O que sobra é seu, tranquilo.`
+      ? `${formatBRL(contas+guardado)} já estão guardados em ${list.length} cofre${list.length>1?'s':''} — esse dinheiro já tem destino, não é livre. O valor aí em cima é só o que sobra pra você gastar sem culpa.`
       : 'Crie seus cofres que eu calculo isso de verdade.';
   }
 
