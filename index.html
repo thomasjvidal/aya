@@ -334,6 +334,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div id="cofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
+
+    <div class="dinheiro-entrou" id="destinoCard" style="display:none;margin-top:16px"></div>
   </section>
 
   <!-- ============ AYA (chat) ============ -->
@@ -1011,6 +1013,7 @@ async function distribuirPercentuais(valorEntrada,movimentoId){
 async function loadPendentes(){
   if(!supabaseClient||!currentUser)return;
   const card=document.getElementById('pendenteCard');
+  const destinoCard=document.getElementById('destinoCard');
   if(!card)return;
   const [{data:esperados,error:errEsperados},{data:pend,error:errPend},{data:semDestino,error:errDestino}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
@@ -1025,18 +1028,15 @@ async function loadPendentes(){
   const listaEsperados=esperados||[];
   const listaPend=pend||[];
   const listaSemDestino=semDestino||[];
-  if(!listaEsperados.length&&!listaPend.length&&!listaSemDestino.length){
-    // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
-    // aparece de novo se tiver algo em "vai entrar" ou sobrar algo pendente por algum motivo.
-    card.style.display='none';
-    return;
-  }
-  card.style.display='block';
-  let html='';
-  if(listaSemDestino.length){
-    html+=`<div class="head"><span class="pulse"></span><h3>Dinheiro esperando destino</h3></div>
+
+  if(destinoCard){
+    if(!listaSemDestino.length){
+      destinoCard.style.display='none';
+    }else{
+      destinoCard.style.display='block';
+      let destinoHtml=`<div class="head"><span class="pulse"></span><h3>Dinheiro esperando destino</h3></div>
       <p style="font-size:12px;color:var(--ink2);margin:-4px 0 10px;line-height:1.4">Essas caixinhas ganharam dinheiro novo. Toca pra dizer pra onde foi (ou deixar guardado mesmo).</p>`;
-    html+=listaSemDestino.map(c=>`
+      destinoHtml+=listaSemDestino.map(c=>`
       <div style="background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:12px 13px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="togglePendenteCofre('${c.id}')">
           <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
@@ -1056,7 +1056,18 @@ async function loadPendentes(){
         </div>
       </div>
     `).join('');
+      destinoCard.innerHTML=destinoHtml;
+    }
   }
+
+  if(!listaEsperados.length&&!listaPend.length){
+    // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
+    // aparece de novo se tiver algo em "vai entrar" ou sobrar algo pendente por algum motivo.
+    card.style.display='none';
+    return;
+  }
+  card.style.display='block';
+  let html='';
   if(listaEsperados.length){
     html+=`<div class="head"><span class="pulse"></span><h3>Vai entrar</h3></div>`;
     html+=listaEsperados.map(m=>`
