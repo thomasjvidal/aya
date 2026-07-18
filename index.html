@@ -144,7 +144,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .aya-inline .f{width:20px;height:20px;border-radius:50%;background:var(--amber);display:grid;place-items:center;font-size:10px;flex-shrink:0;color:#fff}
 
 /* VOCÊ */
-.avatar-round{width:76px;height:76px;border-radius:50%;margin:0 auto;background:radial-gradient(circle at 35% 30%,#bff0d7,#4C9C7A);display:grid;place-items:center;font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:#fff}
+.avatar-round{width:88px;height:88px;border-radius:50%;margin:0 auto;background:radial-gradient(circle at 35% 30%,#bff0d7,#4C9C7A);display:grid;place-items:center;font-family:'Fraunces',serif;font-size:32px;font-weight:600;color:#fff;box-shadow:0 8px 20px -6px rgba(76,156,122,.55)}
 .score-wrap{text-align:center;margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px 20px;box-shadow:var(--shadow)}
 .ring{width:150px;height:150px;margin:6px auto 4px;position:relative}
 .ring svg{transform:rotate(-90deg)}
@@ -388,6 +388,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
         <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input id="favNome" placeholder="Nome (opcional, ex: Nintendo Switch)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+      </div>
       <div style="display:flex;gap:8px">
         <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
         <select id="favCofre" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
@@ -419,8 +422,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <p style="font-size:11px;color:var(--ink2);margin-top:12px;line-height:1.4">Como calculamos: dias com algo registrado essa semana + quantos cofres têm meta ou % definido. Quanto mais você usa a Aya, maior a nota.</p>
     </div>
 
-    <div class="sec-title">Seu nome</div>
-    <div id="nomeDisplayRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px">
+    <div class="sec-title" style="margin-top:22px">Seu nome</div>
+    <div id="nomeDisplayRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:6px;box-shadow:var(--shadow)">
       <span id="nomeDisplayTxt" style="font-size:13.5px;font-weight:600;color:var(--ink)">Você</span>
       <button type="button" onclick="toggleNomeEdit(true)" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Editar</button>
     </div>
@@ -429,7 +432,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 16px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
     </form>
 
-    <div class="sec-title">Como a Aya fala com você</div>
+    <div class="sec-title" style="margin-top:22px">Como a Aya fala com você</div>
     <div class="profile-pick">
       <div class="pp-opt sel" data-p="aperto" onclick="setProfile(this,'aperto')"><span class="e">🌧️</span><div><div class="nm">Vivo no aperto</div><div class="d">Foco em sair do vermelho, sem julgamento</div></div><div class="rd"></div></div>
       <div class="pp-opt" data-p="auto" onclick="setProfile(this,'auto')"><span class="e">💼</span><div><div class="nm">Autônomo / MEI</div><div class="d">Separa imposto, 13º e mistura PF com PJ</div></div><div class="rd"></div></div>
@@ -492,6 +495,24 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </form>
     <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirMovimentoDoEditor()">Excluir esse registro</button>
     <button class="linklike" type="button" onclick="closeEditMov()">Fechar</button>
+  </div>
+
+  <!-- EDITAR FAVORITO -->
+  <div class="auth-gate hidden" id="editFav" style="z-index:95">
+    <div class="halo">✎</div>
+    <h1 class="serif">Editar favorito</h1>
+    <form id="editFavForm">
+      <input type="hidden" id="efId">
+      <input id="efNome" type="text" placeholder="Nome" required>
+      <input id="efUrl" type="url" placeholder="Link" required>
+      <input id="efPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)">
+      <select id="efCofre" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
+        <option value="">Vem do Livre</option>
+      </select>
+      <button type="submit">Salvar alterações</button>
+    </form>
+    <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirFavoritoDoEditor()">Excluir favorito</button>
+    <button class="linklike" type="button" onclick="closeEditFav()">Fechar</button>
   </div>
 
   <!-- COFRE: detalhe + edição -->
@@ -1243,14 +1264,19 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
   const url=input.value.trim();
   if(!url)return;
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
-  let titulo=url;
-  try{ titulo=new URL(url).hostname.replace('www.',''); }catch(err){}
+  const nomeManual=document.getElementById('favNome').value.trim();
+  let titulo=nomeManual;
+  if(!titulo){
+    titulo=url;
+    try{ titulo=new URL(url).hostname.replace('www.',''); }catch(err){}
+  }
   const precoRaw=document.getElementById('favPreco').value;
   const preco=precoRaw?parseFloat(precoRaw):null;
   const cofreId=document.getElementById('favCofre').value||null;
   const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,cofre_id:cofreId});
   if(!error){
     input.value='';
+    document.getElementById('favNome').value='';
     document.getElementById('favPreco').value='';
     document.getElementById('favCofre').value='';
     await loadFavoritos();
@@ -1289,7 +1315,8 @@ async function loadFavoritos(){
         <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
         ${statusHtml}
       </div>
-      <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:0;border:0;color:var(--sage);font-size:14px;cursor:pointer;margin-right:2px">▶</button>
+      <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:var(--sage);color:#fff;border:0;width:32px;height:32px;border-radius:50%;font-size:12px;cursor:pointer;margin-right:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center">▶</button>
+      <button onclick='abrirEditarFavorito("${f.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;margin-right:2px;flex-shrink:0">✎</button>
       <button onclick="removeFavorito('${f.id}')" style="background:0;border:0;color:var(--ink2);font-size:18px;cursor:pointer;flex-shrink:0">×</button>
     </div>
   `;
@@ -1310,6 +1337,54 @@ async function removeFavorito(id){
   await supabaseClient.from('favoritos').delete().eq('id',id);
   await loadFavoritos();
 }
+
+function popularEfCofre(){
+  const sel=document.getElementById('efCofre');
+  if(!sel)return;
+  const atual=sel.value;
+  sel.innerHTML='<option value="">Vem do Livre</option>'+
+    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+  sel.value=atual;
+}
+
+async function abrirEditarFavorito(id){
+  if(!supabaseClient||!currentUser)return;
+  const {data:f}=await supabaseClient.from('favoritos').select('*').eq('id',id).single();
+  if(!f){ toast('Não achei esse favorito 😕'); return; }
+  popularEfCofre();
+  document.getElementById('efId').value=f.id;
+  document.getElementById('efNome').value=f.titulo||'';
+  document.getElementById('efUrl').value=f.url||'';
+  document.getElementById('efPreco').value=f.preco||'';
+  document.getElementById('efCofre').value=f.cofre_id||'';
+  document.getElementById('editFav').classList.remove('hidden');
+}
+function closeEditFav(){
+  document.getElementById('editFav').classList.add('hidden');
+}
+async function excluirFavoritoDoEditor(){
+  const id=document.getElementById('efId').value;
+  if(!id)return;
+  await removeFavorito(id);
+  closeEditFav();
+  toast('Favorito excluído 🌿');
+}
+document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient||!currentUser)return;
+  const id=document.getElementById('efId').value;
+  const titulo=document.getElementById('efNome').value.trim();
+  const url=document.getElementById('efUrl').value.trim();
+  const precoRaw=document.getElementById('efPreco').value;
+  const preco=precoRaw?parseFloat(precoRaw):null;
+  const cofreId=document.getElementById('efCofre').value||null;
+  if(!id||!titulo||!url)return;
+  const {error}=await supabaseClient.from('favoritos').update({titulo,url,preco,cofre_id:cofreId}).eq('id',id);
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  closeEditFav();
+  toast('Atualizado 🌿');
+  await loadFavoritos();
+});
 
 /* ================= COFRES (reais) ================= */
 function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
