@@ -235,8 +235,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
   <!-- ============ HOJE ============ -->
   <section class="view active" id="v-hoje">
-    <div class="h-greet" id="greet">Boa noite,</div>
-    <div class="h-name" id="h-name-txt">Você</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div>
+        <div class="h-greet" id="greet">Boa noite,</div>
+        <div class="h-name" id="h-name-txt">Você</div>
+      </div>
+      <div class="avatar-round" id="avatarRoundHoje" onclick="go('perfil')" title="Ver perfil" style="width:42px;height:42px;font-size:16px;cursor:pointer;flex-shrink:0;margin-top:3px;overflow:hidden">V</div>
+    </div>
 
     <div class="hero">
       <div class="lbl">livre pra gastar hoje</div>
@@ -334,8 +339,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div id="cofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
+  </section>
 
-    <div class="dinheiro-entrou" id="destinoCard" style="display:none;margin-top:16px"></div>
+  <!-- ============ DESTINO ============ -->
+  <section class="view" id="v-destino">
+    <div class="eyebrow">Destino</div>
+    <div class="h-name" style="margin-top:4px">Dinheiro esperando<br>destino</div>
+    <p style="font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5">Toda vez que um cofre ganha dinheiro novo, ele aparece aqui até você dizer o que fazer com ele.</p>
+
+    <div class="dinheiro-entrou" id="destinoCard" style="margin-top:16px"></div>
   </section>
 
   <!-- ============ AYA (chat) ============ -->
@@ -594,8 +606,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="cwrap"><span>✦</span></div>Aya</button>
     <button class="tab" data-v="mov" onclick="go('mov')">
       <svg viewBox="0 0 24 24"><path d="M4 18V9M9 18V5M14 18v-6M19 18v-9"/></svg>Movimento</button>
-    <button class="tab" data-v="perfil" onclick="go('perfil')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>Perfil</button>
+    <button class="tab" data-v="destino" onclick="go('destino')">
+      <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Destino</button>
   </nav>
 </div>
 
@@ -1031,11 +1043,9 @@ async function loadPendentes(){
 
   if(destinoCard){
     if(!listaSemDestino.length){
-      destinoCard.style.display='none';
+      destinoCard.innerHTML=`<div style="text-align:center;padding:30px 10px"><div style="font-size:32px;margin-bottom:8px">🌿</div><p style="font-size:13px;color:var(--ink2)">Tudo em dia — nenhuma caixinha esperando destino agora.</p></div>`;
     }else{
-      destinoCard.style.display='block';
-      let destinoHtml=`<div class="head"><span class="pulse"></span><h3>Dinheiro esperando destino</h3></div>
-      <p style="font-size:12px;color:var(--ink2);margin:-4px 0 10px;line-height:1.4">Essas caixinhas ganharam dinheiro novo. Toca pra dizer pra onde foi (ou deixar guardado mesmo).</p>`;
+      let destinoHtml=``;
       destinoHtml+=listaSemDestino.map(c=>`
       <div style="background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:14px;padding:12px 13px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="togglePendenteCofre('${c.id}')">
@@ -1153,8 +1163,10 @@ function avatarIniciais(nome){
   return(primeira+ultima).toUpperCase();
 }
 function atualizarAvatar(){
-  const av=document.getElementById('avatarRound');
-  if(av)av.innerHTML=perfilFotoUrl?`<img src="${escapeHtml(perfilFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:escapeHtml(avatarIniciais(document.getElementById('perfilNomeTxt')?.textContent||''));
+  const iniciais=escapeHtml(avatarIniciais(document.getElementById('perfilNomeTxt')?.textContent||''));
+  const conteudo=perfilFotoUrl?`<img src="${escapeHtml(perfilFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:iniciais;
+  const av=document.getElementById('avatarRound'); if(av)av.innerHTML=conteudo;
+  const avHoje=document.getElementById('avatarRoundHoje'); if(avHoje)avHoje.innerHTML=conteudo;
   const btn=document.getElementById('avatarRemoverBtn'); if(btn)btn.style.display=perfilFotoUrl?'inline-block':'none';
 }
 function aplicarNomePerfil(nome){
@@ -2007,7 +2019,7 @@ async function loadHomeData(){
     if(atencao.length){
       const totalPendente=atencao.reduce((s,c)=>s+Number(c.valor_atual||0),0);
       avisoEl.style.display='block';
-      avisoEl.innerHTML=`<button type="button" onclick="go('cofres')" style="width:100%;display:flex;align-items:center;gap:10px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:16px;padding:14px 15px;font-family:inherit;cursor:pointer;text-align:left">
+      avisoEl.innerHTML=`<button type="button" onclick="go('destino')" style="width:100%;display:flex;align-items:center;gap:10px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:16px;padding:14px 15px;font-family:inherit;cursor:pointer;text-align:left">
         <span style="font-size:20px;flex-shrink:0">🌿</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-weight:700;font-size:13.5px;color:#8a5a1e">${formatBRL(totalPendente)} esperando destino</span>
