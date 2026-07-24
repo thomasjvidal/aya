@@ -228,7 +228,21 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button type="submit" id="authSubmitBtn">Entrar</button>
     </form>
     <button class="linklike" id="authToggleMode" type="button" style="display:none">Não tem conta? Criar agora</button>
+    <button class="linklike" id="authForgotBtn" type="button" style="display:none">Esqueci minha senha</button>
     <p class="err" id="authError"></p>
+
+    <form id="authForgotForm" style="display:none">
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:6px">Digite seu e-mail — mando um link pra você trocar a senha.</p>
+      <input id="authForgotEmail" type="email" placeholder="seu e-mail" autocomplete="email" required>
+      <button type="submit">Enviar link</button>
+    </form>
+    <button class="linklike" id="authForgotCancel" type="button" style="display:none">Voltar</button>
+
+    <form id="authRecoverForm" style="display:none">
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:6px">Digite sua nova senha.</p>
+      <input id="authNovaSenha" type="password" placeholder="nova senha (mín. 6 caracteres)" autocomplete="new-password" minlength="6" required>
+      <button type="submit">Salvar nova senha</button>
+    </form>
   </div>
 
   <div class="screen">
@@ -489,7 +503,14 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
     <div id="pushSetup" style="display:none;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;font-size:12.5px;color:var(--ink2);line-height:1.6"></div>
 
+    <div class="sec-title">Seus dados</div>
+    <button type="button" onclick="exportarDadosCSV()" style="width:100%;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:13px;font-weight:600;padding:12px;border-radius:14px;cursor:pointer;box-shadow:var(--shadow)">⬇️ Exportar meu histórico (CSV)</button>
+
     <button onclick="logout()" style="margin-top:20px;width:100%;background:0;border:1px solid var(--line);color:var(--ink2);font-family:inherit;font-size:13px;font-weight:600;padding:12px;border-radius:14px;cursor:pointer">Sair da conta</button>
+
+    <div class="sec-title" style="color:var(--rose)">Zona de risco</div>
+    <button type="button" onclick="abrirExcluirConta()" style="width:100%;background:0;border:1px solid var(--rose);color:var(--rose);font-family:inherit;font-size:13px;font-weight:600;padding:12px;border-radius:14px;cursor:pointer">Excluir minha conta</button>
+    <p style="font-size:11px;color:var(--ink2);margin:8px 4px 0;line-height:1.4">Apaga sua conta e todos os seus dados (cofres, movimentos, favoritos) pra sempre. Não tem como desfazer.</p>
   </section>
 
   </div><!-- screen -->
@@ -540,6 +561,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </form>
     <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirMovimentoDoEditor()">Excluir esse registro</button>
     <button class="linklike" type="button" onclick="closeEditMov()">Fechar</button>
+  </div>
+
+  <!-- EXCLUIR CONTA -->
+  <div class="auth-gate hidden" id="excluirContaModal" style="z-index:97">
+    <div class="halo" style="background:radial-gradient(circle at 35% 30%,#f7c9c9,#c85a5a)">⚠️</div>
+    <h1 class="serif">Excluir conta</h1>
+    <p>Isso apaga <b>tudo</b>: cofres, movimentos, favoritos, contas fixas. Pra sempre. Não tem como desfazer.</p>
+    <form id="excluirContaForm">
+      <input id="excluirContaConfirma" type="text" placeholder='Digita "excluir" pra confirmar' required autocapitalize="off">
+      <button type="submit" style="background:var(--rose)">Excluir minha conta pra sempre</button>
+    </form>
+    <button class="linklike" type="button" onclick="fecharExcluirConta()">Cancelar, quero ficar</button>
   </div>
 
   <!-- EDITAR FAVORITO -->
@@ -905,6 +938,17 @@ async function initApp(){
 
   supabaseClient.auth.onAuthStateChange((event,session)=>{
     if(event==='INITIAL_SESSION')return;
+    if(event==='PASSWORD_RECOVERY'){
+      document.getElementById('authGate').classList.remove('hidden');
+      document.getElementById('authForm').style.display='none';
+      document.getElementById('authToggleMode').style.display='none';
+      document.getElementById('authForgotBtn').style.display='none';
+      document.getElementById('authForgotForm').style.display='none';
+      document.getElementById('authForgotCancel').style.display='none';
+      document.getElementById('authRecoverForm').style.display='flex';
+      document.getElementById('authTagline').textContent='Vamos trocar sua senha.';
+      return;
+    }
     if(session){
       if(event==='TOKEN_REFRESHED'&&currentUser&&currentUser.id===session.user.id){ currentUser=session.user; return; }
       onAuthed(session);
@@ -916,6 +960,7 @@ function showAuthForm(){
   document.getElementById('authTagline').textContent='Sua companhia financeira.';
   document.getElementById('authForm').style.display='flex';
   document.getElementById('authToggleMode').style.display='block';
+  document.getElementById('authForgotBtn').style.display='block';
 }
 
 async function onAuthed(session){
@@ -1281,12 +1326,149 @@ async function logout(){
   if(supabaseClient) await supabaseClient.auth.signOut();
 }
 
+function csvEscape(v){
+  const s=String(v==null?'':v);
+  return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+}
+
+async function exportarDadosCSV(){
+  if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
+  toast('Preparando exportação…');
+  const {data,error}=await supabaseClient.from('movimentos').select('*').order('created_at',{ascending:true});
+  if(error||!data||!data.length){ toast('Nada pra exportar ainda 😕'); return; }
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  const linhas=[['Data','Tipo','Descrição','Valor','Cofre','Pra quem','Data prevista']];
+  data.forEach(m=>{
+    linhas.push([
+      new Date(m.created_at).toLocaleString('pt-BR'),
+      m.tipo,
+      m.descricao,
+      Number(m.valor||0).toFixed(2).replace('.',','),
+      m.cofre_id?(cofreById[m.cofre_id]?.nome||''):'',
+      m.pessoa||'',
+      m.data_prevista||''
+    ]);
+  });
+  const csv=linhas.map(l=>l.map(csvEscape).join(';')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`aya-historico-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Exportado 🌿');
+}
+
+function abrirExcluirConta(){
+  document.getElementById('excluirContaConfirma').value='';
+  document.getElementById('excluirContaModal').classList.remove('hidden');
+}
+function fecharExcluirConta(){
+  document.getElementById('excluirContaModal').classList.add('hidden');
+}
+document.getElementById('excluirContaForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient||!currentUser)return;
+  const confirmaTxt=document.getElementById('excluirContaConfirma').value.trim().toLowerCase();
+  if(confirmaTxt!=='excluir'){ toast('Digita "excluir" certinho pra confirmar 🌿'); return; }
+  const btn=e.target.querySelector('button[type=submit]');
+  btn.disabled=true;
+  const original=btn.textContent;
+  btn.textContent='Excluindo…';
+  try{
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    const res=await fetch('/api/delete-account',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accessToken:session?.access_token})
+    });
+    const json=await res.json();
+    if(!res.ok||!json.ok){
+      toast('Não consegui excluir agora 😕');
+      btn.disabled=false;
+      btn.textContent=original;
+      return;
+    }
+    fecharExcluirConta();
+    await supabaseClient.auth.signOut();
+    toast('Conta excluída. Até mais 🌿');
+  }catch(err){
+    toast('Não consegui excluir agora 😕');
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+});
+
 document.getElementById('authToggleMode').addEventListener('click',()=>{
   authMode=authMode==='login'?'signup':'login';
   document.getElementById('authName').style.display=authMode==='signup'?'block':'none';
   document.getElementById('authSubmitBtn').textContent=authMode==='login'?'Entrar':'Criar conta';
   document.getElementById('authToggleMode').textContent=authMode==='login'?'Não tem conta? Criar agora':'Já tenho conta, entrar';
   document.getElementById('authError').textContent='';
+});
+
+document.getElementById('authForgotBtn').addEventListener('click',()=>{
+  document.getElementById('authForm').style.display='none';
+  document.getElementById('authToggleMode').style.display='none';
+  document.getElementById('authForgotBtn').style.display='none';
+  document.getElementById('authError').textContent='';
+  document.getElementById('authForgotEmail').value=document.getElementById('authEmail').value;
+  document.getElementById('authForgotForm').style.display='flex';
+  document.getElementById('authForgotCancel').style.display='block';
+});
+
+document.getElementById('authForgotCancel').addEventListener('click',()=>{
+  document.getElementById('authForgotForm').style.display='none';
+  document.getElementById('authForgotCancel').style.display='none';
+  showAuthForm();
+});
+
+document.getElementById('authForgotForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient)return;
+  const email=document.getElementById('authForgotEmail').value.trim();
+  if(!email)return;
+  const btn=e.target.querySelector('button[type=submit]');
+  btn.disabled=true;
+  const original=btn.textContent;
+  btn.textContent='Enviando…';
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+  btn.disabled=false;
+  btn.textContent=original;
+  const errEl=document.getElementById('authError');
+  if(error){
+    errEl.style.color='var(--rose)';
+    errEl.textContent='Não consegui enviar agora 😕';
+  }else{
+    errEl.style.color='var(--sage)';
+    errEl.textContent='Se esse e-mail tiver conta, o link de troca de senha já foi enviado. Confere sua caixa de entrada 🌿';
+  }
+});
+
+document.getElementById('authRecoverForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  if(!supabaseClient)return;
+  const novaSenha=document.getElementById('authNovaSenha').value;
+  if(!novaSenha||novaSenha.length<6)return;
+  const btn=e.target.querySelector('button[type=submit]');
+  btn.disabled=true;
+  const original=btn.textContent;
+  btn.textContent='Salvando…';
+  const {error}=await supabaseClient.auth.updateUser({password:novaSenha});
+  btn.disabled=false;
+  btn.textContent=original;
+  if(error){
+    toast('Não consegui trocar a senha agora 😕');
+    return;
+  }
+  toast('Senha trocada 🌿');
+  document.getElementById('authRecoverForm').style.display='none';
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session)await onAuthed(session);
 });
 
 document.getElementById('authForm').addEventListener('submit',async(e)=>{
