@@ -1325,7 +1325,7 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
   const quantidade=parseInt(document.getElementById('favQuantidade').value)||1;
   const cofreId=document.getElementById('favCofre').value||null;
   const cofreId2=quantidade>=2?(document.getElementById('favCofre2').value||null):null;
-  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,quantidade,cofre_id:cofreId,cofre_id_2:cofreId2});
+  const {data:novoFav,error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,quantidade,cofre_id:cofreId,cofre_id_2:cofreId2}).select('id').single();
   if(!error){
     input.value='';
     document.getElementById('favNome').value='';
@@ -1336,8 +1336,20 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
     document.getElementById('favCofre2Wrap').style.display='none';
     await loadFavoritos();
     toast('Salvei nos seus favoritos 🌿');
+    if(novoFav?.id)buscarImagemFavorito(novoFav.id,url);
   }else{ toast('Não consegui salvar agora 😕'); }
 });
+
+async function buscarImagemFavorito(id,url){
+  try{
+    const res=await fetch('/api/link-preview?url='+encodeURIComponent(url));
+    const data=await res.json();
+    if(data.image&&supabaseClient){
+      await supabaseClient.from('favoritos').update({imagem_url:data.image}).eq('id',id);
+      await loadFavoritos();
+    }
+  }catch(err){}
+}
 
 async function loadFavoritos(){
   if(!supabaseClient||!currentUser)return;
@@ -1379,9 +1391,12 @@ async function loadFavoritos(){
       }
     }
     const tituloTxt=quantidade>1?`${quantidade}x ${f.titulo}`:f.titulo;
+    const iconeHtml=f.imagem_url
+      ? `<img src="${escapeHtml(f.imagem_url)}" onerror="this.parentElement.innerHTML='🔗'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`
+      : '🔗';
     return `
     <div class="cofre-row" style="${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
-      <div class="cofre-ic" style="background:var(--sage-tint)">🔗</div>
+      <div class="cofre-ic" style="background:var(--sage-tint);overflow:hidden">${iconeHtml}</div>
       <div style="flex:1;min-width:0">
         <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(tituloTxt)}</div>
         <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
@@ -1472,6 +1487,7 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
   closeEditFav();
   toast('Atualizado 🌿');
   await loadFavoritos();
+  buscarImagemFavorito(id,url);
 });
 
 /* ================= COFRES (reais) ================= */
