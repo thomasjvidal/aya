@@ -116,6 +116,9 @@ alter table public.favoritos
 alter table public.favoritos
   add column if not exists cofre_id_2 uuid references public.cofres(id) on delete set null;
 
+alter table public.favoritos
+  add column if not exists imagem_url text;
+
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
