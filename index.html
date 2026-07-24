@@ -122,8 +122,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .msg.aya{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:var(--shadow)}
 .msg.me{background:var(--sage);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
 .msg-audio-bar{display:flex;gap:6px;align-self:flex-start;margin:-5px 0 0 4px}
-.aud-btn{background:var(--card);border:1px solid var(--line);color:var(--ink2);font-family:inherit;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:14px;cursor:pointer;white-space:nowrap}
+.aud-btn{background:var(--card);border:1px solid var(--line);color:var(--ink2);font-family:inherit;font-size:10.5px;font-weight:600;padding:0 10px;height:27px;border-radius:14px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+.aud-btn.aud-play,.aud-btn.aud-copy{width:27px;padding:0}
 .aud-btn:active{background:var(--sage-tint);color:var(--sage)}
+.aud-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .chip{background:var(--sage-tint);color:var(--sage);border:0;font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 13px;border-radius:20px;cursor:pointer}
 .composer{display:flex;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:6px 6px 6px 16px;box-shadow:0 6px 18px rgba(24,37,36,.1)}
@@ -397,13 +399,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="h-name" style="margin-top:4px">Seus registros</div>
     <p style="font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5">Toda vez que você abrir o banco (com o aviso da Aya) ou registrar algo manualmente, aparece aqui de verdade.</p>
 
-    <div class="sec-title">Registrar algo agora</div>
-    <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
-
-    <div class="seg-control" style="display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:22px 0 4px;box-shadow:var(--shadow)">
+    <div class="seg-control" style="display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0 22px;box-shadow:var(--shadow)">
       <button type="button" class="seg-btn active" data-seg="historico" onclick="toggleMovSubview('historico')" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Histórico</button>
       <button type="button" class="seg-btn" data-seg="graficos" onclick="toggleMovSubview('graficos')" style="flex:1;background:0;color:var(--ink2);border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Gráficos</button>
     </div>
+
+    <div class="sec-title" style="margin-top:0">Registrar algo agora</div>
+    <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
     <div id="movHistoricoView">
       <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -623,6 +625,13 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div style="text-align:left">
       <div class="sec-title">Extrato desse cofre</div>
+      <div id="cdExtratoFiltro" style="display:flex;gap:6px;margin:0 0 12px;overflow-x:auto">
+        <button type="button" class="periodo-btn" data-dias="7" onclick="mudarPeriodoExtrato(7)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">7 dias</button>
+        <button type="button" class="periodo-btn active" data-dias="30" onclick="mudarPeriodoExtrato(30)" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">30 dias</button>
+        <button type="button" class="periodo-btn" data-dias="90" onclick="mudarPeriodoExtrato(90)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Trimestre</button>
+        <button type="button" class="periodo-btn" data-dias="180" onclick="mudarPeriodoExtrato(180)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">6 meses</button>
+        <button type="button" class="periodo-btn" data-dias="365" onclick="mudarPeriodoExtrato(365)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">1 ano</button>
+      </div>
       <div id="cdExtrato" style="margin-bottom:8px">
         <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
       </div>
@@ -737,7 +746,10 @@ function pushMsg(cls,txt){
   d.className='msg '+cls;
   d.textContent=txt;
   c.appendChild(d);
-  if(cls==='aya')anexarControlesAudio(d);
+  if(cls==='aya'){
+    document.querySelectorAll('#chat .msg-audio-bar').forEach(b=>b.remove());
+    anexarControlesAudio(d);
+  }
   scrollChatToBottom();
   return d;
 }
@@ -748,6 +760,10 @@ function removeTyping(){const t=document.getElementById('typing');if(t)t.remove(
 const VELOCIDADES_VOZ=[1,1.25,1.5,1.75,2];
 let vozRate=1;
 let vozBtnAtivo=null;
+const ICON_PLAY='<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.3 8.5a4.5 4.5 0 0 1 0 7"/><path d="M19 6a8 8 0 0 1 0 12"/></svg>';
+const ICON_PAUSE='<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>';
+const ICON_COPY='<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const ICON_CHECK='<svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L20 6.5"/></svg>';
 
 function anexarControlesAudio(bubble){
   if(!('speechSynthesis' in window))return;
@@ -755,15 +771,15 @@ function anexarControlesAudio(bubble){
   bar.className='msg-audio-bar';
 
   const playBtn=document.createElement('button');
-  playBtn.type='button';playBtn.className='aud-btn';playBtn.textContent='🔊 Ouvir';
+  playBtn.type='button';playBtn.className='aud-btn aud-play';playBtn.innerHTML=ICON_PLAY;playBtn.setAttribute('aria-label','Ouvir');
   playBtn.onclick=()=>toggleSpeak(playBtn,bubble.textContent);
 
   const speedBtn=document.createElement('button');
-  speedBtn.type='button';speedBtn.className='aud-btn';speedBtn.textContent=vozRate+'x';
+  speedBtn.type='button';speedBtn.className='aud-btn aud-speed';speedBtn.textContent=vozRate+'x';
   speedBtn.onclick=()=>cycleSpeed(speedBtn,playBtn,bubble.textContent);
 
   const copyBtn=document.createElement('button');
-  copyBtn.type='button';copyBtn.className='aud-btn';copyBtn.textContent='📋';
+  copyBtn.type='button';copyBtn.className='aud-btn aud-copy';copyBtn.innerHTML=ICON_COPY;copyBtn.setAttribute('aria-label','Copiar');
   copyBtn.onclick=()=>copiarTexto(bubble.textContent,copyBtn);
 
   bar.appendChild(playBtn);bar.appendChild(speedBtn);bar.appendChild(copyBtn);
@@ -772,48 +788,48 @@ function anexarControlesAudio(bubble){
 
 function pararVoz(){
   if('speechSynthesis' in window)window.speechSynthesis.cancel();
-  if(vozBtnAtivo){vozBtnAtivo.textContent='🔊 Ouvir';vozBtnAtivo=null;}
+  if(vozBtnAtivo){vozBtnAtivo.innerHTML=ICON_PLAY;vozBtnAtivo=null;}
 }
 
 function toggleSpeak(btn,texto){
   const synth=window.speechSynthesis;
   if(vozBtnAtivo===btn){
-    if(synth.speaking&&!synth.paused){synth.pause();btn.textContent='▶️ Continuar';}
-    else if(synth.paused){synth.resume();btn.textContent='⏸ Pausar';}
+    if(synth.speaking&&!synth.paused){synth.pause();btn.innerHTML=ICON_PLAY;}
+    else if(synth.paused){synth.resume();btn.innerHTML=ICON_PAUSE;}
     return;
   }
   synth.cancel();
-  if(vozBtnAtivo)vozBtnAtivo.textContent='🔊 Ouvir';
+  if(vozBtnAtivo)vozBtnAtivo.innerHTML=ICON_PLAY;
   const u=new SpeechSynthesisUtterance(texto);
   u.lang='pt-BR';
   u.rate=vozRate;
-  u.onend=()=>{btn.textContent='🔊 Ouvir';if(vozBtnAtivo===btn)vozBtnAtivo=null;};
+  u.onend=()=>{btn.innerHTML=ICON_PLAY;if(vozBtnAtivo===btn)vozBtnAtivo=null;};
   u.onerror=u.onend;
   synth.speak(u);
   vozBtnAtivo=btn;
-  btn.textContent='⏸ Pausar';
+  btn.innerHTML=ICON_PAUSE;
 }
 
 function cycleSpeed(speedBtn,playBtn,texto){
   let idx=VELOCIDADES_VOZ.indexOf(vozRate);
   idx=(idx+1)%VELOCIDADES_VOZ.length;
   vozRate=VELOCIDADES_VOZ[idx];
-  document.querySelectorAll('.msg-audio-bar .aud-btn').forEach(b=>{if(/^\d+(\.\d+)?x$/.test(b.textContent))b.textContent=vozRate+'x';});
+  document.querySelectorAll('.msg-audio-bar .aud-speed').forEach(b=>{b.textContent=vozRate+'x';});
   const synth=window.speechSynthesis;
   if(vozBtnAtivo===playBtn&&synth.speaking){
     synth.cancel();
     const u=new SpeechSynthesisUtterance(texto);
     u.lang='pt-BR';
     u.rate=vozRate;
-    u.onend=()=>{playBtn.textContent='🔊 Ouvir';if(vozBtnAtivo===playBtn)vozBtnAtivo=null;};
+    u.onend=()=>{playBtn.innerHTML=ICON_PLAY;if(vozBtnAtivo===playBtn)vozBtnAtivo=null;};
     u.onerror=u.onend;
     synth.speak(u);
-    playBtn.textContent='⏸ Pausar';
+    playBtn.innerHTML=ICON_PAUSE;
   }
 }
 
 function copiarTexto(texto,btn){
-  const onOk=()=>{const orig=btn.textContent;btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1200);toast('Copiado 📋');};
+  const onOk=()=>{const orig=btn.innerHTML;btn.innerHTML=ICON_CHECK;setTimeout(()=>{btn.innerHTML=orig;},1200);toast('Copiado 📋');};
   if(navigator.clipboard?.writeText){
     navigator.clipboard.writeText(texto).then(onOk).catch(()=>toast('Não consegui copiar 😕'));
   }else{
@@ -1138,11 +1154,13 @@ async function loadPendentes(){
         const pendente=c.concluido===false;
         return `
       <div style="background:${pendente?'var(--amber-tint)':'var(--card)'};border:1px solid ${pendente?'var(--amber-soft)':'var(--line)'};border-radius:14px;padding:12px 13px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="togglePendenteCofre('${c.id}')">
-          <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
-          <span style="font-weight:700;font-size:13.5px;color:var(--ink)">${escapeHtml(c.nome)}</span>
-          <span style="margin-left:auto;font-weight:700;font-size:13.5px" class="num">${formatBRL(c.valor_atual)}</span>
-          <span id="pendSeta-${c.id}" style="font-size:11px;color:var(--ink2)">▾</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer" onclick="abrirCofreDetalhe('${c.id}')">
+            <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
+            <span style="font-weight:700;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.nome)}</span>
+          </div>
+          <span style="font-weight:700;font-size:13.5px;white-space:nowrap" class="num">${formatBRL(c.valor_atual)}</span>
+          <span id="pendSeta-${c.id}" onclick="togglePendenteCofre('${c.id}')" style="font-size:11px;color:var(--ink2);cursor:pointer;padding:6px 0 6px 6px">▾</span>
         </div>
         <div id="pendForm-${c.id}" style="display:none;margin-top:10px">
           <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -1762,10 +1780,18 @@ function toggleCofreDetalheForm(){
 }
 
 let cofreDetalheId=null;
+let cofreDetalheDias=30;
 async function abrirCofreDetalhe(id){
   const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
   if(!c)return;
   cofreDetalheId=id;
+  cofreDetalheDias=30;
+  document.querySelectorAll('#cdExtratoFiltro .periodo-btn').forEach(b=>{
+    const ativo=Number(b.dataset.dias)===30;
+    b.classList.toggle('active',ativo);
+    b.style.background=ativo?'var(--sage-tint)':'var(--paper)';
+    b.style.color=ativo?'var(--sage)':'var(--ink2)';
+  });
   document.getElementById('cdIcone').textContent=c.icone||'🧾';
   document.getElementById('cdNome').textContent=c.nome;
   document.getElementById('cdValor').textContent=formatBRL(c.valor_atual);
@@ -1786,12 +1812,28 @@ async function abrirCofreDetalhe(id){
   document.getElementById('cofreDetalheFormSeta').textContent='▾';
 
   await loadContasFixasDoCofre(id);
-
+  await carregarExtratoCofre();
+}
+function mudarPeriodoExtrato(dias){
+  cofreDetalheDias=dias;
+  document.querySelectorAll('#cdExtratoFiltro .periodo-btn').forEach(b=>{
+    const ativo=Number(b.dataset.dias)===dias;
+    b.classList.toggle('active',ativo);
+    b.style.background=ativo?'var(--sage-tint)':'var(--paper)';
+    b.style.color=ativo?'var(--sage)':'var(--ink2)';
+  });
+  carregarExtratoCofre();
+}
+async function carregarExtratoCofre(){
+  const id=cofreDetalheId;
+  if(!id||!supabaseClient)return;
   const extratoEl=document.getElementById('cdExtrato');
   extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
-  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('cofre_id',id).order('created_at',{ascending:false}).limit(100);
+  const desde=new Date(); desde.setDate(desde.getDate()-cofreDetalheDias); desde.setHours(0,0,0,0);
+  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('cofre_id',id).gte('created_at',desde.toISOString()).order('created_at',{ascending:false}).limit(200);
+  if(id!==cofreDetalheId)return;
   if(error||!data||!data.length){
-    extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma movimentação registrada com esse cofre ainda.</p>';
+    extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma movimentação registrada nesse período.</p>';
     return;
   }
   extratoEl.innerHTML=data.map(m=>{
@@ -2348,12 +2390,11 @@ function bucketKeyPara(periodo,data){
   const d=new Date(data);
   if(periodo==='semana'){
     return d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
-  }else if(periodo==='ano'){
-    return MESES_PT[d.getMonth()].slice(0,3);
+  }else if(periodo==='mes'){
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
   }else{
-    // mês/trimestre: agrupa por semana do período (dom-sáb)
-    const inicioSemana=new Date(d); inicioSemana.setDate(d.getDate()-d.getDay());
-    return `${String(inicioSemana.getDate()).padStart(2,'0')}/${String(inicioSemana.getMonth()+1).padStart(2,'0')}`;
+    // trimestre/ano: agrupa por mês
+    return `${MESES_PT[d.getMonth()].slice(0,3)}/${String(d.getFullYear()).slice(2)}`;
   }
 }
 async function carregarGraficos(periodo){
@@ -2399,9 +2440,19 @@ async function carregarGraficos(periodo){
 
   const buckets={};
   const ordemBuckets=[];
+  if(periodo==='trimestre'||periodo==='ano'){
+    const numMeses=periodo==='trimestre'?3:12;
+    const cursor=new Date(hoje.getFullYear(),hoje.getMonth()-(numMeses-1),1);
+    for(let i=0;i<numMeses;i++){
+      const chave=`${MESES_PT[cursor.getMonth()].slice(0,3)}/${String(cursor.getFullYear()).slice(2)}`;
+      buckets[chave]=0;
+      ordemBuckets.push({chave,data:new Date(cursor)});
+      cursor.setMonth(cursor.getMonth()+1);
+    }
+  }
   doAtual.forEach(m=>{
     const chave=bucketKeyPara(periodo,m.created_at);
-    if(!buckets[chave]){ buckets[chave]=0; ordemBuckets.push({chave,data:new Date(m.created_at)}); }
+    if(!(chave in buckets)){ buckets[chave]=0; ordemBuckets.push({chave,data:new Date(m.created_at)}); }
     buckets[chave]+=Number(m.valor||0);
   });
   ordemBuckets.sort((a,b)=>a.data-b.data);
@@ -2437,17 +2488,22 @@ async function carregarGraficos(periodo){
   if(!ordemBuckets.length){
     html+=`<p style="font-size:12.5px;color:var(--ink2)">Nada registrado ${PERIODO_LABEL[periodo]} ainda.</p>`;
   }else{
+    const muitasBarras=ordemBuckets.length>10;
+    const larguraFixa=muitasBarras?(ordemBuckets.length*34)+'px':'100%';
     html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 14px 10px;box-shadow:var(--shadow);margin-bottom:16px">
-      <div style="display:flex;align-items:flex-end;gap:${ordemBuckets.length>10?'3px':'6px'};height:90px;border-bottom:1px solid var(--line)">
-        ${ordemBuckets.map(b=>{
-          const v=buckets[b.chave];
-          const alturaPct=maxBucket>0?Math.max(4,Math.round((v/maxBucket)*100)):4;
-          return `<div onclick="toast('${b.chave}: ${formatBRL(v).replace(/'/g,"\\'")}')" title="${b.chave}: ${formatBRL(v)}" style="flex:1;min-width:2px;height:${alturaPct}%;background:var(--sage);border-radius:4px 4px 0 0;cursor:pointer"></div>`;
-        }).join('')}
+      <div style="overflow-x:${muitasBarras?'auto':'visible'};-webkit-overflow-scrolling:touch">
+        <div style="display:flex;align-items:flex-end;gap:6px;height:90px;border-bottom:1px solid var(--line);min-width:${larguraFixa}">
+          ${ordemBuckets.map(b=>{
+            const v=buckets[b.chave];
+            const alturaPct=maxBucket>0?Math.max(4,Math.round((v/maxBucket)*100)):4;
+            return `<div onclick="toast('${b.chave}: ${formatBRL(v).replace(/'/g,"\\'")}')" title="${b.chave}: ${formatBRL(v)}" style="${muitasBarras?'width:28px;flex-shrink:0':'flex:1'};min-width:2px;height:${alturaPct}%;background:var(--sage);border-radius:4px 4px 0 0;cursor:pointer"></div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;min-width:${larguraFixa}">
+          ${ordemBuckets.map((b,i)=>`<div style="${muitasBarras?'width:28px;flex-shrink:0':'flex:1'};min-width:2px;text-align:center;font-size:${muitasBarras?'8px':'10px'};color:var(--ink2);overflow:hidden;white-space:nowrap">${muitasBarras&&i%2?'':escapeHtml(b.chave)}</div>`).join('')}
+        </div>
       </div>
-      <div style="display:flex;gap:${ordemBuckets.length>10?'3px':'6px'};margin-top:6px">
-        ${ordemBuckets.map((b,i)=>`<div style="flex:1;min-width:2px;text-align:center;font-size:${ordemBuckets.length>8?'8px':'10px'};color:var(--ink2);overflow:hidden;white-space:nowrap">${ordemBuckets.length>10&&i%2?'':escapeHtml(b.chave)}</div>`).join('')}
-      </div>
+      ${muitasBarras?'<div style="font-size:10.5px;color:var(--ink2);text-align:center;margin-top:8px">← arraste para o lado para ver mais →</div>':''}
     </div>`;
   }
 
@@ -2455,14 +2511,16 @@ async function carregarGraficos(periodo){
   if(!porCofreArr.length){
     html+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
   }else{
+    html+=`<p style="font-size:12px;color:var(--ink2);margin:-6px 0 12px">Quanto do total gasto ${PERIODO_LABEL[periodo]} (${formatBRL(totalAtual)}) saiu de cada cofre.</p>`;
     html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
       ${porCofreArr.map(c=>{
+        const pctDoTotal=totalAtual>0?Math.round((c.total/totalAtual)*100):0;
         const larguraPct=maxCofre>0?Math.max(6,Math.round((c.total/maxCofre)*100)):6;
         return `
         <div style="margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:12.5px">
             <span style="color:var(--ink)">${escapeHtml(c.icone)} ${escapeHtml(c.nome)}</span>
-            <span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(c.total)}</span>
+            <span style="text-align:right"><span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(c.total)}</span> <span style="color:var(--ink2);font-size:11px" class="num">(${pctDoTotal}%)</span></span>
           </div>
           <div style="background:var(--paper);border-radius:6px;height:10px;overflow:hidden">
             <div style="width:${larguraPct}%;height:100%;background:var(--sage);border-radius:6px"></div>
@@ -2806,10 +2864,9 @@ async function enablePush(){
 
 window.addEventListener('load',()=>{
   initApp();
-  document.querySelectorAll('#chat .msg.aya').forEach(m=>{
-    if(m.nextElementSibling&&m.nextElementSibling.className==='msg-audio-bar')return;
-    anexarControlesAudio(m);
-  });
+  document.querySelectorAll('#chat .msg-audio-bar').forEach(b=>b.remove());
+  const bolhasAya=document.querySelectorAll('#chat .msg.aya');
+  if(bolhasAya.length)anexarControlesAudio(bolhasAya[bolhasAya.length-1]);
 });
 </script>
 </body>
