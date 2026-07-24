@@ -77,6 +77,12 @@ alter table public.movimentos
 alter table public.movimentos
   add column if not exists organizado boolean not null default false;
 
+alter table public.movimentos
+  add column if not exists pessoa text;
+
+alter table public.movimentos
+  add column if not exists data_prevista date;
+
 alter table public.movimentos drop constraint if exists movimentos_tipo_check;
 alter table public.movimentos add constraint movimentos_tipo_check check (tipo in ('entrada','saida','esperado','rendimento'));
 
