@@ -405,10 +405,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div style="display:flex;gap:8px;margin-bottom:6px">
         <input id="favNome" placeholder="Nome (opcional, ex: Nintendo Switch)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço por unidade (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+        <input id="favQuantidade" type="number" step="1" min="1" value="1" placeholder="Qtd" oninput="toggleFavCofre2()" style="width:56px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+      </div>
       <div style="display:flex;gap:8px">
-        <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
         <select id="favCofre" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
-          <option value="">Vem do Livre</option>
+          <option value="">1ª unidade vem do Livre</option>
+        </select>
+      </div>
+      <div id="favCofre2Wrap" style="display:none;margin-top:6px">
+        <select id="favCofre2" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+          <option value="">Resto (2ª+ unidade) também do Livre</option>
         </select>
       </div>
     </form>
@@ -519,10 +527,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <input type="hidden" id="efId">
       <input id="efNome" type="text" placeholder="Nome" required>
       <input id="efUrl" type="url" placeholder="Link" required>
-      <input id="efPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)">
+      <div style="display:flex;gap:8px;width:100%;max-width:300px">
+        <input id="efPreco" type="number" step="0.01" min="0" placeholder="Preço por unidade" style="flex:1">
+        <input id="efQuantidade" type="number" step="1" min="1" value="1" placeholder="Qtd" oninput="toggleEfCofre2()" style="width:70px">
+      </div>
       <select id="efCofre" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
-        <option value="">Vem do Livre</option>
+        <option value="">1ª unidade vem do Livre</option>
       </select>
+      <div id="efCofre2Wrap" style="display:none;width:100%">
+        <select id="efCofre2" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
+          <option value="">Resto (2ª+ unidade) também do Livre</option>
+        </select>
+      </div>
       <button type="submit">Salvar alterações</button>
     </form>
     <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirFavoritoDoEditor()">Excluir favorito</button>
@@ -1274,11 +1290,22 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 
 function popularFavCofre(){
   const sel=document.getElementById('favCofre');
+  const sel2=document.getElementById('favCofre2');
   if(!sel)return;
+  const opts=(cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
   const atual=sel.value;
-  sel.innerHTML='<option value="">Vem do Livre</option>'+
-    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+  sel.innerHTML='<option value="">1ª unidade vem do Livre</option>'+opts;
   sel.value=atual;
+  if(sel2){
+    const atual2=sel2.value;
+    sel2.innerHTML='<option value="">Resto (2ª+ unidade) também do Livre</option>'+opts;
+    sel2.value=atual2;
+  }
+}
+
+function toggleFavCofre2(){
+  const qtd=parseInt(document.getElementById('favQuantidade').value)||1;
+  document.getElementById('favCofre2Wrap').style.display=qtd>=2?'block':'none';
 }
 
 document.getElementById('favForm').addEventListener('submit',async(e)=>{
@@ -1295,13 +1322,18 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
   }
   const precoRaw=document.getElementById('favPreco').value;
   const preco=precoRaw?parseFloat(precoRaw):null;
+  const quantidade=parseInt(document.getElementById('favQuantidade').value)||1;
   const cofreId=document.getElementById('favCofre').value||null;
-  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,cofre_id:cofreId});
+  const cofreId2=quantidade>=2?(document.getElementById('favCofre2').value||null):null;
+  const {error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,quantidade,cofre_id:cofreId,cofre_id_2:cofreId2});
   if(!error){
     input.value='';
     document.getElementById('favNome').value='';
     document.getElementById('favPreco').value='';
+    document.getElementById('favQuantidade').value='1';
     document.getElementById('favCofre').value='';
+    document.getElementById('favCofre2').value='';
+    document.getElementById('favCofre2Wrap').style.display='none';
     await loadFavoritos();
     toast('Salvei nos seus favoritos 🌿');
   }else{ toast('Não consegui salvar agora 😕'); }
@@ -1319,22 +1351,39 @@ async function loadFavoritos(){
   }
   const cofreById={};
   (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  const disponivelDe=(cofreId)=>cofreId?Number(cofreById[cofreId]?.valor_atual||0):Number(livreCache||0);
+  const nomeDe=(cofreId)=>cofreId?(cofreById[cofreId]?.nome||'cofre'):'Livre';
   list.innerHTML=data.map(f=>{
     let statusHtml='';
     let podeComprar=false;
+    const quantidade=Number(f.quantidade||1);
     if(f.preco){
-      const disponivel=f.cofre_id?Number(cofreById[f.cofre_id]?.valor_atual||0):Number(livreCache||0);
-      podeComprar=disponivel>=Number(f.preco);
-      const origem=f.cofre_id?(cofreById[f.cofre_id]?.nome||'cofre'):'Livre';
-      statusHtml=podeComprar
-        ? `<div class="meta" style="color:var(--sage);font-weight:600">🟢 Pode comprar — ${formatBRL(f.preco)}</div>`
-        : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} (de ${origem}) · ${formatBRL(f.preco)}</div>`;
+      const total=Number(f.preco)*quantidade;
+      if(quantidade>=2&&f.cofre_id_2){
+        const disp1=disponivelDe(f.cofre_id);
+        const disp2=disponivelDe(f.cofre_id_2);
+        const custoResto=Number(f.preco)*(quantidade-1);
+        const pode1=disp1>=Number(f.preco);
+        const pode2=disp2>=custoResto;
+        podeComprar=pode1&&pode2;
+        statusHtml=`<div class="meta" style="${podeComprar?'color:var(--sage);font-weight:600':''}">
+          ${podeComprar?'🟢 ':''}1ª de ${nomeDe(f.cofre_id)}${pode1?' ✓':` (faltam ${formatBRL(Math.max(0,Number(f.preco)-disp1))})`}, resto de ${nomeDe(f.cofre_id_2)}${pode2?' ✓':` (faltam ${formatBRL(Math.max(0,custoResto-disp2))})`}
+        </div>`;
+      }else{
+        const disponivel=disponivelDe(f.cofre_id);
+        podeComprar=disponivel>=total;
+        const origem=nomeDe(f.cofre_id);
+        statusHtml=podeComprar
+          ? `<div class="meta" style="color:var(--sage);font-weight:600">🟢 Pode comprar — ${formatBRL(total)}</div>`
+          : `<div class="meta">Faltam ${formatBRL(Math.max(0,total-disponivel))} (de ${origem}) · ${formatBRL(total)}</div>`;
+      }
     }
+    const tituloTxt=quantidade>1?`${quantidade}x ${f.titulo}`:f.titulo;
     return `
     <div class="cofre-row" style="${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
       <div class="cofre-ic" style="background:var(--sage-tint)">🔗</div>
       <div style="flex:1;min-width:0">
-        <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
+        <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(tituloTxt)}</div>
         <div class="meta"><a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" style="color:var(--ink2)">abrir link</a></div>
         ${statusHtml}
       </div>
@@ -1363,11 +1412,22 @@ async function removeFavorito(id){
 
 function popularEfCofre(){
   const sel=document.getElementById('efCofre');
+  const sel2=document.getElementById('efCofre2');
   if(!sel)return;
+  const opts=(cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
   const atual=sel.value;
-  sel.innerHTML='<option value="">Vem do Livre</option>'+
-    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+  sel.innerHTML='<option value="">1ª unidade vem do Livre</option>'+opts;
   sel.value=atual;
+  if(sel2){
+    const atual2=sel2.value;
+    sel2.innerHTML='<option value="">Resto (2ª+ unidade) também do Livre</option>'+opts;
+    sel2.value=atual2;
+  }
+}
+
+function toggleEfCofre2(){
+  const qtd=parseInt(document.getElementById('efQuantidade').value)||1;
+  document.getElementById('efCofre2Wrap').style.display=qtd>=2?'block':'none';
 }
 
 async function abrirEditarFavorito(id){
@@ -1379,7 +1439,10 @@ async function abrirEditarFavorito(id){
   document.getElementById('efNome').value=f.titulo||'';
   document.getElementById('efUrl').value=f.url||'';
   document.getElementById('efPreco').value=f.preco||'';
+  document.getElementById('efQuantidade').value=f.quantidade||1;
   document.getElementById('efCofre').value=f.cofre_id||'';
+  document.getElementById('efCofre2').value=f.cofre_id_2||'';
+  toggleEfCofre2();
   document.getElementById('editFav').classList.remove('hidden');
 }
 function closeEditFav(){
@@ -1400,9 +1463,11 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
   const url=document.getElementById('efUrl').value.trim();
   const precoRaw=document.getElementById('efPreco').value;
   const preco=precoRaw?parseFloat(precoRaw):null;
+  const quantidade=parseInt(document.getElementById('efQuantidade').value)||1;
   const cofreId=document.getElementById('efCofre').value||null;
+  const cofreId2=quantidade>=2?(document.getElementById('efCofre2').value||null):null;
   if(!id||!titulo||!url)return;
-  const {error}=await supabaseClient.from('favoritos').update({titulo,url,preco,cofre_id:cofreId}).eq('id',id);
+  const {error}=await supabaseClient.from('favoritos').update({titulo,url,preco,quantidade,cofre_id:cofreId,cofre_id_2:cofreId2}).eq('id',id);
   if(error){ toast('Não consegui salvar agora 😕'); return; }
   closeEditFav();
   toast('Atualizado 🌿');
