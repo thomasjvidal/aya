@@ -385,14 +385,41 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
-    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Histórico</span>
-      <select id="movFiltroCofre" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
-        <option value="">Todos os cofres</option>
-      </select>
+    <div class="seg-control" style="display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:22px 0 4px;box-shadow:var(--shadow)">
+      <button type="button" class="seg-btn active" data-seg="historico" onclick="toggleMovSubview('historico')" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Histórico</button>
+      <button type="button" class="seg-btn" data-seg="graficos" onclick="toggleMovSubview('graficos')" style="flex:1;background:0;color:var(--ink2);border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Gráficos</button>
     </div>
-    <div id="movList">
-      <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+
+    <div id="movHistoricoView">
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Histórico</span>
+        <select id="movFiltroCofre" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
+          <option value="">Todos os cofres</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;margin:-4px 0 12px">
+        <input id="movBusca" placeholder="Buscar por descrição…" oninput="loadMovimentos()" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+        <select id="movFiltroTipo" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:110px">
+          <option value="">Tudo</option>
+          <option value="entrada">Entradas</option>
+          <option value="saida">Saídas</option>
+        </select>
+      </div>
+      <div id="movList">
+        <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+      </div>
+    </div>
+
+    <div id="movGraficosView" style="display:none">
+      <div class="periodo-control" style="display:flex;gap:6px;margin:16px 0 18px;overflow-x:auto">
+        <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
+        <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
+        <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
+        <button type="button" class="periodo-btn" data-periodo="ano" onclick="mudarPeriodoGrafico('ano')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Ano</button>
+      </div>
+      <div id="graficosConteudo">
+        <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+      </div>
     </div>
 
     <div class="sec-title">Favoritos</div>
@@ -2138,18 +2165,156 @@ function popularFiltroCofre(){
 
 const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+/* ================= GRÁFICOS ================= */
+let graficoPeriodoAtual='semana';
+function toggleMovSubview(view){
+  document.querySelectorAll('.seg-control .seg-btn').forEach(b=>{
+    const ativo=b.dataset.seg===view;
+    b.classList.toggle('active',ativo);
+    b.style.background=ativo?'var(--sage)':'0';
+    b.style.color=ativo?'#fff':'var(--ink2)';
+  });
+  document.getElementById('movHistoricoView').style.display=view==='historico'?'block':'none';
+  document.getElementById('movGraficosView').style.display=view==='graficos'?'block':'none';
+  if(view==='graficos')carregarGraficos(graficoPeriodoAtual);
+}
+function mudarPeriodoGrafico(periodo){
+  graficoPeriodoAtual=periodo;
+  document.querySelectorAll('.periodo-control .periodo-btn').forEach(b=>{
+    const ativo=b.dataset.periodo===periodo;
+    b.classList.toggle('active',ativo);
+    b.style.background=ativo?'var(--sage-tint)':'var(--paper)';
+    b.style.color=ativo?'var(--sage)':'var(--ink2)';
+  });
+  carregarGraficos(periodo);
+}
+const PERIODO_DIAS={semana:7,mes:30,trimestre:90,ano:365};
+const PERIODO_LABEL={semana:'essa semana',mes:'esse mês',trimestre:'esse trimestre',ano:'esse ano'};
+function bucketKeyPara(periodo,data){
+  const d=new Date(data);
+  if(periodo==='semana'){
+    return d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+  }else if(periodo==='ano'){
+    return MESES_PT[d.getMonth()].slice(0,3);
+  }else{
+    // mês/trimestre: agrupa por semana do período (dom-sáb)
+    const inicioSemana=new Date(d); inicioSemana.setDate(d.getDate()-d.getDay());
+    return `${String(inicioSemana.getDate()).padStart(2,'0')}/${String(inicioSemana.getMonth()+1).padStart(2,'0')}`;
+  }
+}
+async function carregarGraficos(periodo){
+  const wrap=document.getElementById('graficosConteudo');
+  if(!supabaseClient||!currentUser||!wrap)return;
+  wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
+  const dias=PERIODO_DIAS[periodo]||7;
+  const hoje=new Date();
+  const inicioAtual=new Date(hoje); inicioAtual.setDate(hoje.getDate()-dias+1); inicioAtual.setHours(0,0,0,0);
+  const inicioAnterior=new Date(inicioAtual); inicioAnterior.setDate(inicioAtual.getDate()-dias);
+
+  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','saida').gte('created_at',inicioAnterior.toISOString());
+  if(error||!data){
+    wrap.innerHTML='<p style="font-size:12.5px;color:var(--rose)">Não consegui carregar os gráficos agora 😕</p>';
+    return;
+  }
+  const doAtual=data.filter(m=>new Date(m.created_at)>=inicioAtual);
+  const doAnterior=data.filter(m=>new Date(m.created_at)<inicioAtual);
+  const totalAtual=doAtual.reduce((s,m)=>s+Number(m.valor||0),0);
+  const totalAnterior=doAnterior.reduce((s,m)=>s+Number(m.valor||0),0);
+
+  let deltaHtml='';
+  if(totalAnterior>0){
+    const deltaPct=Math.round(((totalAtual-totalAnterior)/totalAnterior)*100);
+    const subiu=deltaPct>0;
+    deltaHtml=`<div style="font-size:12.5px;color:var(--ink2);margin-top:4px">${subiu?'↑':'↓'} ${Math.abs(deltaPct)}% que o período anterior</div>`;
+  }
+
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  const porCofre={};
+  doAtual.forEach(m=>{
+    const chave=m.cofre_id||'__livre__';
+    if(!porCofre[chave])porCofre[chave]={nome:m.cofre_id?(cofreById[m.cofre_id]?.nome||'Cofre'):'Dinheiro livre',icone:m.cofre_id?(cofreById[m.cofre_id]?.icone||'🧾'):'💰',total:0};
+    porCofre[chave].total+=Number(m.valor||0);
+  });
+  const porCofreArr=Object.values(porCofre).sort((a,b)=>b.total-a.total);
+  const maxCofre=porCofreArr.length?porCofreArr[0].total:0;
+
+  const buckets={};
+  const ordemBuckets=[];
+  doAtual.forEach(m=>{
+    const chave=bucketKeyPara(periodo,m.created_at);
+    if(!buckets[chave]){ buckets[chave]=0; ordemBuckets.push({chave,data:new Date(m.created_at)}); }
+    buckets[chave]+=Number(m.valor||0);
+  });
+  ordemBuckets.sort((a,b)=>a.data-b.data);
+  const maxBucket=Math.max(0,...ordemBuckets.map(b=>buckets[b.chave]));
+
+  let html=`
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px">
+      <div style="font-size:12px;color:var(--ink2)">Total gasto ${PERIODO_LABEL[periodo]}</div>
+      <div style="font-family:'Fraunces',serif;font-size:38px;font-weight:500;color:var(--sage);line-height:1.15;margin-top:4px" class="num">${formatBRL(totalAtual)}</div>
+      ${deltaHtml}
+    </div>
+  `;
+
+  html+=`<div class="sec-title" style="margin-top:0">Ao longo do tempo</div>`;
+  if(!ordemBuckets.length){
+    html+=`<p style="font-size:12.5px;color:var(--ink2)">Nada registrado ${PERIODO_LABEL[periodo]} ainda.</p>`;
+  }else{
+    html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 14px 10px;box-shadow:var(--shadow);margin-bottom:16px">
+      <div style="display:flex;align-items:flex-end;gap:${ordemBuckets.length>10?'3px':'6px'};height:90px;border-bottom:1px solid var(--line)">
+        ${ordemBuckets.map(b=>{
+          const v=buckets[b.chave];
+          const alturaPct=maxBucket>0?Math.max(4,Math.round((v/maxBucket)*100)):4;
+          return `<div onclick="toast('${b.chave}: ${formatBRL(v).replace(/'/g,"\\'")}')" title="${b.chave}: ${formatBRL(v)}" style="flex:1;min-width:2px;height:${alturaPct}%;background:var(--sage);border-radius:4px 4px 0 0;cursor:pointer"></div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:${ordemBuckets.length>10?'3px':'6px'};margin-top:6px">
+        ${ordemBuckets.map((b,i)=>`<div style="flex:1;min-width:2px;text-align:center;font-size:${ordemBuckets.length>8?'8px':'10px'};color:var(--ink2);overflow:hidden;white-space:nowrap">${ordemBuckets.length>10&&i%2?'':escapeHtml(b.chave)}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  html+=`<div class="sec-title" style="margin-top:0">Por cofre</div>`;
+  if(!porCofreArr.length){
+    html+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
+  }else{
+    html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
+      ${porCofreArr.map(c=>{
+        const larguraPct=maxCofre>0?Math.max(6,Math.round((c.total/maxCofre)*100)):6;
+        return `
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:12.5px">
+            <span style="color:var(--ink)">${escapeHtml(c.icone)} ${escapeHtml(c.nome)}</span>
+            <span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(c.total)}</span>
+          </div>
+          <div style="background:var(--paper);border-radius:6px;height:10px;overflow:hidden">
+            <div style="width:${larguraPct}%;height:100%;background:var(--sage);border-radius:6px"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  wrap.innerHTML=html;
+}
+
 async function loadMovimentos(){
   if(!supabaseClient||!currentUser)return;
   const wrap=document.getElementById('movList');
   if(!wrap)return;
   popularFiltroCofre();
   const filtro=document.getElementById('movFiltroCofre')?document.getElementById('movFiltroCofre').value:'';
+  const filtroTipo=document.getElementById('movFiltroTipo')?document.getElementById('movFiltroTipo').value:'';
+  const busca=document.getElementById('movBusca')?document.getElementById('movBusca').value.trim().toLowerCase():'';
   let query=supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(200);
   if(filtro==='__livre__')query=query.is('cofre_id',null);
   else if(filtro)query=query.eq('cofre_id',filtro);
-  const {data,error}=await query;
+  if(filtroTipo)query=query.eq('tipo',filtroTipo);
+  let {data,error}=await query;
+  if(!error&&data&&busca)data=data.filter(m=>(m.descricao||'').toLowerCase().includes(busca));
   if(error||!data||!data.length){
-    wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2);margin-top:6px">Nada registrado ainda. Quando abrir seu banco (com o aviso da Aya) ou salvar algo manualmente, aparece aqui.</p>';
+    wrap.innerHTML=`<p style="font-size:12.5px;color:var(--ink2);margin-top:6px">${busca?'Nada encontrado pra essa busca.':'Nada registrado ainda. Quando abrir seu banco (com o aviso da Aya) ou salvar algo manualmente, aparece aqui.'}</p>`;
     return;
   }
   const cofreById={};
