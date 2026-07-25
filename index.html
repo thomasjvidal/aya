@@ -1136,10 +1136,12 @@ async function loadPendentes(){
   const card=document.getElementById('pendenteCard');
   const destinoCard=document.getElementById('destinoCard');
   if(!card)return;
-  const [{data:esperados,error:errEsperados},{data:pend,error:errPend},{data:todosCofres,error:errDestino}]=await Promise.all([
+  const [{data:esperados,error:errEsperados},{data:pend,error:errPend},{data:todosCofres,error:errDestino},{data:ultimosDestinos},{data:favoritosTodos}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
     supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false),
-    supabaseClient.from('cofres').select('*').order('created_at',{ascending:true})
+    supabaseClient.from('cofres').select('*').order('created_at',{ascending:true}),
+    supabaseClient.from('movimentos').select('cofre_id,descricao,created_at').eq('tipo','saida').not('cofre_id','is',null).order('created_at',{ascending:false}).limit(150),
+    supabaseClient.from('favoritos').select('*')
   ]);
   if(errEsperados||errPend||errDestino){
     card.style.display='block';
@@ -1149,6 +1151,16 @@ async function loadPendentes(){
   const listaEsperados=esperados||[];
   const listaPend=pend||[];
   const listaTodosCofres=todosCofres||[];
+  const ultimoDestinoPorCofre={};
+  (ultimosDestinos||[]).forEach(m=>{
+    if(!ultimoDestinoPorCofre[m.cofre_id])ultimoDestinoPorCofre[m.cofre_id]=m;
+  });
+  const favoritosPorCofre={};
+  (favoritosTodos||[]).forEach(f=>{
+    if(!f.cofre_id)return;
+    if(!favoritosPorCofre[f.cofre_id])favoritosPorCofre[f.cofre_id]=[];
+    favoritosPorCofre[f.cofre_id].push(f);
+  });
 
   if(destinoCard){
     if(!listaTodosCofres.length){
@@ -1156,17 +1168,19 @@ async function loadPendentes(){
     }else{
       destinoCard.innerHTML=listaTodosCofres.map(c=>{
         const pendente=c.concluido===false;
+        const ultimo=ultimoDestinoPorCofre[c.id];
+        const favs=favoritosPorCofre[c.id]||[];
         return `
       <div style="background:${pendente?'var(--amber-tint)':'var(--card)'};border:1px solid ${pendente?'var(--amber-soft)':'var(--line)'};border-radius:14px;padding:12px 13px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer" onclick="abrirCofreDetalhe('${c.id}')">
-            <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
-            <span style="font-weight:700;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.nome)}</span>
-          </div>
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="togglePendenteCofre('${c.id}')">
+          <span style="font-size:17px">${escapeHtml(c.icone||'🧾')}</span>
+          <span style="font-weight:700;font-size:13.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.nome)}</span>
           <span style="font-weight:700;font-size:13.5px;white-space:nowrap" class="num">${formatBRL(c.valor_atual)}</span>
-          <span id="pendSeta-${c.id}" onclick="togglePendenteCofre('${c.id}')" style="font-size:11px;color:var(--ink2);cursor:pointer;padding:6px 0 6px 6px">▾</span>
+          <span id="pendSeta-${c.id}" style="font-size:11px;color:var(--ink2);padding:6px 0 6px 6px">▾</span>
         </div>
         <div id="pendForm-${c.id}" style="display:none;margin-top:10px">
+          ${ultimo?`<div style="font-size:11px;color:var(--ink2);margin-bottom:8px">Último: ${escapeHtml(ultimo.descricao)} · ${new Date(ultimo.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>`:''}
+          ${favs.length?`<div style="font-size:11px;color:var(--ink2);margin-bottom:8px">💡 Favorito${favs.length>1?'s':''} desse cofre: ${favs.map(f=>`<span onclick="preencherDestino('${c.id}','${escapeHtml(f.titulo).replace(/'/g,"\\'")}')" style="color:var(--sage);text-decoration:underline;cursor:pointer">${escapeHtml(f.titulo)}</span>`).join(', ')}</div>`:''}
           <div style="display:flex;gap:8px;margin-bottom:6px">
             <input id="destino-${c.id}" placeholder="Pra onde foi?" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
             <input id="destinoValor-${c.id}" type="number" step="0.01" min="0" placeholder="R$" style="width:80px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
@@ -2144,6 +2158,10 @@ function togglePendenteCofre(id){
   const abrir=form.style.display==='none';
   form.style.display=abrir?'block':'none';
   if(seta)seta.textContent=abrir?'▴':'▾';
+}
+function preencherDestino(cofreId,texto){
+  const input=document.getElementById(`destino-${cofreId}`);
+  if(input)input.value=texto;
 }
 
 function toggleVaiEntrar(id){
