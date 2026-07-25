@@ -631,6 +631,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <button type="button" class="periodo-btn" data-dias="90" onclick="mudarPeriodoExtrato(90)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Trimestre</button>
         <button type="button" class="periodo-btn" data-dias="180" onclick="mudarPeriodoExtrato(180)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">6 meses</button>
         <button type="button" class="periodo-btn" data-dias="365" onclick="mudarPeriodoExtrato(365)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">1 ano</button>
+        <button type="button" class="periodo-btn" data-dias="0" onclick="mudarPeriodoExtrato(0)" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:7px 12px;font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Todos</button>
       </div>
       <div id="cdExtrato" style="margin-bottom:8px">
         <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
@@ -1200,7 +1201,9 @@ async function loadPendentes(){
       <span class="pulse"></span><h3>Vai entrar</h3>
       <span style="margin-left:auto;display:flex;align-items:center;gap:6px">
         <span class="num" style="font-size:12.5px;font-weight:700;color:var(--sage)">+ ${formatBRL(totalEsperado)}</span>
-        <span id="veListaSeta" style="font-size:11px;color:var(--ink2);transition:transform .2s;display:inline-block;transform:rotate(${vaiEntrarListaAberta?'180deg':'0deg'})">▾</span>
+        <span id="veListaSeta" style="width:22px;height:22px;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;transition:transform .2s;transform:rotate(${vaiEntrarListaAberta?'180deg':'0deg'})">
+          <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:var(--ink2);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
       </span>
     </div>`;
     html+=`<div id="veLista" style="display:${vaiEntrarListaAberta?'block':'none'}">`;
@@ -1846,11 +1849,15 @@ async function carregarExtratoCofre(){
   if(!id||!supabaseClient)return;
   const extratoEl=document.getElementById('cdExtrato');
   extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
-  const desde=new Date(); desde.setDate(desde.getDate()-cofreDetalheDias); desde.setHours(0,0,0,0);
-  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('cofre_id',id).gte('created_at',desde.toISOString()).order('created_at',{ascending:false}).limit(200);
+  let query=supabaseClient.from('movimentos').select('*').eq('cofre_id',id);
+  if(cofreDetalheDias>0){
+    const desde=new Date(); desde.setDate(desde.getDate()-cofreDetalheDias); desde.setHours(0,0,0,0);
+    query=query.gte('created_at',desde.toISOString());
+  }
+  const {data,error}=await query.order('created_at',{ascending:false}).limit(200);
   if(id!==cofreDetalheId)return;
   if(error||!data||!data.length){
-    extratoEl.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma movimentação registrada nesse período.</p>';
+    extratoEl.innerHTML=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma movimentação registrada ${cofreDetalheDias>0?'nesse período':'ainda'}.</p>`;
     return;
   }
   extratoEl.innerHTML=data.map(m=>{
