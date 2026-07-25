@@ -400,8 +400,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <p style="font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5">Toda vez que você abrir o banco (com o aviso da Aya) ou registrar algo manualmente, aparece aqui de verdade.</p>
 
     <div class="seg-control" style="display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0 22px;box-shadow:var(--shadow)">
-      <button type="button" class="seg-btn active" data-seg="historico" onclick="toggleMovSubview('historico')" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Histórico</button>
       <button type="button" class="seg-btn" data-seg="graficos" onclick="toggleMovSubview('graficos')" style="flex:1;background:0;color:var(--ink2);border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Gráficos</button>
+      <button type="button" class="seg-btn active" data-seg="historico" onclick="toggleMovSubview('historico')" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Histórico</button>
     </div>
 
     <div class="sec-title" style="margin-top:0">Registrar algo agora</div>
@@ -2239,7 +2239,7 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   const [{data:entradas},{data:saidasLivres},{data:distribs}]=await Promise.all([
     supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true),
     supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null),
-    supabaseClient.from('distribuicoes').select('valor')
+    supabaseClient.from('distribuicoes').select('valor,cofre_id')
   ]);
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
@@ -2255,7 +2255,8 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
   const diasRestantes=Math.max(1,fimDoMes-hoje.getDate()+1);
   const disponivelHoje=Math.floor(livre/diasRestantes);
-  return {livre,contas,guardado,naoAlocado,totalOrganizado,disponivelHoje,total:livre+contas+guardado};
+  const cofresComHistorico=new Set((distribs||[]).map(d=>d.cofre_id)).size;
+  return {livre,contas,guardado,naoAlocado,totalOrganizado,disponivelHoje,total:livre+contas+guardado,cofresComHistorico};
 }
 
 let livreCache=0;
@@ -2263,7 +2264,7 @@ async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
   const list=cofres||[];
-  const {livre,contas,guardado,disponivelHoje,naoAlocado}=await calcResumoFinanceiro(list);
+  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico}=await calcResumoFinanceiro(list);
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -2283,9 +2284,13 @@ async function loadHomeData(){
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
-    subEl.textContent=list.length
-      ? `${formatBRL(contas+guardado)} já têm destino em ${list.length} cofre${list.length>1?'s':''}`
-      : 'Crie seus cofres que eu calculo isso de verdade.';
+    if(!list.length){
+      subEl.textContent='Crie seus cofres que eu calculo isso de verdade.';
+    }else if(cofresComHistorico>0){
+      subEl.textContent=`${formatBRL(contas+guardado)} no total, em ${cofresComHistorico} cofre${cofresComHistorico>1?'s':''} com histórico real`;
+    }else{
+      subEl.textContent=`${formatBRL(contas+guardado)} no total, mas ainda não foi distribuído de verdade`;
+    }
   }
 
   const categorias=[
