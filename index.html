@@ -838,20 +838,28 @@ function copiarTexto(texto,btn){
 }
 async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
-  const [cofresRes,movsRes,perfilRes,favRes]=await Promise.all([
+  const [cofresRes,movsRes,esperadosRes,contasFixasRes,perfilRes,favRes]=await Promise.all([
     supabaseClient.from('cofres').select('*'),
-    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(10),
+    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(40),
+    supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
+    supabaseClient.from('contas_fixas').select('*'),
     supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single(),
-    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(10)
+    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(15)
   ]);
   const resumo=await calcResumoFinanceiro(cofresRes.data||[]);
+  const cofreNome=(id)=>(cofresRes.data||[]).find(c=>String(c.id)===String(id))?.nome||null;
   return {
     nome:perfilRes.data?.nome,
     estilo:perfilRes.data?.estilo,
     resumo,
     cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null,notas:c.notas||null,precisaAtencao:c.concluido===false})),
-    movimentosRecentes:(movsRes.data||[]).map(m=>({tipo:m.tipo,valor:m.valor,descricao:m.descricao})),
-    favoritos:(favRes.data||[]).map(f=>({titulo:f.titulo,url:f.url}))
+    movimentosRecentes:(movsRes.data||[]).map(m=>({
+      tipo:m.tipo,valor:m.valor,descricao:m.descricao,data:m.created_at,
+      cofre:cofreNome(m.cofre_id),pessoa:m.pessoa||null,dataPrevista:m.data_prevista||null
+    })),
+    vaiEntrar:(esperadosRes.data||[]).map(m=>({valor:m.valor,descricao:m.descricao,data:m.created_at})),
+    contasFixas:(contasFixasRes.data||[]).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
+    favoritos:(favRes.data||[]).map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:cofreNome(f.cofre_id)}))
   };
 }
 

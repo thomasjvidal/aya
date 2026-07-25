@@ -19,7 +19,9 @@ MUITO IMPORTANTE — você NÃO consegue executar nenhuma ação no app. Você s
 - Mudar nome/perfil: aba Perfil.
 Nunca faça contas simulando uma distribuição — isso confunde a pessoa achando que já foi feito.
 
-Cada cofre pode ter uma nota curta que você já sabe sobre ele (marcado como "o que você já sabe" abaixo) — use isso pra não perguntar de novo o que a pessoa já te contou. Se durante a conversa a pessoa contar algo novo e específico sobre UM cofre (ex: "sempre invisto pela XP", "esse dízimo eu mando toda segunda"), sugira: "quer que eu guarde isso no cofre [nome], pra eu já saber da próxima vez?" — mas só você consegue sugerir isso; quem salva de fato é a pessoa, tocando no botão que aparece depois da sua mensagem.`;
+Cada cofre pode ter uma nota curta que você já sabe sobre ele (marcado como "o que você já sabe" abaixo) — use isso pra não perguntar de novo o que a pessoa já te contou. Se durante a conversa a pessoa contar algo novo e específico sobre UM cofre (ex: "sempre invisto pela XP", "esse dízimo eu mando toda segunda"), sugira: "quer que eu guarde isso no cofre [nome], pra eu já saber da próxima vez?" — mas só você consegue sugerir isso; quem salva de fato é a pessoa, tocando no botão que aparece depois da sua mensagem.
+
+Você tem acesso ao estado real e completo do app — cofres, resumo financeiro, movimentos recentes, o que ainda vai entrar, contas fixas e favoritos. Isso cobre TODAS as abas do app (Hoje, Cofres, Movimento, Destino, Favoritos). Aja como uma secretária de verdade: nunca peça pra pessoa te contar de novo algo que já está nos dados abaixo, e cruze as informações entre as seções quando fizer sentido (ex: relacionar um favorito com o cofre ligado a ele, ou uma conta fixa com o cofre que a paga).`;
 
 function formatBRL(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -49,8 +51,26 @@ function buildSystemPrompt(context) {
 
   const movs = Array.isArray(c.movimentosRecentes) ? c.movimentosRecentes : [];
   const movsTxt = movs.length
-    ? movs.map((m) => `- ${m.tipo === 'entrada' ? '+' : '-'}${formatBRL(m.valor)} — ${m.descricao}`).join('\n')
+    ? movs.map((m) => {
+        const sinal = (m.tipo === 'entrada' || m.tipo === 'rendimento') ? '+' : '-';
+        let linha = `- ${sinal}${formatBRL(m.valor)} — ${m.descricao}`;
+        if (m.data) linha += ` (${new Date(m.data).toLocaleDateString('pt-BR')})`;
+        if (m.cofre) linha += ` [cofre: ${m.cofre}]`;
+        if (m.pessoa) linha += ` [pra: ${m.pessoa}]`;
+        if (m.dataPrevista) linha += ` [previsto: ${new Date(m.dataPrevista).toLocaleDateString('pt-BR')}]`;
+        return linha;
+      }).join('\n')
     : 'Nenhum movimento registrado ainda.';
+
+  const vaiEntrar = Array.isArray(c.vaiEntrar) ? c.vaiEntrar : [];
+  const vaiEntrarTxt = vaiEntrar.length
+    ? vaiEntrar.map((m) => `- ${formatBRL(m.valor)} — ${m.descricao} (ainda não caiu)`).join('\n')
+    : 'Nada esperado pra entrar no momento.';
+
+  const contasFixas = Array.isArray(c.contasFixas) ? c.contasFixas : [];
+  const contasFixasTxt = contasFixas.length
+    ? contasFixas.map((cf) => `- ${cf.nome}: ${formatBRL(cf.valor)}${cf.cofre ? ` [cofre: ${cf.cofre}]` : ''}`).join('\n')
+    : 'Nenhuma conta fixa cadastrada.';
 
   const r = c.resumo || null;
   const resumoTxt = r
@@ -63,7 +83,12 @@ Total geral somando tudo: ${formatBRL(r.total)}${r.naoAlocado > 0.005 ? `\nDesse
 
   const favoritos = Array.isArray(c.favoritos) ? c.favoritos : [];
   const favoritosTxt = favoritos.length
-    ? favoritos.map((f) => `- ${f.titulo} (${f.url})`).join('\n')
+    ? favoritos.map((f) => {
+        let linha = `- ${f.titulo}`;
+        if (f.preco) linha += ` (${formatBRL(f.preco)})`;
+        if (f.cofre) linha += ` [ligado ao cofre: ${f.cofre}]`;
+        return linha;
+      }).join('\n')
     : 'Nenhum favorito salvo ainda.';
 
   return `${BASE_PROMPT}
@@ -79,6 +104,12 @@ ${cofresTxt}
 
 Últimos movimentos registrados por ${nome}:
 ${movsTxt}
+
+Dinheiro que ainda vai entrar (esperado, ainda não confirmado):
+${vaiEntrarTxt}
+
+Contas fixas cadastradas (recorrentes):
+${contasFixasTxt}
 
 Links que ${nome} salvou nos favoritos (coisas que quer comprar, ainda não decidiu):
 ${favoritosTxt}
