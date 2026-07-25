@@ -293,6 +293,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
+      <button type="button" onclick="irParaFavoritos()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px">
+        <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>
+        Favoritos
+      </button>
     </div>
     <div class="mini-cofres" id="miniCofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
@@ -439,7 +443,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
     </div>
 
-    <div class="sec-title">Favoritos</div>
+    <div class="sec-title" id="favSecTitle">Favoritos</div>
     <p style="font-size:12.5px;color:var(--ink2);margin:-6px 4px 12px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
     <form id="favForm" style="margin-bottom:12px">
       <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -695,6 +699,13 @@ function go(v){
   document.getElementById('v-'+v).scrollTop=0;
 }
 function toast(t){if(!t)return;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('show'),2600);}
+
+function irParaFavoritos(){
+  go('mov');
+  setTimeout(()=>{
+    document.getElementById('favSecTitle')?.scrollIntoView({behavior:'smooth',block:'start'});
+  },350);
+}
 
 function toggleVisaoGeral(){
   const card=document.getElementById('visaoGeralCard');
@@ -1593,47 +1604,67 @@ async function buscarImagemFavorito(id,url,atualizarTitulo){
   }catch(err){}
 }
 
+const ICON_FAV_LINK='<svg viewBox="0 0 24 24" width="20" height="20" style="stroke:var(--sage);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M9 15l6-6"/><path d="M11 6l.7-.7a4 4 0 0 1 5.6 5.6l-2 2"/><path d="M13 18l-.7.7a4 4 0 0 1-5.6-5.6l2-2"/></svg>';
+const ICON_FAV_PLAY='<svg viewBox="0 0 24 24" width="11" height="11" style="fill:#fff"><path d="M6 4l14 8-14 8V4z"/></svg>';
+const ICON_FAV_EDIT='<svg viewBox="0 0 24 24" width="14" height="14" style="stroke:var(--ink2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+function favImgErro(imgEl){ if(imgEl&&imgEl.parentElement)imgEl.parentElement.innerHTML=ICON_FAV_LINK; }
+
+let favImgTentados=new Set();
 async function loadFavoritos(){
   if(!supabaseClient||!currentUser)return;
   const list=document.getElementById('favList');
   if(!list)return;
   popularFavCofre();
-  const {data,error}=await supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false});
+  const [{data,error},{data:cofresFrescos}]=await Promise.all([
+    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}),
+    supabaseClient.from('cofres').select('*')
+  ]);
   if(error||!data||!data.length){
     list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
     return;
   }
   const cofreById={};
-  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  (cofresFrescos||[]).forEach(c=>{cofreById[c.id]=c;});
+  // Recalcula o Livre na hora, em vez de usar livreCache — que só é atualizado quando a
+  // Hoje carrega, e podia ficar desatualizado mostrando "pode comprar" com saldo velho.
+  const {livre}=await calcResumoFinanceiro(cofresFrescos||[]);
   list.innerHTML=data.map(f=>{
     let statusHtml='';
     let podeComprar=false;
     if(f.preco){
-      const disponivel=f.cofre_id?Number(cofreById[f.cofre_id]?.valor_atual||0):Number(livreCache||0);
+      const disponivel=f.cofre_id?Number(cofreById[f.cofre_id]?.valor_atual||0):Number(livre||0);
       podeComprar=disponivel>=Number(f.preco);
       const origem=f.cofre_id?(cofreById[f.cofre_id]?.nome||'cofre'):'Livre';
       statusHtml=podeComprar
-        ? `<div class="meta" style="color:var(--sage);font-weight:600">🟢 Pode comprar — ${formatBRL(f.preco)}</div>`
-        : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} (de ${origem}) · ${formatBRL(f.preco)}</div>`;
+        ? `<div class="meta" style="color:var(--sage);font-weight:600">Pode comprar</div>`
+        : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} · ${origem}</div>`;
     }
-    const tituloTxt=f.titulo;
     const iconeHtml=f.imagem_url
-      ? `<img src="${escapeHtml(f.imagem_url)}" onerror="this.parentElement.innerHTML='🔗'" style="width:100%;height:100%;object-fit:cover">`
-      : '<span style="font-size:20px">🔗</span>';
+      ? `<img src="${escapeHtml(f.imagem_url)}" onerror="favImgErro(this)" style="width:100%;height:100%;object-fit:cover">`
+      : ICON_FAV_LINK;
     return `
-    <div onclick='window.open("${escapeHtml(f.url)}","_blank")' style="display:flex;align-items:center;gap:12px;cursor:pointer;background:${podeComprar?'var(--sage-tint)':'var(--card)'};border:1px solid ${podeComprar?'var(--sage)':'var(--line)'};border-radius:16px;padding:12px;box-shadow:var(--shadow);margin-bottom:10px">
-      <div style="width:52px;height:52px;border-radius:13px;overflow:hidden;background:var(--sage-tint);flex-shrink:0;display:flex;align-items:center;justify-content:center">${iconeHtml}</div>
+    <div class="cofre-row" onclick='window.open("${escapeHtml(f.url)}","_blank")' style="cursor:pointer;${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
+      <div class="cofre-ic" style="width:52px;height:52px;border-radius:14px;background:var(--sage-tint);overflow:hidden">${iconeHtml}</div>
       <div style="flex:1;min-width:0">
-        <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px">${escapeHtml(tituloTxt)}</div>
+        <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
         ${statusHtml||'<div class="meta">toca pra abrir</div>'}
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-        <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:var(--sage);color:#fff;border:0;width:32px;height:32px;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">▶</button>
-        <button onclick='abrirEditarFavorito("${f.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center">✎</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+        ${f.preco?`<b class="num" style="font-size:14px;color:var(--ink)">${formatBRL(f.preco)}</b>`:''}
+        <div style="display:flex;gap:4px">
+          <button onclick='conversarSobreFavorito("${f.id}")' title="Conversar com a Aya sobre isso" style="background:var(--sage);border:0;width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">${ICON_FAV_PLAY}</button>
+          <button onclick='abrirEditarFavorito("${f.id}")' title="Editar" style="background:0;border:0;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center">${ICON_FAV_EDIT}</button>
+        </div>
       </div>
     </div>
   `;
   }).join('');
+  data.forEach(f=>{
+    if(!f.imagem_url&&f.url&&!favImgTentados.has(f.id)){
+      favImgTentados.add(f.id);
+      buscarImagemFavorito(f.id,f.url,false);
+    }
+  });
 }
 
 let favoritosCache=[];
