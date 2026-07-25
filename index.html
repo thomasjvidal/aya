@@ -403,36 +403,11 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="h-name" style="margin-top:4px">Seus registros</div>
     <p style="font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.5">Toda vez que você abrir o banco (com o aviso da Aya) ou registrar algo manualmente, aparece aqui de verdade.</p>
 
-    <div class="seg-control" style="display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:18px 0 22px;box-shadow:var(--shadow)">
-      <button type="button" class="seg-btn" data-seg="graficos" onclick="toggleMovSubview('graficos')" style="flex:1;background:0;color:var(--ink2);border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Gráficos</button>
-      <button type="button" class="seg-btn active" data-seg="historico" onclick="toggleMovSubview('historico')" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:11px;padding:10px 8px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;transition:.15s">Histórico</button>
-    </div>
-
-    <div class="sec-title" style="margin-top:0">Registrar algo agora</div>
+    <div class="sec-title" style="margin-top:18px">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
-    <div id="movHistoricoView">
-      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>Histórico</span>
-        <select id="movFiltroCofre" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
-          <option value="">Todos os cofres</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:6px;margin:-4px 0 12px">
-        <input id="movBusca" placeholder="Buscar por descrição…" oninput="loadMovimentos()" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
-        <select id="movFiltroTipo" onchange="loadMovimentos()" style="border:1px solid var(--line);border-radius:10px;padding:8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:110px">
-          <option value="">Tudo</option>
-          <option value="entrada">Entradas</option>
-          <option value="saida">Saídas</option>
-        </select>
-      </div>
-      <div id="movList">
-        <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
-      </div>
-    </div>
-
-    <div id="movGraficosView" style="display:none">
-      <div class="periodo-control" style="display:flex;gap:6px;margin:16px 0 18px;overflow-x:auto">
+    <div id="movGraficosView">
+      <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 18px;overflow-x:auto">
         <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
         <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
         <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
@@ -476,7 +451,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="score-wrap">
       <div class="ring">
-        <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="#E4E8E5" stroke-width="12"/><circle id="scoreRing" cx="75" cy="75" r="66" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="415"/></svg>
+        <svg width="150" height="150"><circle cx="75" cy="75" r="66" fill="none" stroke="#E4E8E5" stroke-width="12"/><circle id="scoreRing" cx="75" cy="75" r="66" fill="none" stroke="#2F7D5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="415"/></svg>
       </div>
       <div class="score-num"><b id="scoreValue">0</b><span>Score Aya</span></div>
       <div class="msg2" id="scoreMsg">Ainda sem histórico — comece registrando um movimento ou criando um cofre.</div>
@@ -2432,17 +2407,6 @@ const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 
 /* ================= GRÁFICOS ================= */
 let graficoPeriodoAtual='semana';
-function toggleMovSubview(view){
-  document.querySelectorAll('.seg-control .seg-btn').forEach(b=>{
-    const ativo=b.dataset.seg===view;
-    b.classList.toggle('active',ativo);
-    b.style.background=ativo?'var(--sage)':'0';
-    b.style.color=ativo?'#fff':'var(--ink2)';
-  });
-  document.getElementById('movHistoricoView').style.display=view==='historico'?'block':'none';
-  document.getElementById('movGraficosView').style.display=view==='graficos'?'block':'none';
-  if(view==='graficos')carregarGraficos(graficoPeriodoAtual);
-}
 function mudarPeriodoGrafico(periodo){
   graficoPeriodoAtual=periodo;
   document.querySelectorAll('.periodo-control .periodo-btn').forEach(b=>{
@@ -2475,11 +2439,12 @@ async function carregarGraficos(periodo){
   const inicioAtual=new Date(hoje); inicioAtual.setDate(hoje.getDate()-dias+1); inicioAtual.setHours(0,0,0,0);
   const inicioAnterior=new Date(inicioAtual); inicioAnterior.setDate(inicioAtual.getDate()-dias);
 
-  const [{data,error},{data:vaiEntrarLista},{data:vaiSairLista},{data:entradasAtual}]=await Promise.all([
+  const [{data,error},{data:vaiEntrarLista},{data:vaiSairLista},{data:entradasAtual},{data:movsPeriodo}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('tipo','saida').gte('created_at',inicioAnterior.toISOString()),
     supabaseClient.from('movimentos').select('valor').eq('tipo','esperado'),
     supabaseClient.from('movimentos').select('valor').eq('tipo','saida').not('data_prevista','is',null).gte('data_prevista',new Date().toISOString().slice(0,10)),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').gte('created_at',inicioAtual.toISOString())
+    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').gte('created_at',inicioAtual.toISOString()),
+    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').gte('created_at',inicioAtual.toISOString()).order('created_at',{ascending:false}).limit(200)
   ]);
   if(error||!data){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--rose)">Não consegui carregar os gráficos agora 😕</p>';
@@ -2605,30 +2570,48 @@ async function carregarGraficos(periodo){
     </div>`;
   }
 
+  html+=`<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Movimentos ${PERIODO_LABEL[periodo]}</span>
+    <select id="movFiltroCofre" onchange="renderMovimentosPeriodo()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
+      <option value="">Todos os cofres</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:6px;margin:-4px 0 12px">
+    <input id="movBusca" placeholder="Buscar por descrição…" oninput="renderMovimentosPeriodo()" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+    <select id="movFiltroTipo" onchange="renderMovimentosPeriodo()" style="border:1px solid var(--line);border-radius:10px;padding:8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:110px">
+      <option value="">Tudo</option>
+      <option value="entrada">Entradas</option>
+      <option value="saida">Saídas</option>
+    </select>
+  </div>
+  <div id="movPeriodoList">
+    <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+  </div>`;
+
   wrap.innerHTML=html;
+  movsPeriodoCache=movsPeriodo||[];
+  popularFiltroCofre();
+  renderMovimentosPeriodo();
 }
 
-async function loadMovimentos(){
-  if(!supabaseClient||!currentUser)return;
-  const wrap=document.getElementById('movList');
+let movsPeriodoCache=[];
+function renderMovimentosPeriodo(){
+  const wrap=document.getElementById('movPeriodoList');
   if(!wrap)return;
-  popularFiltroCofre();
   const filtro=document.getElementById('movFiltroCofre')?document.getElementById('movFiltroCofre').value:'';
   const filtroTipo=document.getElementById('movFiltroTipo')?document.getElementById('movFiltroTipo').value:'';
   const busca=document.getElementById('movBusca')?document.getElementById('movBusca').value.trim().toLowerCase():'';
-  let query=supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(200);
-  if(filtro==='__livre__')query=query.is('cofre_id',null);
-  else if(filtro)query=query.eq('cofre_id',filtro);
-  if(filtroTipo)query=query.eq('tipo',filtroTipo);
-  let {data,error}=await query;
-  if(!error&&data&&busca)data=data.filter(m=>(m.descricao||'').toLowerCase().includes(busca));
-  if(error||!data||!data.length){
-    wrap.innerHTML=`<p style="font-size:12.5px;color:var(--ink2);margin-top:6px">${busca?'Nada encontrado pra essa busca.':'Nada registrado ainda. Quando abrir seu banco (com o aviso da Aya) ou salvar algo manualmente, aparece aqui.'}</p>`;
+  let data=movsPeriodoCache.slice();
+  if(filtro==='__livre__')data=data.filter(m=>!m.cofre_id);
+  else if(filtro)data=data.filter(m=>String(m.cofre_id)===String(filtro));
+  if(filtroTipo)data=data.filter(m=>m.tipo===filtroTipo);
+  if(busca)data=data.filter(m=>(m.descricao||'').toLowerCase().includes(busca));
+  if(!data.length){
+    wrap.innerHTML=`<p style="font-size:12.5px;color:var(--ink2);margin-top:6px">${busca||filtro||filtroTipo?'Nada encontrado com esse filtro.':'Nada registrado nesse período ainda.'}</p>`;
     return;
   }
   const cofreById={};
   (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
-
   let html='';
   let mesAtual=null;
   for(const m of data){
@@ -2661,6 +2644,13 @@ async function loadMovimentos(){
     `;
   }
   wrap.innerHTML=html;
+}
+
+async function loadMovimentos(){
+  // Histórico e Gráficos viraram uma única aba — recarregar aqui atualiza tudo
+  // de uma vez (totais, gráfico e a lista de movimentos do período selecionado).
+  if(!document.getElementById('graficosConteudo'))return;
+  await carregarGraficos(graficoPeriodoAtual);
 }
 
 async function abrirEditarMovimento(id){
