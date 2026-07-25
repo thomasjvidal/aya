@@ -293,7 +293,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
-      <button type="button" onclick="irParaFavoritos()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px">
+      <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px">
         <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>
         Favoritos
       </button>
@@ -418,25 +418,33 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
     </div>
 
-    <div class="sec-title" id="favSecTitle">Favoritos</div>
-    <p style="font-size:12.5px;color:var(--ink2);margin:-6px 4px 12px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
-    <form id="favForm" style="margin-bottom:12px">
-      <div style="display:flex;gap:8px;margin-bottom:6px">
-        <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
-        <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:6px">
-        <input id="favNome" placeholder="Nome (opcional, ex: Nintendo Switch)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
-      </div>
-      <div style="display:flex;gap:8px">
-        <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
-        <select id="favCofre" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
-          <option value="">Vem do Livre</option>
-        </select>
-      </div>
-    </form>
-    <div id="favList" class="mini-cofres"></div>
   </section>
+
+  <!-- FAVORITOS: página própria, fora da aba Movimento -->
+  <div class="auth-gate hidden" id="favoritosPage" style="z-index:95;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="closeFavoritosPage()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Favoritos</div>
+      <div class="h-name" style="margin-top:4px">O que você quer comprar</div>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Cole aqui o link do que você quer comprar. A Aya puxa esse assunto com você antes de decidir.</p>
+      <form id="favForm" style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input id="favUrl" placeholder="Cole o link aqui…" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+          <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 18px;font-family:inherit;font-weight:600;font-size:18px;cursor:pointer">+</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input id="favNome" placeholder="Nome (opcional, ex: Nintendo Switch)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+        </div>
+        <div style="display:flex;gap:8px">
+          <input id="favPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+          <select id="favCofre" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12px;background:var(--paper);color:var(--ink)">
+            <option value="">Vem do Livre</option>
+          </select>
+        </div>
+      </form>
+      <div id="favList" class="mini-cofres"></div>
+    </div>
+  </div>
 
   <!-- ============ VOCÊ ============ -->
   <section class="view" id="v-perfil">
@@ -675,11 +683,12 @@ function go(v){
 }
 function toast(t){if(!t)return;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('show'),2600);}
 
-function irParaFavoritos(){
-  go('mov');
-  setTimeout(()=>{
-    document.getElementById('favSecTitle')?.scrollIntoView({behavior:'smooth',block:'start'});
-  },350);
+function abrirFavoritosPage(){
+  document.getElementById('favoritosPage').classList.remove('hidden');
+  loadFavoritos();
+}
+function closeFavoritosPage(){
+  document.getElementById('favoritosPage').classList.add('hidden');
 }
 
 function toggleVisaoGeral(){
