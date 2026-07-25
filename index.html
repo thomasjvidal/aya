@@ -1187,7 +1187,15 @@ async function loadPendentes(){
   card.style.display='block';
   let html='';
   if(listaEsperados.length){
-    html+=`<div class="head"><span class="pulse"></span><h3>Vai entrar</h3></div>`;
+    const totalEsperado=listaEsperados.reduce((s,m)=>s+Number(m.valor||0),0);
+    html+=`<div class="head" style="cursor:pointer" onclick="toggleVaiEntrarLista()">
+      <span class="pulse"></span><h3>Vai entrar</h3>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <span class="num" style="font-size:12.5px;font-weight:700;color:var(--sage)">+ ${formatBRL(totalEsperado)}</span>
+        <span id="veListaSeta" style="font-size:11px;color:var(--ink2);transition:transform .2s;display:inline-block;transform:rotate(${vaiEntrarListaAberta?'180deg':'0deg'})">▾</span>
+      </span>
+    </div>`;
+    html+=`<div id="veLista" style="display:${vaiEntrarListaAberta?'block':'none'}">`;
     html+=listaEsperados.map(m=>`
       <div style="border-bottom:1px solid var(--line);padding:10px 4px">
         <div style="display:flex;align-items:center;gap:13px;cursor:pointer" onclick="toggleVaiEntrar('${m.id}')">
@@ -1203,6 +1211,7 @@ async function loadPendentes(){
         </div>
       </div>
     `).join('');
+    html+=`</div>`;
   }
   if(listaPend.length){
     const total=listaPend.reduce((s,m)=>s+Number(m.valor||0),0);
@@ -2114,6 +2123,15 @@ function toggleVaiEntrar(id){
   const abrir=form.style.display==='none';
   form.style.display=abrir?'flex':'none';
   if(seta)seta.textContent=abrir?'▴':'▾';
+}
+
+let vaiEntrarListaAberta=false;
+function toggleVaiEntrarLista(){
+  vaiEntrarListaAberta=!vaiEntrarListaAberta;
+  const lista=document.getElementById('veLista');
+  const seta=document.getElementById('veListaSeta');
+  if(lista)lista.style.display=vaiEntrarListaAberta?'block':'none';
+  if(seta)seta.style.transform=vaiEntrarListaAberta?'rotate(180deg)':'rotate(0deg)';
 }
 
 async function resolverCofrePendente(id){
