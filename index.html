@@ -256,7 +256,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <div class="h-greet" id="greet">Boa noite,</div>
         <div class="h-name" id="h-name-txt">Você</div>
       </div>
-      <div class="avatar-round" id="avatarRoundHoje" onclick="go('perfil')" title="Ver perfil" style="width:42px;height:42px;font-size:16px;cursor:pointer;flex-shrink:0;margin-top:3px;overflow:hidden">V</div>
+      <div class="avatar-round" id="avatarRoundHoje" onclick="go('perfil')" title="Ver perfil" style="width:42px;height:42px;font-size:16px;cursor:pointer;flex-shrink:0;margin:3px 0 0;overflow:hidden">V</div>
     </div>
 
     <div class="hero">
@@ -2266,7 +2266,7 @@ async function loadHomeData(){
   const subEl=document.getElementById('hero-sub');
   if(subEl){
     subEl.textContent=list.length
-      ? `${formatBRL(contas+guardado)} já estão guardados em ${list.length} cofre${list.length>1?'s':''} — esse dinheiro já tem destino, não é livre. O valor aí em cima é só o que sobra pra você gastar sem culpa.`
+      ? `${formatBRL(contas+guardado)} já têm destino em ${list.length} cofre${list.length>1?'s':''}`
       : 'Crie seus cofres que eu calculo isso de verdade.';
   }
 
