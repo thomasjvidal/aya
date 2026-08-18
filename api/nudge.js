@@ -34,8 +34,33 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const MENSAGENS_LEMBRETE = {
+    manha: {
+      aperto: 'Bom dia 🌧️ Antes de sair de casa, dá uma olhada no que ficou pendente de ontem — evita perder o fio de novo.',
+      auto: 'Bom dia 💼 Separou o que entrou ontem entre PF e PJ? Registra rapidinho antes do dia engolir.',
+      impulso: 'Bom dia ⚡ Começa o dia registrando o que rolou ontem — ajuda a notar os padrões antes da tentação bater.',
+      default: 'Bom dia 🌿 O que ficou de ontem pra registrar? Começa o dia com as contas em dia.',
+    },
+    noite: {
+      aperto: 'Boa noite 🌧️ Fecha o dia comigo: o que saiu hoje? Não deixa acumular.',
+      auto: 'Boa noite 💼 Bateu o dia? Registra o que entrou e saiu antes de dormir, separado por PF/PJ.',
+      impulso: 'Boa noite ⚡ Antes de dormir, registra o que rolou hoje — inclusive aquela vontade de comprar que você resistiu (ou não).',
+      default: 'Boa noite 🌿 Fecha o dia registrando o que rolou. Assim você não perde o fio de novo.',
+    },
+  };
+
   let body, url;
-  if (tipo === 'banco') {
+  if (tipo === 'manha' || tipo === 'noite') {
+    let estilo = 'default';
+    const { data: perfil } = await supabaseAdmin
+      .from('profiles')
+      .select('estilo')
+      .eq('id', sub.user_id)
+      .single();
+    if (perfil && MENSAGENS_LEMBRETE[tipo][perfil.estilo]) estilo = perfil.estilo;
+    body = MENSAGENS_LEMBRETE[tipo][estilo];
+    url = '/#add';
+  } else if (tipo === 'banco') {
     body = 'Vi que você abriu o banco 🌿 Rolou alguma coisa? Toca aqui pra eu registrar rapidinho.';
     url = '/#add';
   } else {

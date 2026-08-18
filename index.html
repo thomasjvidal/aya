@@ -406,6 +406,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title" style="margin-top:18px">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
+    <div class="sec-title" style="margin-top:18px">Suas contas fixas</div>
+    <p style="font-size:12px;color:var(--ink2);margin:2px 4px 10px;line-height:1.5">Tudo que é recorrente, de todos os cofres, num lugar só.</p>
+    <div id="fixasResumoConteudo"><p style="font-size:12.5px;color:var(--ink2)">Carregando…</p></div>
+
     <div id="movGraficosView">
       <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 18px;overflow-x:auto">
         <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
@@ -527,6 +531,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="sw" id="pushSw" style="background:var(--line)"></div>
     </div>
     <div id="pushSetup" style="display:none;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;font-size:12.5px;color:var(--ink2);line-height:1.6"></div>
+
+    <div class="sec-title">Conectar banco</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;box-shadow:var(--shadow)">
+      <div style="font-weight:600;font-size:13.5px;color:var(--ink);margin-bottom:4px">🏦 Open Finance — em breve</div>
+      <p style="font-size:12px;color:var(--ink2);margin:0;line-height:1.5">A Aya ainda não lê seu extrato direto do banco. Por enquanto é registro manual (ou o aviso quando você abre o app do banco, ali em cima). Quando a conexão automática chegar, é aqui que você vai ligar — e vamos deixar claro antes se isso tiver algum custo.</p>
+    </div>
 
     <div class="sec-title">Seus dados</div>
     <button type="button" onclick="exportarDadosCSV()" style="width:100%;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:13px;font-weight:600;padding:12px;border-radius:14px;cursor:pointer;box-shadow:var(--shadow)">⬇️ Exportar meu histórico (CSV)</button>
@@ -2784,7 +2794,38 @@ async function loadMovimentos(){
   // Histórico e Gráficos viraram uma única aba — recarregar aqui atualiza tudo
   // de uma vez (totais, gráfico e a lista de movimentos do período selecionado).
   if(!document.getElementById('graficosConteudo'))return;
+  await carregarFixasResumo();
   await carregarGraficos(graficoPeriodoAtual);
+}
+
+async function carregarFixasResumo(){
+  const wrap=document.getElementById('fixasResumoConteudo');
+  if(!supabaseClient||!currentUser||!wrap)return;
+  const {data:fixas,error}=await supabaseClient.from('contas_fixas').select('*').order('valor',{ascending:false});
+  if(error||!fixas||!fixas.length){
+    wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma conta fixa ainda. Adiciona dentro de um cofre, em "Contas fixas desse cofre".</p>';
+    return;
+  }
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  const total=fixas.reduce((s,f)=>s+Number(f.valor||0),0);
+  wrap.innerHTML=`
+    <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">Total fixo por mês: <span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(total)}</span></div>
+    <div class="mini-cofres">
+      ${fixas.map(f=>{
+        const c=cofreById[f.cofre_id];
+        return `
+        <div class="cofre-row" onclick='abrirCofreDetalhe("${f.cofre_id}")' style="cursor:pointer">
+          <div class="cofre-ic" style="width:44px;height:44px;border-radius:12px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:19px">${c?.icone||'🧾'}</div>
+          <div style="flex:1;min-width:0">
+            <div class="nm">${escapeHtml(f.nome)}</div>
+            <div class="meta">${escapeHtml(c?.nome||'Cofre')}</div>
+          </div>
+          <div class="val"><b class="num">${formatBRL(f.valor)}</b></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 async function abrirEditarMovimento(id){
@@ -3045,6 +3086,20 @@ async function enablePush(){
         ${passo(2,'Abre o app <b>Atalhos</b> (ou toca no botão verde abaixo)')}
         ${passo(3,'Aba <b>Automação</b> (embaixo) → botão <b>+</b> no canto → <b>App</b>')}
         ${passo(4,'Escolhe o app certo → marca <b>Está Aberto</b> → <b>Seguinte</b>')}
+        ${passo(5,'Toca em <b>Adicionar Ação</b>, busca <b>"Obter Conteúdo de URL"</b> e adiciona')}
+        ${passo(6,'Toca no campo <b>URL</b> que apareceu e cola o link (o que você copiou no passo 1)')}
+        ${passo(7,'Desativa <b>Perguntar Antes de Executar</b> → toca em <b>Concluído</b>')}
+
+        <div style="font-weight:700;color:var(--ink);font-size:14.5px;margin:22px 0 4px">⏰ Lembretes por horário</div>
+        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 12px">Um toque de manhã (7h) pra ver o que ficou de ontem, e outro de noite (21h) pra fechar o dia — assim você não perde o fio de novo.</p>
+        ${linkRow('🌅','Lembrete da manhã (7h)','Lembrete manhã','manha','')}
+        ${linkRow('🌙','Lembrete da noite (21h)','Lembrete noite','noite','')}
+
+        <div style="font-weight:700;color:var(--ink);font-size:13.5px;margin:16px 0 12px">Como configurar (repete pros 2 lembretes)</div>
+        ${passo(1,'Toca em <b>Copiar</b> no link do lembrete que você quer')}
+        ${passo(2,'Abre o app <b>Atalhos</b> (ou toca no botão verde abaixo)')}
+        ${passo(3,'Aba <b>Automação</b> (embaixo) → botão <b>+</b> no canto → <b>Hora do Dia</b>')}
+        ${passo(4,'Define o horário (7h pra manhã, 21h pra noite) → <b>Seguinte</b>')}
         ${passo(5,'Toca em <b>Adicionar Ação</b>, busca <b>"Obter Conteúdo de URL"</b> e adiciona')}
         ${passo(6,'Toca no campo <b>URL</b> que apareceu e cola o link (o que você copiou no passo 1)')}
         ${passo(7,'Desativa <b>Perguntar Antes de Executar</b> → toca em <b>Concluído</b>')}
