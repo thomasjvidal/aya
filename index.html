@@ -406,6 +406,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title" style="margin-top:18px">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
+    <div class="sec-title" style="margin-top:18px">Suas contas fixas</div>
+    <p style="font-size:12px;color:var(--ink2);margin:2px 4px 10px;line-height:1.5">Tudo que é recorrente, de todos os cofres, num lugar só.</p>
+    <div id="fixasResumoConteudo"><p style="font-size:12.5px;color:var(--ink2)">Carregando…</p></div>
+
     <div id="movGraficosView">
       <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 18px;overflow-x:auto">
         <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
@@ -2790,7 +2794,38 @@ async function loadMovimentos(){
   // Histórico e Gráficos viraram uma única aba — recarregar aqui atualiza tudo
   // de uma vez (totais, gráfico e a lista de movimentos do período selecionado).
   if(!document.getElementById('graficosConteudo'))return;
+  await carregarFixasResumo();
   await carregarGraficos(graficoPeriodoAtual);
+}
+
+async function carregarFixasResumo(){
+  const wrap=document.getElementById('fixasResumoConteudo');
+  if(!supabaseClient||!currentUser||!wrap)return;
+  const {data:fixas,error}=await supabaseClient.from('contas_fixas').select('*').order('valor',{ascending:false});
+  if(error||!fixas||!fixas.length){
+    wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma conta fixa ainda. Adiciona dentro de um cofre, em "Contas fixas desse cofre".</p>';
+    return;
+  }
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  const total=fixas.reduce((s,f)=>s+Number(f.valor||0),0);
+  wrap.innerHTML=`
+    <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">Total fixo por mês: <span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(total)}</span></div>
+    <div class="mini-cofres">
+      ${fixas.map(f=>{
+        const c=cofreById[f.cofre_id];
+        return `
+        <div class="cofre-row" onclick='abrirCofreDetalhe("${f.cofre_id}")' style="cursor:pointer">
+          <div class="cofre-ic" style="width:44px;height:44px;border-radius:12px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:19px">${c?.icone||'🧾'}</div>
+          <div style="flex:1;min-width:0">
+            <div class="nm">${escapeHtml(f.nome)}</div>
+            <div class="meta">${escapeHtml(c?.nome||'Cofre')}</div>
+          </div>
+          <div class="val"><b class="num">${formatBRL(f.valor)}</b></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 async function abrirEditarMovimento(id){
