@@ -1266,13 +1266,14 @@ async function confirmarChegada(id){
   if(!supabaseClient||!currentUser)return;
   const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).eq('tipo','esperado').single();
   if(!mov){ toast('Não achei esse registro 😕'); return; }
+  // Só confirma que chegou — fica esperando em "Dinheiro esperando organização" até
+  // a pessoa tocar em "Deixar a Aya organizar". Distribuir sozinho aqui surpreendia
+  // quem só queria confirmar o recebimento.
   const {error}=await supabaseClient.from('movimentos').update({tipo:'entrada'}).eq('id',id);
   if(error){ toast('Não consegui confirmar agora 😕'); return; }
-  go('hoje');
-  await distribuirPercentuais(Number(mov.valor||0),id);
-  await supabaseClient.from('movimentos').update({organizado:true}).eq('id',id);
+  vibrar('success');
+  toast(`Chegou 🌿 ${formatBRL(mov.valor)} esperando você organizar`);
   await loadPendentes();
-  await loadCofres();
   await loadHomeData();
   await loadMovimentos();
   await loadPerfilStats();
