@@ -2998,7 +2998,26 @@ async function enablePush(){
         ${passo(6,'Toca no campo <b>URL</b> que apareceu e cola o link (o que você copiou no passo 1)')}
         ${passo(7,'Desativa <b>Perguntar Antes de Executar</b> → toca em <b>Concluído</b>')}
 
-        <a href="shortcuts://" style="display:block;text-align:center;background:var(--sage-tint);color:var(--sage);border-radius:12px;padding:11px;font-weight:600;font-size:13px;text-decoration:none;margin-top:6px">Abrir app Atalhos</a>
+        <div style="font-weight:700;color:var(--ink);font-size:14.5px;margin:22px 0 4px">📸 Registrar por comprovante</div>
+        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 12px">Compartilha um print de Pix ou comprovante direto de outro app (banco, Fotos...) e a Aya lê e registra sozinha. Esse aqui precisa de mais passos porque envia uma imagem — não dá pra automatizar em 1 toque como os de cima.</p>
+        <div style="margin-bottom:12px">
+          <div style="font-weight:600;color:var(--ink);font-size:13px;margin-bottom:6px">Endereço do comprovante</div>
+          <div style="font-size:11.5px;color:var(--ink2);margin-bottom:6px">Cola esse link no passo 3 abaixo</div>
+          <div style="display:flex;gap:8px">
+            <input readonly value="${escapeHtml(`${location.origin}/api/receipt-import?token=${json.nudgeToken}`)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+            <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+        <div style="font-weight:700;color:var(--ink);font-size:13.5px;margin:16px 0 12px">Como configurar (só uma vez)</div>
+        ${passo(1,'Abre o app <b>Atalhos</b> → aba <b>Atalhos</b> (não Automação) → botão <b>+</b> pra criar um novo')}
+        ${passo(2,'Toca em <b>Adicionar Ação</b>, busca <b>"Codificar Base64"</b> e adiciona — deixa como está, ela já usa o que for compartilhado')}
+        ${passo(3,'Adiciona outra ação: busca <b>"Obter Conteúdo de URL"</b>. No campo URL, cola o link que você copiou ali em cima')}
+        ${passo(4,'Nessa mesma ação, toca em <b>Mostrar Mais</b> → Método: <b>POST</b> → Corpo da Solicitação: <b>JSON</b>')}
+        ${passo(5,'Adiciona um campo chamado <b>image</b> e, como valor dele, insere a variável <b>Base64 Codificado</b> (toca no campo → escolhe a variável, não digita texto)')}
+        ${passo(6,'Toca no nome do atalho (topo) pra renomear pra <b>Aya - Comprovante</b>, depois no ⓘ (detalhes) → ativa <b>Mostrar na Tela de Compartilhamento</b> → em Tipos Aceitos, marca só <b>Imagens</b>')}
+        <p style="font-size:11.5px;color:var(--ink2);margin:2px 0 0;background:var(--sage-tint);padding:8px 10px;border-radius:10px">Depois disso, ao compartilhar qualquer print de comprovante (de qualquer app), "Aya - Comprovante" aparece na lista de compartilhamento.</p>
+
+        <a href="shortcuts://" style="display:block;text-align:center;background:var(--sage-tint);color:var(--sage);border-radius:12px;padding:11px;font-weight:600;font-size:13px;text-decoration:none;margin-top:16px">Abrir app Atalhos</a>
       `;
     }
     toast('Notificações da Aya ativadas 🌿');
