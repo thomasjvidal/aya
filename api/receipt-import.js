@@ -95,8 +95,17 @@ module.exports = async (req, res) => {
   const descricao = String(extraido.descricao || (extraido.tipo === 'saida' ? 'Saída via comprovante' : 'Entrada via comprovante')).slice(0, 200);
   const pessoa = extraido.pessoa ? String(extraido.pessoa).slice(0, 120) : null;
 
+  // O atalho não sabe qual conta (Pessoal/PJ) está ativa no app — cai sempre na Pessoal.
+  const { data: contaPessoal } = await supabaseAdmin
+    .from('contas')
+    .select('id')
+    .eq('user_id', sub.user_id)
+    .eq('tipo', 'pessoal')
+    .single();
+
   const { error: insertError } = await supabaseAdmin.from('movimentos').insert({
     user_id: sub.user_id,
+    conta_id: contaPessoal ? contaPessoal.id : null,
     descricao,
     valor: extraido.valor,
     tipo: extraido.tipo,

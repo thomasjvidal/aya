@@ -259,20 +259,28 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="avatar-round" id="avatarRoundHoje" onclick="go('perfil')" title="Ver perfil" style="width:42px;height:42px;font-size:16px;cursor:pointer;flex-shrink:0;margin:3px 0 0;overflow:hidden">V</div>
     </div>
 
+    <button type="button" id="contaSwitcher" onclick="abrirContaPicker()" style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 13px;margin-top:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;box-shadow:var(--shadow)">
+      <span id="contaSwitcherIcone">👤</span>
+      <span id="contaSwitcherNome">Pessoal</span>
+      <span style="color:var(--ink2);font-size:10px">▾</span>
+    </button>
+
     <div class="hero">
       <div class="lbl">livre pra gastar hoje</div>
       <div class="breathe"><span class="amount" id="heroAmount"><small>R$</small>0</span></div>
       <div class="sub" id="hero-sub">Assim que você criar seus cofres, calculo isso de verdade.</div>
     </div>
 
-    <div class="bars" onclick="go('cofres')" style="cursor:pointer">
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num" id="barLivre">R$ 0</div></div>
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--amber)"></span>Comprometido</div><div class="v num small" id="barComprometido">R$ 0</div></div>
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small" id="barGuardado">R$ 0</div></div>
+    <div class="bars" style="flex-wrap:wrap;row-gap:9px">
+      <div class="bar" onclick="abrirEditarGrupo('livre')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num" id="barLivre">R$ 0</div></div>
+      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--amber)"></span>Não distribuído</div><div class="v num small" id="barComprometido">R$ 0</div></div>
+      <div class="bar" onclick="abrirEditarGrupo('guardado')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small" id="barGuardado">R$ 0</div></div>
+      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%;background:var(--sage);border-color:var(--sage)"><div class="t" style="color:rgba(255,255,255,.85)"><span class="dot" style="background:#fff"></span>Total</div><div class="v num small" id="barTotal" style="color:#fff">R$ 0</div></div>
     </div>
-    <button type="button" onclick="go('cofres')" style="display:flex;align-items:center;justify-content:center;gap:4px;margin:8px auto 0;background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">
-      Ver seus cofres →
-    </button>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:8px auto 0">
+      <button type="button" onclick="go('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Ver seus cofres →</button>
+      <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">♡ Favoritos</button>
+    </div>
 
     <div class="aya-card">
       <span class="ico">🌿</span>
@@ -340,16 +348,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Seus cofres</span>
-      <div style="display:flex;align-items:center;gap:14px">
-        <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px">
-          <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>
-          Favoritos
-        </button>
-        <button type="button" onclick="redistribuirCofres()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">🔄 Redistribuir</button>
-        <button type="button" onclick="ensureCofreFormInline();openCofreForm()" title="Criar cofre" style="background:var(--sage);color:#fff;border:0;width:24px;height:24px;border-radius:50%;font-family:inherit;font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">+</button>
-      </div>
+      <button type="button" onclick="ensureCofreFormInline();openCofreForm()" title="Criar cofre" style="background:var(--sage);color:#fff;border:0;width:24px;height:24px;border-radius:50%;font-family:inherit;font-weight:700;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">+</button>
     </div>
-    <p style="font-size:11.5px;color:var(--ink2);margin:-8px 4px 12px;line-height:1.4">Recalcula o que já está guardado nos cofres com % configurado, usando as % de agora.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-6px 0 10px">
+      <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">♡ Favoritos</button>
+      <button type="button" onclick="redistribuirCofres()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">🔄 Redistribuir</button>
+      <button type="button" onclick="abrirTransferencia('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">⇄ Transferir</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink2);margin:-4px 4px 12px;line-height:1.4">Recalcula o que já está guardado nos cofres com % configurado, usando as % de agora.</p>
+    <div id="percentualResumo" style="margin-bottom:12px"></div>
     <div id="cofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
@@ -390,10 +397,20 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title" style="margin-top:18px">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
+    <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 16px;overflow-x:auto">
+      <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
+      <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
+      <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
+      <button type="button" class="periodo-btn" data-periodo="ano" onclick="mudarPeriodoGrafico('ano')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Ano</button>
+    </div>
+    <div id="porCofreEListaConteudo">
+      <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+    </div>
+
     <button type="button" onclick="abrirMovDetalhesPage()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-top:16px;font-family:inherit;cursor:pointer;box-shadow:var(--shadow)">
       <span style="text-align:left">
-        <span style="display:block;font-weight:700;font-size:13.5px;color:var(--ink)">📊 Números e contas fixas</span>
-        <span style="display:block;font-size:11.5px;color:var(--ink2);margin-top:2px">Gastos do período, gráfico, por cofre e suas contas recorrentes</span>
+        <span style="display:block;font-weight:700;font-size:13.5px;color:var(--ink)">📊 Total gasto e contas fixas</span>
+        <span style="display:block;font-size:11.5px;color:var(--ink2);margin-top:2px">Total do período, o que ainda vai entrar/sair e suas contas recorrentes</span>
       </span>
       <span style="color:var(--ink2);flex-shrink:0">→</span>
     </button>
@@ -412,16 +429,84 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div id="fixasResumoConteudo"><p style="font-size:12.5px;color:var(--ink2)">Carregando…</p></div>
 
       <div id="movGraficosView">
-        <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 18px;overflow-x:auto">
-          <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
-          <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
-          <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
-          <button type="button" class="periodo-btn" data-periodo="ano" onclick="mudarPeriodoGrafico('ano')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Ano</button>
-        </div>
         <div id="graficosConteudo">
           <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIA DOS COFRES: pra onde vai cada cofre (Livre/Não distribuído/Guardado) -->
+  <!-- CONTAS: trocar entre Pessoal e PJ, criar nova conta -->
+  <div class="auth-gate hidden" id="contaPickerPage" style="z-index:96;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharContaPicker()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Contas</div>
+      <div class="h-name" style="margin-top:4px">Trocar de<br>conta</div>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Cada conta tem seus próprios cofres e movimentos, separados. Dá pra transferir entre elas na aba Transferência.</p>
+      <div id="contaPickerList" class="mini-cofres" style="margin-bottom:18px"></div>
+
+      <div class="sec-title">Criar nova conta PJ</div>
+      <input id="novaContaNome" placeholder="Nome da empresa" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
+      <button type="button" onclick="criarContaPj()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">+ Criar conta PJ</button>
+
+      <button type="button" onclick="fecharContaPicker();abrirTransferencia('contas')" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:10px">⇄ Transferir entre contas</button>
+    </div>
+  </div>
+
+  <!-- TRANSFERÊNCIA: entre cofres (mesma conta) ou entre contas (Pessoal/PJ) — tudo fake, fica só aqui dentro -->
+  <div class="auth-gate hidden" id="transferenciaPage" style="z-index:97;align-items:stretch;padding:24px 20px;overflow-y:auto;background:#12201a">
+    <button class="linklike" type="button" style="align-self:flex-start;color:#cfe3d8" onclick="fecharTransferencia()">← Voltar</button>
+    <div style="text-align:left;margin-top:14px">
+      <div class="eyebrow" style="color:#8fb8a2">Transferência</div>
+      <div class="h-name" style="margin-top:4px;color:#fff">Mover seu<br>dinheiro</div>
+      <p style="font-size:12px;color:#a9c4b6;margin:8px 4px 20px;line-height:1.5">Simulado — não mexe em dinheiro real de banco nenhum, só reorganiza o que já está registrado aqui no Aya.</p>
+
+      <div style="display:flex;gap:8px;background:rgba(255,255,255,.08);border-radius:14px;padding:4px;margin-bottom:20px">
+        <button type="button" id="tabTransfCofres" onclick="trocarModoTransferencia('cofres')" style="flex:1;border:0;border-radius:11px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Entre cofres</button>
+        <button type="button" id="tabTransfContas" onclick="trocarModoTransferencia('contas')" style="flex:1;border:0;border-radius:11px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Entre contas</button>
+      </div>
+
+      <div id="transfFormWrap" style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,.35)">
+        <div id="transfCofresForm">
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">De qual cofre</div>
+          <select id="transfCofreOrigem" onchange="atualizarResumoTransferencia()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
+          <div style="text-align:center;color:var(--sage);font-size:18px;margin:-6px 0 8px">↓</div>
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Para qual cofre</div>
+          <select id="transfCofreDestino" onchange="atualizarResumoTransferencia()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Valor</div>
+          <input id="transfCofreValor" type="number" step="0.01" min="0" placeholder="R$ 0,00" oninput="atualizarResumoTransferencia()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:'Fraunces',serif;font-size:22px;background:var(--paper);color:var(--ink);margin-bottom:6px">
+          <div id="transfCofreAviso" style="font-size:11.5px;color:var(--rose);min-height:16px;margin-bottom:10px"></div>
+          <button type="button" onclick="confirmarTransferenciaCofre()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:13px;padding:14px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer">Transferir</button>
+        </div>
+        <div id="transfContasForm" style="display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Da conta</div>
+          <select id="transfContaOrigem" onchange="popularSelectsTransferenciaContas()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
+          <div style="text-align:center;color:var(--sage);font-size:18px;margin:-6px 0 8px">↓</div>
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Para a conta</div>
+          <select id="transfContaDestino" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
+          <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Valor</div>
+          <input id="transfContaValor" type="number" step="0.01" min="0" placeholder="R$ 0,00" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:'Fraunces',serif;font-size:22px;background:var(--paper);color:var(--ink);margin-bottom:6px">
+          <p style="font-size:11.5px;color:var(--ink2);margin:0 0 14px">Sai do dinheiro livre de uma conta e chega esperando organização na outra.</p>
+          <button type="button" onclick="confirmarTransferenciaConta()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:13px;padding:14px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer">Transferir</button>
+        </div>
+        <div id="transfSucesso" style="display:none;text-align:center;padding:10px 0">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--sage-tint);color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px">✓</div>
+          <div style="font-weight:700;font-size:16px;color:var(--ink);margin-bottom:4px">Transferido</div>
+          <div id="transfSucessoTxt" style="font-size:13px;color:var(--ink2);margin-bottom:20px"></div>
+          <button type="button" onclick="fecharTransferencia()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:13px;padding:13px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer">Concluído</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-gate hidden" id="categoriasPage" style="z-index:95;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharCategoriasPage()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Cofres</div>
+      <div class="h-name" style="margin-top:4px">Cada cofre,<br>seu grupo</div>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Livre e Guardado, na Home, somam os cofres marcados aqui. Muda a qualquer momento.</p>
+      <div id="categoriasList" class="mini-cofres"></div>
     </div>
   </div>
 
@@ -570,6 +655,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </select>
       <input id="qaPessoa" type="text" placeholder="Pra quem? (opcional)" style="display:none">
       <input id="qaData" type="date" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);width:100%;justify-content:center;margin:2px 0">
+        <input type="checkbox" id="qaRecorrente"> É recorrente? (vira uma conta fixa)
+      </label>
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
@@ -734,6 +822,42 @@ function abrirMovDetalhesPage(){
 }
 function fecharMovDetalhesPage(){
   document.getElementById('movDetalhesPage').classList.add('hidden');
+}
+
+function abrirEditarGrupo(grupo){
+  document.getElementById('categoriasPage').classList.remove('hidden');
+  loadCategorias(grupo);
+}
+function fecharCategoriasPage(){
+  document.getElementById('categoriasPage').classList.add('hidden');
+}
+const TIPO_LABEL={livre:'🌿 Livre',contas:'📎 Não distribuído',guardado:'🛟 Guardado'};
+function loadCategorias(grupoFoco){
+  const list=document.getElementById('categoriasList');
+  if(!list)return;
+  if(!cofresCache||!cofresCache.length){
+    list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres.</p>';
+    return;
+  }
+  list.innerHTML=cofresCache.map(c=>`
+    <div class="cofre-row" style="${grupoFoco&&c.tipo===grupoFoco?'border-color:var(--sage);background:var(--sage-tint)':''}">
+      <div class="cofre-ic" style="background:var(--sage-tint)">${escapeHtml(c.icone||'🧾')}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(c.nome)}</div></div>
+      <select onchange="salvarTipoCofre('${c.id}',this.value)" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+        <option value="livre" ${c.tipo==='livre'?'selected':''}>${TIPO_LABEL.livre}</option>
+        <option value="contas" ${c.tipo==='contas'?'selected':''}>${TIPO_LABEL.contas}</option>
+        <option value="guardado" ${c.tipo==='guardado'?'selected':''}>${TIPO_LABEL.guardado}</option>
+      </select>
+    </div>
+  `).join('');
+}
+async function salvarTipoCofre(id,novoTipo){
+  if(!supabaseClient||!currentUser)return;
+  await supabaseClient.from('cofres').update({tipo:novoTipo}).eq('id',id);
+  toast('Salvo 🌿');
+  await loadCofres();
+  await loadHomeData();
+  loadCategorias();
 }
 
 function abrirFavoritosPage(){
@@ -926,9 +1050,9 @@ function copiarTexto(texto,btn){
 async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
   const [cofresRes,movsRes,esperadosRes,contasFixasRes,perfilRes,favRes]=await Promise.all([
-    supabaseClient.from('cofres').select('*'),
-    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').order('created_at',{ascending:false}).limit(40),
-    supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
+    supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId),
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).neq('tipo','esperado').order('created_at',{ascending:false}).limit(40),
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','esperado').order('created_at',{ascending:false}),
     supabaseClient.from('contas_fixas').select('*'),
     supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single(),
     supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(15)
@@ -1078,6 +1202,7 @@ async function onAuthed(session){
   currentUser=session.user;
   document.getElementById('authGate').classList.add('hidden');
   await loadProfile();
+  await loadContas();
   await loadCofres();
   await loadHomeData();
   await loadMovimentos();
@@ -1146,8 +1271,9 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const cofreId=(tipoForm==='saida'||tipoForm==='saida_planejada')?(document.getElementById('qaCofre').value||null):null;
   const pessoa=tipoForm==='saida_planejada'?(document.getElementById('qaPessoa').value.trim()||null):null;
   const dataPrevista=tipoForm==='saida_planejada'?(document.getElementById('qaData').value||null):null;
+  const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
-  const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
+  const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
   if(!error){
     if(tipo==='saida'&&cofreId){
       const c=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
@@ -1156,11 +1282,16 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
         await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
       }
     }
+    if(recorrente){
+      await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:cofreId});
+      await carregarFixasResumo();
+    }
     document.getElementById('qaDesc').value='';
     document.getElementById('qaValor').value='';
     document.getElementById('qaCofre').value='';
     document.getElementById('qaPessoa').value='';
     document.getElementById('qaData').value='';
+    document.getElementById('qaRecorrente').checked=false;
     closeQuickAdd();
     if(tipoForm==='entrada'){
       // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
@@ -1186,7 +1317,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
 
 async function distribuirPercentuais(valorEntrada,movimentoId){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('meta_tipo','percentual').not('percentual','is',null);
+  const {data:cofres,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).eq('meta_tipo','percentual').not('percentual','is',null);
   if(selectErr){ toast('Registrado, mas não consegui checar os % 😕'); return; }
   if(!cofres||!cofres.length){ toast('Registrado 🌿 (nenhum cofre com % configurado ainda)'); return; }
   const partes=[];
@@ -1227,8 +1358,8 @@ async function loadPendentes(){
   const card=document.getElementById('pendenteCard');
   if(!card)return;
   const [{data:esperados,error:errEsperados},{data:pend,error:errPend}]=await Promise.all([
-    supabaseClient.from('movimentos').select('*').eq('tipo','esperado').order('created_at',{ascending:false}),
-    supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false)
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','esperado').order('created_at',{ascending:false}),
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false)
   ]);
   if(errEsperados||errPend){
     card.style.display='block';
@@ -1309,7 +1440,7 @@ async function confirmarChegada(id){
 
 async function organizarPendentes(){
   if(!supabaseClient||!currentUser)return;
-  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false);
+  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false);
   if(error||!pend||!pend.length)return;
   for(const m of pend){
     await distribuirPercentuais(Number(m.valor||0),m.id);
@@ -1325,7 +1456,7 @@ async function organizarPendentes(){
 let organizarComValorState=null;
 async function iniciarOrganizar(){
   if(!supabaseClient||!currentUser)return;
-  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
+  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
   if(error||!pend||!pend.length)return;
   // Cofres com meta em R$ (não %) que ainda não bateram a meta — pra esses a Aya
   // pergunta quanto vai antes de espalhar o resto pelos % configurados.
@@ -1741,7 +1872,7 @@ async function loadFavoritos(){
   popularFavCofre();
   const [{data,error},{data:cofresFrescos}]=await Promise.all([
     supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}),
-    supabaseClient.from('cofres').select('*')
+    supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId)
   ]);
   if(error||!data||!data.length){
     list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
@@ -2062,7 +2193,7 @@ async function lancarRendimento(){
   if(!supabaseClient||!currentUser||!cofreDetalheId)return;
   const valor=parseFloat(document.getElementById('rendimentoValor').value);
   if(!valor||isNaN(valor)){ toast('Coloca quanto rendeu 🌿'); return; }
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao:'Rendimento',valor,tipo:'rendimento',cofre_id:cofreDetalheId,organizado:true});
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:'Rendimento',valor,tipo:'rendimento',cofre_id:cofreDetalheId,organizado:true});
   if(error){ toast('Não consegui registrar agora 😕'); return; }
   const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',cofreDetalheId).single();
   if(cAtual){
@@ -2081,7 +2212,7 @@ async function lancarRendimento(){
 async function registrarSaidaCofre(cofreId,valor,descricao){
   if(!supabaseClient||!currentUser)return false;
   if(!valor||isNaN(valor)||valor<=0)return false;
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao:descricao||'Saída',valor,tipo:'saida',cofre_id:cofreId});
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:descricao||'Saída',valor,tipo:'saida',cofre_id:cofreId});
   if(error)return false;
   const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',cofreId).single();
   if(cAtual){
@@ -2152,7 +2283,7 @@ async function pagarContaFixa(id){
   if(!supabaseClient||!currentUser||!cofreDetalheId)return;
   const {data:cf}=await supabaseClient.from('contas_fixas').select('*').eq('id',id).single();
   if(!cf)return;
-  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao:cf.nome,valor:cf.valor,tipo:'saida',cofre_id:cf.cofre_id});
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:cf.nome,valor:cf.valor,tipo:'saida',cofre_id:cf.cofre_id});
   if(error){ toast('Não consegui registrar agora 😕'); return; }
   const {data:cAtual}=await supabaseClient.from('cofres').select('valor_atual').eq('id',cf.cofre_id).single();
   if(cAtual){
@@ -2246,7 +2377,7 @@ async function salvarCofre(){
   if(id){
     ({error}=await supabaseClient.from('cofres').update(payload).eq('id',id));
   }else{
-    ({error}=await supabaseClient.from('cofres').insert({user_id:currentUser.id,...payload}));
+    ({error}=await supabaseClient.from('cofres').insert({user_id:currentUser.id,conta_id:contaAtualId,...payload}));
   }
   if(error){
     document.getElementById('cofreFormWrap').insertAdjacentHTML('beforeend',`<p style="color:var(--rose);font-size:12px;margin-top:8px" class="cofreErr">${escapeHtml(error.message||'Erro desconhecido')}</p>`);
@@ -2369,7 +2500,7 @@ async function redistribuirCofres(){
   toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
 }
 
-function cofreCardHtml(c,editable){
+function cofreCardHtml(c,editable,index,total){
   const prog=c.valor_meta?Math.min(100,Math.round((c.valor_atual/c.valor_meta)*100)):null;
   const metaLabel=c.meta_tipo==='percentual'&&c.percentual?`<div class="meta">${c.percentual}% de cada entrada</div>`:(c.valor_meta?`<div class="meta">de ${formatBRL(c.valor_meta)}</div>`:'');
   const pendente=c.concluido===false;
@@ -2395,6 +2526,12 @@ function cofreCardHtml(c,editable){
       </div>
     </div>
   `:'';
+  const reorderBtns=editable?`
+    <div style="display:flex;flex-direction:column;gap:1px;margin-left:2px" onclick="event.stopPropagation()">
+      <button type="button" onclick="moverCofre('${c.id}',-1)" ${index===0?'disabled':''} style="background:0;border:0;color:${index===0?'var(--line)':'var(--ink2)'};font-size:10px;cursor:${index===0?'default':'pointer'};padding:1px 3px;line-height:1">▲</button>
+      <button type="button" onclick="moverCofre('${c.id}',1)" ${index===total-1?'disabled':''} style="background:0;border:0;color:${index===total-1?'var(--line)':'var(--ink2)'};font-size:10px;cursor:${index===total-1?'default':'pointer'};padding:1px 3px;line-height:1">▼</button>
+    </div>
+  `:'';
   return `
     <div class="cofre-row" data-cofre-id="${c.id}" style="cursor:pointer;display:block;${cardStyle}">
       <div style="display:flex;align-items:center;gap:12px" onclick="${onclickRow}">
@@ -2405,32 +2542,259 @@ function cofreCardHtml(c,editable){
         </div>
         <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${metaLabel}</div>
         ${seta}
+        ${reorderBtns}
       </div>
       ${pendenteForm}
     </div>
   `;
 }
+async function moverCofre(id,direcao){
+  if(!supabaseClient||!currentUser)return;
+  const arr=[...cofresCache];
+  const idx=arr.findIndex(c=>String(c.id)===String(id));
+  if(idx<0)return;
+  const novoIdx=idx+direcao;
+  if(novoIdx<0||novoIdx>=arr.length)return;
+  [arr[idx],arr[novoIdx]]=[arr[novoIdx],arr[idx]];
+  await Promise.all(arr.map((c,i)=>supabaseClient.from('cofres').update({ordem:i}).eq('id',c.id)));
+  await loadCofres();
+}
+
+let contasCache=[];
+let contaAtualId=null;
+async function loadContas(){
+  if(!supabaseClient||!currentUser)return;
+  let {data,error}=await supabaseClient.from('contas').select('*').order('created_at',{ascending:true});
+  if(error||!data||!data.length){
+    // Conta antes de existir o trigger que cria a Pessoal automática — cria aqui como fallback.
+    const {data:nova}=await supabaseClient.from('contas').insert({user_id:currentUser.id,nome:'Pessoal',tipo:'pessoal'}).select('*').single();
+    data=nova?[nova]:[];
+  }
+  contasCache=data;
+  const salvo=localStorage.getItem('aya_conta_atual');
+  const existe=salvo&&contasCache.some(c=>String(c.id)===String(salvo));
+  contaAtualId=existe?salvo:(contasCache.find(c=>c.tipo==='pessoal')||contasCache[0])?.id||null;
+  atualizarContaSwitcher();
+}
+function atualizarContaSwitcher(){
+  const conta=contasCache.find(c=>String(c.id)===String(contaAtualId));
+  const nomeEl=document.getElementById('contaSwitcherNome');
+  const icEl=document.getElementById('contaSwitcherIcone');
+  if(nomeEl)nomeEl.textContent=conta?conta.nome:'Pessoal';
+  if(icEl)icEl.textContent=conta&&conta.tipo==='pj'?'💼':'👤';
+}
+function abrirContaPicker(){
+  document.getElementById('contaPickerPage').classList.remove('hidden');
+  renderContaPicker();
+}
+function fecharContaPicker(){
+  document.getElementById('contaPickerPage').classList.add('hidden');
+}
+function renderContaPicker(){
+  const list=document.getElementById('contaPickerList');
+  if(!list)return;
+  list.innerHTML=contasCache.map(c=>`
+    <div class="cofre-row" onclick="trocarConta('${c.id}')" style="cursor:pointer;${String(c.id)===String(contaAtualId)?'border-color:var(--sage);background:var(--sage-tint)':''}">
+      <div class="cofre-ic" style="background:var(--sage-tint)">${c.tipo==='pj'?'💼':'👤'}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(c.nome)}</div><div class="meta">${c.tipo==='pj'?'PJ':'Pessoal'}</div></div>
+      ${String(c.id)===String(contaAtualId)?'<span style="color:var(--sage);font-weight:700">✓</span>':''}
+    </div>
+  `).join('');
+}
+async function trocarConta(id){
+  if(String(id)===String(contaAtualId)){ fecharContaPicker(); return; }
+  contaAtualId=id;
+  localStorage.setItem('aya_conta_atual',id);
+  atualizarContaSwitcher();
+  fecharContaPicker();
+  toast('Trocado de conta 🌿');
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
+  await loadPendentes();
+}
+async function criarContaPj(){
+  if(!supabaseClient||!currentUser)return;
+  const nome=document.getElementById('novaContaNome').value.trim();
+  if(!nome){ toast('Coloca o nome da empresa 🌿'); return; }
+  const {data,error}=await supabaseClient.from('contas').insert({user_id:currentUser.id,nome,tipo:'pj'}).select('*').single();
+  if(error){ toast('Não consegui criar a conta agora 😕'); return; }
+  contasCache.push(data);
+  document.getElementById('novaContaNome').value='';
+  toast(`Conta "${nome}" criada 🌿`);
+  await trocarConta(data.id);
+}
+
+let transfModoAtual='cofres';
+function abrirTransferencia(modo){
+  document.getElementById('transferenciaPage').classList.remove('hidden');
+  document.getElementById('transfSucesso').style.display='none';
+  document.getElementById('transfCofresForm').style.display='block';
+  document.getElementById('transfContasForm').style.display='block';
+  trocarModoTransferencia(modo||'cofres');
+}
+function fecharTransferencia(){
+  document.getElementById('transferenciaPage').classList.add('hidden');
+}
+function trocarModoTransferencia(modo){
+  transfModoAtual=modo;
+  document.getElementById('transfSucesso').style.display='none';
+  const cofresForm=document.getElementById('transfCofresForm');
+  const contasForm=document.getElementById('transfContasForm');
+  const tabC=document.getElementById('tabTransfCofres');
+  const tabA=document.getElementById('tabTransfContas');
+  if(modo==='cofres'){
+    cofresForm.style.display='block';
+    contasForm.style.display='none';
+    tabC.style.background='#fff';tabC.style.color='var(--ink)';
+    tabA.style.background='0';tabA.style.color='#cfe3d8';
+    popularSelectsTransferenciaCofres();
+  }else{
+    cofresForm.style.display='none';
+    contasForm.style.display='block';
+    tabA.style.background='#fff';tabA.style.color='var(--ink)';
+    tabC.style.background='0';tabC.style.color='#cfe3d8';
+    popularSelectsTransferenciaContas();
+  }
+}
+function popularSelectsTransferenciaCofres(){
+  const origem=document.getElementById('transfCofreOrigem');
+  const destino=document.getElementById('transfCofreDestino');
+  if(!origem||!destino)return;
+  if(!cofresCache||cofresCache.length<2){
+    origem.innerHTML='<option value="">Você precisa de 2 cofres pra transferir</option>';
+    destino.innerHTML='';
+    return;
+  }
+  const opts=cofresCache.map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)} — ${formatBRL(c.valor_atual)}</option>`).join('');
+  origem.innerHTML=opts;
+  destino.innerHTML=opts;
+  if(destino.options.length>1)destino.selectedIndex=1;
+  atualizarResumoTransferencia();
+}
+function atualizarResumoTransferencia(){
+  const aviso=document.getElementById('transfCofreAviso');
+  if(!aviso)return;
+  const origemId=document.getElementById('transfCofreOrigem').value;
+  const destinoId=document.getElementById('transfCofreDestino').value;
+  const valor=parseFloat(document.getElementById('transfCofreValor').value);
+  aviso.textContent='';
+  if(origemId&&destinoId&&origemId===destinoId){ aviso.textContent='Escolhe dois cofres diferentes.'; return; }
+  const origem=cofresCache.find(c=>String(c.id)===String(origemId));
+  if(origem&&valor&&valor>Number(origem.valor_atual||0))aviso.textContent=`Esse cofre só tem ${formatBRL(origem.valor_atual)}.`;
+}
+async function confirmarTransferenciaCofre(){
+  if(!supabaseClient||!currentUser)return;
+  const origemId=document.getElementById('transfCofreOrigem').value;
+  const destinoId=document.getElementById('transfCofreDestino').value;
+  const valor=parseFloat(document.getElementById('transfCofreValor').value);
+  if(!origemId||!destinoId||origemId===destinoId){ toast('Escolhe dois cofres diferentes 🌿'); return; }
+  if(!valor||isNaN(valor)||valor<=0){ toast('Coloca quanto quer transferir 🌿'); return; }
+  const origem=cofresCache.find(c=>String(c.id)===String(origemId));
+  const destino=cofresCache.find(c=>String(c.id)===String(destinoId));
+  if(!origem||!destino)return;
+  if(valor>Number(origem.valor_atual||0)){ toast(`${origem.nome} só tem ${formatBRL(origem.valor_atual)} 🌿`); return; }
+  const novoOrigem=Number(origem.valor_atual||0)-valor;
+  const novoDestino=Number(destino.valor_atual||0)+valor;
+  const [{error:err1},{error:err2}]=await Promise.all([
+    supabaseClient.from('cofres').update({valor_atual:novoOrigem}).eq('id',origemId),
+    supabaseClient.from('cofres').update({valor_atual:novoDestino,concluido:true}).eq('id',destinoId)
+  ]);
+  if(err1||err2){ toast('Não consegui transferir agora 😕'); return; }
+  vibrar('success');
+  document.getElementById('transfCofresForm').style.display='none';
+  document.getElementById('transfSucesso').style.display='block';
+  document.getElementById('transfSucessoTxt').textContent=`${formatBRL(valor)} de ${origem.nome} pra ${destino.nome}`;
+  document.getElementById('transfCofreValor').value='';
+  await loadCofres();
+  await loadHomeData();
+  await loadPerfilStats();
+}
+function popularSelectsTransferenciaContas(){
+  const origem=document.getElementById('transfContaOrigem');
+  const destino=document.getElementById('transfContaDestino');
+  if(!origem||!destino)return;
+  if(!contasCache||contasCache.length<2){
+    origem.innerHTML=(contasCache||[]).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+    destino.innerHTML='<option value="">Crie uma segunda conta pra transferir</option>';
+    return;
+  }
+  if(!origem.options.length){
+    origem.innerHTML=contasCache.map(c=>`<option value="${c.id}" ${String(c.id)===String(contaAtualId)?'selected':''}>${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+  }
+  destino.innerHTML=contasCache.filter(c=>String(c.id)!==String(origem.value)).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+}
+async function confirmarTransferenciaConta(){
+  if(!supabaseClient||!currentUser)return;
+  const origemId=document.getElementById('transfContaOrigem').value;
+  const destinoId=document.getElementById('transfContaDestino').value;
+  const valor=parseFloat(document.getElementById('transfContaValor').value);
+  if(!origemId||!destinoId||origemId===destinoId){ toast('Escolhe duas contas diferentes 🌿'); return; }
+  if(!valor||isNaN(valor)||valor<=0){ toast('Coloca quanto quer transferir 🌿'); return; }
+  const origem=contasCache.find(c=>String(c.id)===String(origemId));
+  const destino=contasCache.find(c=>String(c.id)===String(destinoId));
+  if(!origem||!destino)return;
+  const [{error:err1},{error:err2}]=await Promise.all([
+    supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:origemId,descricao:`Transferência pra ${destino.nome}`,valor,tipo:'saida',cofre_id:null}),
+    supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:destinoId,descricao:`Transferência de ${origem.nome}`,valor,tipo:'entrada',cofre_id:null,organizado:false})
+  ]);
+  if(err1||err2){ toast('Não consegui transferir agora 😕'); return; }
+  vibrar('success');
+  document.getElementById('transfContasForm').style.display='none';
+  document.getElementById('transfSucesso').style.display='block';
+  document.getElementById('transfSucessoTxt').textContent=`${formatBRL(valor)} de ${origem.nome} pra ${destino.nome} — chegou esperando organização lá`;
+  document.getElementById('transfContaValor').value='';
+  if(String(origemId)===String(contaAtualId)||String(destinoId)===String(contaAtualId)){
+    await loadHomeData();
+    await loadPendentes();
+    await loadPerfilStats();
+  }
+}
 
 let cofresCache=[];
 async function loadCofres(){
   if(!supabaseClient||!currentUser)return;
-  const {data,error}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
+  const {data,error}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
   cofresCache=data||[];
   const list=document.getElementById('cofresList');
   if(list){
     if(error||!cofresCache.length){
       list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres. Toca em "+ Criar cofre" ali em cima.</p>';
     }else{
-      list.innerHTML=cofresCache.map(c=>cofreCardHtml(c,true)).join('');
+      list.innerHTML=cofresCache.map((c,i)=>cofreCardHtml(c,true,i,cofresCache.length)).join('');
+    }
+  }
+  const resumoEl=document.getElementById('percentualResumo');
+  if(resumoEl){
+    const percentuais=cofresCache.filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+    const somaPercent=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+    if(!percentuais.length){
+      resumoEl.innerHTML='';
+    }else{
+      const restante=Math.max(0,100-somaPercent);
+      resumoEl.innerHTML=`
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-bottom:6px">
+            <span>${somaPercent}% já destinado aos cofres</span>
+            <span>${restante}% livre</span>
+          </div>
+          <div style="background:var(--paper);border-radius:6px;height:8px;overflow:hidden">
+            <div style="width:${Math.min(100,somaPercent)}%;height:100%;background:${somaPercent>100?'var(--rose)':'var(--sage)'};border-radius:6px"></div>
+          </div>
+          ${somaPercent>100?'<div style="font-size:11px;color:var(--rose);margin-top:6px">Suas % somam mais de 100% — vale ajustar.</div>':''}
+        </div>
+      `;
     }
   }
 }
 async function calcResumoFinanceiro(cofresJaCarregados){
-  const list=cofresJaCarregados||(await supabaseClient.from('cofres').select('*')).data||[];
+  const list=cofresJaCarregados||(await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId)).data||[];
+  const cofreIds=list.map(c=>c.id);
   const [{data:entradas},{data:saidasLivres},{data:distribs}]=await Promise.all([
-    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null),
-    supabaseClient.from('distribuicoes').select('valor,cofre_id')
+    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true).eq('conta_id',contaAtualId),
+    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null).eq('conta_id',contaAtualId),
+    cofreIds.length?supabaseClient.from('distribuicoes').select('valor,cofre_id').in('cofre_id',cofreIds):Promise.resolve({data:[]})
   ]);
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
@@ -2453,9 +2817,9 @@ async function calcResumoFinanceiro(cofresJaCarregados){
 let livreCache=0;
 async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('created_at',{ascending:true});
   const list=cofres||[];
-  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico}=await calcResumoFinanceiro(list);
+  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico,total}=await calcResumoFinanceiro(list);
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -2472,6 +2836,7 @@ async function loadHomeData(){
   const bL=document.getElementById('barLivre'); if(bL)bL.textContent=formatBRL(livre);
   const bC=document.getElementById('barComprometido'); if(bC)bC.textContent=formatBRL(contas);
   const bG=document.getElementById('barGuardado'); if(bG)bG.textContent=formatBRL(guardado);
+  const bT=document.getElementById('barTotal'); if(bT)bT.textContent=formatBRL(total);
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
@@ -2502,7 +2867,7 @@ async function loadHomeData(){
     }
   }
 
-  const {data:movs}=await supabaseClient.from('movimentos').select('*').eq('tipo','saida').order('created_at',{ascending:false}).limit(50);
+  const {data:movs}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','saida').order('created_at',{ascending:false}).limit(50);
   const ayaTxt=document.getElementById('aya-hoje-txt');
   if(ayaTxt){
     if(movs&&movs.length){
@@ -2555,19 +2920,21 @@ function bucketKeyPara(periodo,data){
 }
 async function carregarGraficos(periodo){
   const wrap=document.getElementById('graficosConteudo');
+  const wrapPorCofre=document.getElementById('porCofreEListaConteudo');
   if(!supabaseClient||!currentUser||!wrap)return;
   wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
+  if(wrapPorCofre)wrapPorCofre.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
   const dias=PERIODO_DIAS[periodo]||7;
   const hoje=new Date();
   const inicioAtual=new Date(hoje); inicioAtual.setDate(hoje.getDate()-dias+1); inicioAtual.setHours(0,0,0,0);
   const inicioAnterior=new Date(inicioAtual); inicioAnterior.setDate(inicioAtual.getDate()-dias);
 
   const [{data,error},{data:vaiEntrarLista},{data:vaiSairLista},{data:entradasAtual},{data:movsPeriodo}]=await Promise.all([
-    supabaseClient.from('movimentos').select('*').eq('tipo','saida').gte('created_at',inicioAnterior.toISOString()),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','esperado'),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').not('data_prevista','is',null).gte('data_prevista',new Date().toISOString().slice(0,10)),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').gte('created_at',inicioAtual.toISOString()),
-    supabaseClient.from('movimentos').select('*').neq('tipo','esperado').gte('created_at',inicioAtual.toISOString()).order('created_at',{ascending:false}).limit(200)
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','saida').gte('created_at',inicioAnterior.toISOString()),
+    supabaseClient.from('movimentos').select('valor').eq('conta_id',contaAtualId).eq('tipo','esperado'),
+    supabaseClient.from('movimentos').select('valor').eq('conta_id',contaAtualId).eq('tipo','saida').not('data_prevista','is',null).gte('data_prevista',new Date().toISOString().slice(0,10)),
+    supabaseClient.from('movimentos').select('valor').eq('conta_id',contaAtualId).eq('tipo','entrada').gte('created_at',inicioAtual.toISOString()),
+    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).neq('tipo','esperado').gte('created_at',inicioAtual.toISOString()).order('created_at',{ascending:false}).limit(200)
   ]);
   if(error||!data){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--rose)">Não consegui carregar os gráficos agora 😕</p>';
@@ -2674,12 +3041,12 @@ async function carregarGraficos(periodo){
     </div>`;
   }
 
-  html+=`<div class="sec-title" style="margin-top:0">Por cofre</div>`;
+  let htmlPorCofre=`<div class="sec-title" style="margin-top:0">Por cofre</div>`;
   if(!porCofreArr.length){
-    html+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
+    htmlPorCofre+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
   }else{
-    html+=`<p style="font-size:12px;color:var(--ink2);margin:-6px 0 12px">Quanto do total gasto ${PERIODO_LABEL[periodo]} (${formatBRL(totalAtual)}) saiu de cada cofre.</p>`;
-    html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
+    htmlPorCofre+=`<p style="font-size:12px;color:var(--ink2);margin:-6px 0 12px">Quanto do total gasto ${PERIODO_LABEL[periodo]} (${formatBRL(totalAtual)}) saiu de cada cofre.</p>`;
+    htmlPorCofre+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
       ${porCofreArr.map(c=>{
         const pctDoTotal=totalAtual>0?Math.round((c.total/totalAtual)*100):0;
         const larguraPct=maxCofre>0?Math.max(6,Math.round((c.total/maxCofre)*100)):6;
@@ -2697,7 +3064,7 @@ async function carregarGraficos(periodo){
     </div>`;
   }
 
-  html+=`<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+  htmlPorCofre+=`<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>Movimentos ${PERIODO_LABEL[periodo]}</span>
     <select id="movFiltroCofre" onchange="renderMovimentosPeriodo()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
       <option value="">Todos os cofres</option>
@@ -2735,6 +3102,7 @@ async function carregarGraficos(periodo){
   };
 
   wrap.innerHTML=html;
+  if(wrapPorCofre)wrapPorCofre.innerHTML=htmlPorCofre;
   movsPeriodoCache=movsPeriodo||[];
   popularFiltroCofre();
   renderMovimentosPeriodo();
@@ -2804,13 +3172,16 @@ async function loadMovimentos(){
 async function carregarFixasResumo(){
   const wrap=document.getElementById('fixasResumoConteudo');
   if(!supabaseClient||!currentUser||!wrap)return;
-  const {data:fixas,error}=await supabaseClient.from('contas_fixas').select('*').order('valor',{ascending:false});
-  if(error||!fixas||!fixas.length){
+  const {data:fixasTodas,error}=await supabaseClient.from('contas_fixas').select('*').order('valor',{ascending:false});
+  const cofreById={};
+  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
+  // contas_fixas não tem conta_id próprio — filtra pelas que apontam pra um cofre
+  // dessa conta (ou sem cofre nenhum), pra não vazar conta fixa de outra conta aqui.
+  const fixas=(fixasTodas||[]).filter(f=>!f.cofre_id||cofreById[f.cofre_id]);
+  if(error||!fixas.length){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma conta fixa ainda. Adiciona dentro de um cofre, em "Contas fixas desse cofre".</p>';
     return;
   }
-  const cofreById={};
-  (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
   const total=fixas.reduce((s,f)=>s+Number(f.valor||0),0);
   wrap.innerHTML=`
     <div style="font-size:11.5px;color:var(--ink2);margin-bottom:10px">Total fixo por mês: <span style="font-weight:700;color:var(--ink)" class="num">${formatBRL(total)}</span></div>
