@@ -265,14 +265,16 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="sub" id="hero-sub">Assim que você criar seus cofres, calculo isso de verdade.</div>
     </div>
 
-    <div class="bars" onclick="go('cofres')" style="cursor:pointer">
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num" id="barLivre">R$ 0</div></div>
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--amber)"></span>Comprometido</div><div class="v num small" id="barComprometido">R$ 0</div></div>
-      <div class="bar"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small" id="barGuardado">R$ 0</div></div>
+    <div class="bars" style="flex-wrap:wrap;row-gap:9px">
+      <div class="bar" onclick="abrirEditarGrupo('livre')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num" id="barLivre">R$ 0</div></div>
+      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--amber)"></span>Não distribuído</div><div class="v num small" id="barComprometido">R$ 0</div></div>
+      <div class="bar" onclick="abrirEditarGrupo('guardado')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small" id="barGuardado">R$ 0</div></div>
+      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%;background:var(--sage);border-color:var(--sage)"><div class="t" style="color:rgba(255,255,255,.85)"><span class="dot" style="background:#fff"></span>Total</div><div class="v num small" id="barTotal" style="color:#fff">R$ 0</div></div>
     </div>
-    <button type="button" onclick="go('cofres')" style="display:flex;align-items:center;justify-content:center;gap:4px;margin:8px auto 0;background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">
-      Ver seus cofres →
-    </button>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:8px auto 0">
+      <button type="button" onclick="go('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Ver seus cofres →</button>
+      <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">♡ Favoritos</button>
+    </div>
 
     <div class="aya-card">
       <span class="ico">🌿</span>
@@ -350,6 +352,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
     </div>
     <p style="font-size:11.5px;color:var(--ink2);margin:-8px 4px 12px;line-height:1.4">Recalcula o que já está guardado nos cofres com % configurado, usando as % de agora.</p>
+    <div id="percentualResumo" style="margin-bottom:12px"></div>
     <div id="cofresList">
       <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
     </div>
@@ -390,10 +393,20 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="sec-title" style="margin-top:18px">Registrar algo agora</div>
     <button class="split-btn" onclick="openQuickAdd()">+ Adicionar movimento</button>
 
+    <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 16px;overflow-x:auto">
+      <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
+      <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
+      <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
+      <button type="button" class="periodo-btn" data-periodo="ano" onclick="mudarPeriodoGrafico('ano')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Ano</button>
+    </div>
+    <div id="porCofreEListaConteudo">
+      <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
+    </div>
+
     <button type="button" onclick="abrirMovDetalhesPage()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-top:16px;font-family:inherit;cursor:pointer;box-shadow:var(--shadow)">
       <span style="text-align:left">
-        <span style="display:block;font-weight:700;font-size:13.5px;color:var(--ink)">📊 Números e contas fixas</span>
-        <span style="display:block;font-size:11.5px;color:var(--ink2);margin-top:2px">Gastos do período, gráfico, por cofre e suas contas recorrentes</span>
+        <span style="display:block;font-weight:700;font-size:13.5px;color:var(--ink)">📊 Total gasto e contas fixas</span>
+        <span style="display:block;font-size:11.5px;color:var(--ink2);margin-top:2px">Total do período, o que ainda vai entrar/sair e suas contas recorrentes</span>
       </span>
       <span style="color:var(--ink2);flex-shrink:0">→</span>
     </button>
@@ -412,16 +425,21 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div id="fixasResumoConteudo"><p style="font-size:12.5px;color:var(--ink2)">Carregando…</p></div>
 
       <div id="movGraficosView">
-        <div class="periodo-control" style="display:flex;gap:6px;margin:18px 0 18px;overflow-x:auto">
-          <button type="button" class="periodo-btn active" data-periodo="semana" onclick="mudarPeriodoGrafico('semana')" style="flex-shrink:0;background:var(--sage-tint);color:var(--sage);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Semana</button>
-          <button type="button" class="periodo-btn" data-periodo="mes" onclick="mudarPeriodoGrafico('mes')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Mês</button>
-          <button type="button" class="periodo-btn" data-periodo="trimestre" onclick="mudarPeriodoGrafico('trimestre')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Trimestre</button>
-          <button type="button" class="periodo-btn" data-periodo="ano" onclick="mudarPeriodoGrafico('ano')" style="flex-shrink:0;background:var(--paper);color:var(--ink2);border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">Ano</button>
-        </div>
         <div id="graficosConteudo">
           <p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIA DOS COFRES: pra onde vai cada cofre (Livre/Não distribuído/Guardado) -->
+  <div class="auth-gate hidden" id="categoriasPage" style="z-index:95;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharCategoriasPage()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Cofres</div>
+      <div class="h-name" style="margin-top:4px">Cada cofre,<br>seu grupo</div>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Livre e Guardado, na Home, somam os cofres marcados aqui. Muda a qualquer momento.</p>
+      <div id="categoriasList" class="mini-cofres"></div>
     </div>
   </div>
 
@@ -570,6 +588,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </select>
       <input id="qaPessoa" type="text" placeholder="Pra quem? (opcional)" style="display:none">
       <input id="qaData" type="date" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);width:100%;justify-content:center;margin:2px 0">
+        <input type="checkbox" id="qaRecorrente"> É recorrente? (vira uma conta fixa)
+      </label>
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
@@ -734,6 +755,42 @@ function abrirMovDetalhesPage(){
 }
 function fecharMovDetalhesPage(){
   document.getElementById('movDetalhesPage').classList.add('hidden');
+}
+
+function abrirEditarGrupo(grupo){
+  document.getElementById('categoriasPage').classList.remove('hidden');
+  loadCategorias(grupo);
+}
+function fecharCategoriasPage(){
+  document.getElementById('categoriasPage').classList.add('hidden');
+}
+const TIPO_LABEL={livre:'🌿 Livre',contas:'📎 Não distribuído',guardado:'🛟 Guardado'};
+function loadCategorias(grupoFoco){
+  const list=document.getElementById('categoriasList');
+  if(!list)return;
+  if(!cofresCache||!cofresCache.length){
+    list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres.</p>';
+    return;
+  }
+  list.innerHTML=cofresCache.map(c=>`
+    <div class="cofre-row" style="${grupoFoco&&c.tipo===grupoFoco?'border-color:var(--sage);background:var(--sage-tint)':''}">
+      <div class="cofre-ic" style="background:var(--sage-tint)">${escapeHtml(c.icone||'🧾')}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(c.nome)}</div></div>
+      <select onchange="salvarTipoCofre('${c.id}',this.value)" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12px;background:var(--card);color:var(--ink)">
+        <option value="livre" ${c.tipo==='livre'?'selected':''}>${TIPO_LABEL.livre}</option>
+        <option value="contas" ${c.tipo==='contas'?'selected':''}>${TIPO_LABEL.contas}</option>
+        <option value="guardado" ${c.tipo==='guardado'?'selected':''}>${TIPO_LABEL.guardado}</option>
+      </select>
+    </div>
+  `).join('');
+}
+async function salvarTipoCofre(id,novoTipo){
+  if(!supabaseClient||!currentUser)return;
+  await supabaseClient.from('cofres').update({tipo:novoTipo}).eq('id',id);
+  toast('Salvo 🌿');
+  await loadCofres();
+  await loadHomeData();
+  loadCategorias();
 }
 
 function abrirFavoritosPage(){
@@ -1146,6 +1203,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const cofreId=(tipoForm==='saida'||tipoForm==='saida_planejada')?(document.getElementById('qaCofre').value||null):null;
   const pessoa=tipoForm==='saida_planejada'?(document.getElementById('qaPessoa').value.trim()||null):null;
   const dataPrevista=tipoForm==='saida_planejada'?(document.getElementById('qaData').value||null):null;
+  const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
   const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
   if(!error){
@@ -1156,11 +1214,16 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
         await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
       }
     }
+    if(recorrente){
+      await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:cofreId});
+      await carregarFixasResumo();
+    }
     document.getElementById('qaDesc').value='';
     document.getElementById('qaValor').value='';
     document.getElementById('qaCofre').value='';
     document.getElementById('qaPessoa').value='';
     document.getElementById('qaData').value='';
+    document.getElementById('qaRecorrente').checked=false;
     closeQuickAdd();
     if(tipoForm==='entrada'){
       // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
@@ -2369,7 +2432,7 @@ async function redistribuirCofres(){
   toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
 }
 
-function cofreCardHtml(c,editable){
+function cofreCardHtml(c,editable,index,total){
   const prog=c.valor_meta?Math.min(100,Math.round((c.valor_atual/c.valor_meta)*100)):null;
   const metaLabel=c.meta_tipo==='percentual'&&c.percentual?`<div class="meta">${c.percentual}% de cada entrada</div>`:(c.valor_meta?`<div class="meta">de ${formatBRL(c.valor_meta)}</div>`:'');
   const pendente=c.concluido===false;
@@ -2395,6 +2458,12 @@ function cofreCardHtml(c,editable){
       </div>
     </div>
   `:'';
+  const reorderBtns=editable?`
+    <div style="display:flex;flex-direction:column;gap:1px;margin-left:2px" onclick="event.stopPropagation()">
+      <button type="button" onclick="moverCofre('${c.id}',-1)" ${index===0?'disabled':''} style="background:0;border:0;color:${index===0?'var(--line)':'var(--ink2)'};font-size:10px;cursor:${index===0?'default':'pointer'};padding:1px 3px;line-height:1">▲</button>
+      <button type="button" onclick="moverCofre('${c.id}',1)" ${index===total-1?'disabled':''} style="background:0;border:0;color:${index===total-1?'var(--line)':'var(--ink2)'};font-size:10px;cursor:${index===total-1?'default':'pointer'};padding:1px 3px;line-height:1">▼</button>
+    </div>
+  `:'';
   return `
     <div class="cofre-row" data-cofre-id="${c.id}" style="cursor:pointer;display:block;${cardStyle}">
       <div style="display:flex;align-items:center;gap:12px" onclick="${onclickRow}">
@@ -2405,23 +2474,57 @@ function cofreCardHtml(c,editable){
         </div>
         <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${metaLabel}</div>
         ${seta}
+        ${reorderBtns}
       </div>
       ${pendenteForm}
     </div>
   `;
 }
+async function moverCofre(id,direcao){
+  if(!supabaseClient||!currentUser)return;
+  const arr=[...cofresCache];
+  const idx=arr.findIndex(c=>String(c.id)===String(id));
+  if(idx<0)return;
+  const novoIdx=idx+direcao;
+  if(novoIdx<0||novoIdx>=arr.length)return;
+  [arr[idx],arr[novoIdx]]=[arr[novoIdx],arr[idx]];
+  await Promise.all(arr.map((c,i)=>supabaseClient.from('cofres').update({ordem:i}).eq('id',c.id)));
+  await loadCofres();
+}
 
 let cofresCache=[];
 async function loadCofres(){
   if(!supabaseClient||!currentUser)return;
-  const {data,error}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
+  const {data,error}=await supabaseClient.from('cofres').select('*').order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
   cofresCache=data||[];
   const list=document.getElementById('cofresList');
   if(list){
     if(error||!cofresCache.length){
       list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres. Toca em "+ Criar cofre" ali em cima.</p>';
     }else{
-      list.innerHTML=cofresCache.map(c=>cofreCardHtml(c,true)).join('');
+      list.innerHTML=cofresCache.map((c,i)=>cofreCardHtml(c,true,i,cofresCache.length)).join('');
+    }
+  }
+  const resumoEl=document.getElementById('percentualResumo');
+  if(resumoEl){
+    const percentuais=cofresCache.filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+    const somaPercent=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+    if(!percentuais.length){
+      resumoEl.innerHTML='';
+    }else{
+      const restante=Math.max(0,100-somaPercent);
+      resumoEl.innerHTML=`
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-bottom:6px">
+            <span>${somaPercent}% já destinado aos cofres</span>
+            <span>${restante}% livre</span>
+          </div>
+          <div style="background:var(--paper);border-radius:6px;height:8px;overflow:hidden">
+            <div style="width:${Math.min(100,somaPercent)}%;height:100%;background:${somaPercent>100?'var(--rose)':'var(--sage)'};border-radius:6px"></div>
+          </div>
+          ${somaPercent>100?'<div style="font-size:11px;color:var(--rose);margin-top:6px">Suas % somam mais de 100% — vale ajustar.</div>':''}
+        </div>
+      `;
     }
   }
 }
@@ -2455,7 +2558,7 @@ async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').order('created_at',{ascending:true});
   const list=cofres||[];
-  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico}=await calcResumoFinanceiro(list);
+  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico,total}=await calcResumoFinanceiro(list);
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -2472,6 +2575,7 @@ async function loadHomeData(){
   const bL=document.getElementById('barLivre'); if(bL)bL.textContent=formatBRL(livre);
   const bC=document.getElementById('barComprometido'); if(bC)bC.textContent=formatBRL(contas);
   const bG=document.getElementById('barGuardado'); if(bG)bG.textContent=formatBRL(guardado);
+  const bT=document.getElementById('barTotal'); if(bT)bT.textContent=formatBRL(total);
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
@@ -2555,8 +2659,10 @@ function bucketKeyPara(periodo,data){
 }
 async function carregarGraficos(periodo){
   const wrap=document.getElementById('graficosConteudo');
+  const wrapPorCofre=document.getElementById('porCofreEListaConteudo');
   if(!supabaseClient||!currentUser||!wrap)return;
   wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
+  if(wrapPorCofre)wrapPorCofre.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Carregando…</p>';
   const dias=PERIODO_DIAS[periodo]||7;
   const hoje=new Date();
   const inicioAtual=new Date(hoje); inicioAtual.setDate(hoje.getDate()-dias+1); inicioAtual.setHours(0,0,0,0);
@@ -2674,12 +2780,12 @@ async function carregarGraficos(periodo){
     </div>`;
   }
 
-  html+=`<div class="sec-title" style="margin-top:0">Por cofre</div>`;
+  let htmlPorCofre=`<div class="sec-title" style="margin-top:0">Por cofre</div>`;
   if(!porCofreArr.length){
-    html+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
+    htmlPorCofre+=`<p style="font-size:12.5px;color:var(--ink2)">Nenhuma saída ${PERIODO_LABEL[periodo]} ainda.</p>`;
   }else{
-    html+=`<p style="font-size:12px;color:var(--ink2);margin:-6px 0 12px">Quanto do total gasto ${PERIODO_LABEL[periodo]} (${formatBRL(totalAtual)}) saiu de cada cofre.</p>`;
-    html+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
+    htmlPorCofre+=`<p style="font-size:12px;color:var(--ink2);margin:-6px 0 12px">Quanto do total gasto ${PERIODO_LABEL[periodo]} (${formatBRL(totalAtual)}) saiu de cada cofre.</p>`;
+    htmlPorCofre+=`<div style="background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)">
       ${porCofreArr.map(c=>{
         const pctDoTotal=totalAtual>0?Math.round((c.total/totalAtual)*100):0;
         const larguraPct=maxCofre>0?Math.max(6,Math.round((c.total/maxCofre)*100)):6;
@@ -2697,7 +2803,7 @@ async function carregarGraficos(periodo){
     </div>`;
   }
 
-  html+=`<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+  htmlPorCofre+=`<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>Movimentos ${PERIODO_LABEL[periodo]}</span>
     <select id="movFiltroCofre" onchange="renderMovimentosPeriodo()" style="border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:inherit;font-size:11.5px;background:var(--card);color:var(--ink2);max-width:150px">
       <option value="">Todos os cofres</option>
@@ -2735,6 +2841,7 @@ async function carregarGraficos(periodo){
   };
 
   wrap.innerHTML=html;
+  if(wrapPorCofre)wrapPorCofre.innerHTML=htmlPorCofre;
   movsPeriodoCache=movsPeriodo||[];
   popularFiltroCofre();
   renderMovimentosPeriodo();
