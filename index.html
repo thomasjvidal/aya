@@ -454,6 +454,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
   </div>
 
+  <!-- REDISTRIBUIR: escolhe quais cofres de % entram no recálculo, priorizando os pendentes -->
+  <div class="auth-gate hidden" id="redistribuirPage" style="z-index:96;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharRedistribuirPicker()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Cofres</div>
+      <div class="h-name" style="margin-top:4px">Redistribuir<br>entre cofres</div>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 6px;line-height:1.5">Escolhe quais cofres entram nessa redistribuição. Os que já estão em dia (🟢) vêm desmarcados pra priorizar quem ainda está faltando.</p>
+      <div id="redistribuirLista" style="display:flex;flex-direction:column;gap:6px;margin:12px 0 18px"></div>
+      <button type="button" onclick="confirmarRedistribuicaoSelecionada()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Redistribuir selecionados</button>
+    </div>
+  </div>
+
   <!-- TRANSFERÊNCIA: entre cofres (mesma conta) ou entre contas (Pessoal/PJ) — tudo fake, fica só aqui dentro -->
   <div class="auth-gate hidden" id="transferenciaPage" style="z-index:97;align-items:stretch;padding:24px 20px;overflow-y:auto;background:#12201a">
     <button class="linklike" type="button" style="align-self:flex-start;color:#cfe3d8" onclick="fecharTransferencia()">← Voltar</button>
@@ -2596,25 +2608,55 @@ async function toggleCofreConcluido(id){
   toast(novo?'Marcado como em dia 🌿':'Marcado pra dar atenção 🌿');
 }
 
-async function redistribuirCofres(){
+function redistribuirCofres(){
   if(!supabaseClient||!currentUser)return;
   const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
   if(!percentuais.length){ toast('Nenhum cofre com % configurado ainda 🌿'); return; }
-  const pool=percentuais.reduce((s,c)=>s+Number(c.valor_atual||0),0);
+  abrirRedistribuirPicker();
+}
+function abrirRedistribuirPicker(){
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  const lista=document.getElementById('redistribuirLista');
+  if(lista){
+    lista.innerHTML=percentuais.map(c=>{
+      const pendente=c.concluido===false;
+      // Cofres já em dia (verde) vêm desmarcados por padrão: a redistribuição
+      // prioriza quem ainda está faltando, sem mexer no que já foi resolvido.
+      return `
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:${pendente?'var(--amber-tint)':'var(--card)'};cursor:pointer">
+          <input type="checkbox" class="redistCheck" value="${c.id}" ${pendente?'checked':''} style="width:16px;height:16px;flex-shrink:0">
+          <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pendente?'🟠':'🟢'} ${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+          <span style="font-size:12px;color:var(--ink2)" class="num">${formatBRL(c.valor_atual)} · ${c.percentual}%</span>
+        </label>
+      `;
+    }).join('');
+  }
+  document.getElementById('redistribuirPage').classList.remove('hidden');
+}
+function fecharRedistribuirPicker(){
+  document.getElementById('redistribuirPage').classList.add('hidden');
+}
+async function confirmarRedistribuicaoSelecionada(){
+  if(!supabaseClient||!currentUser)return;
+  const marcados=[...document.querySelectorAll('.redistCheck:checked')].map(el=>el.value);
+  if(marcados.length<2){ toast('Marca pelo menos dois cofres pra redistribuir entre eles 🌿'); return; }
+  const selecionados=(cofresCache||[]).filter(c=>marcados.includes(String(c.id)));
+  const pool=selecionados.reduce((s,c)=>s+Number(c.valor_atual||0),0);
   if(pool<=0){ toast('Não tem dinheiro nesses cofres pra redistribuir ainda 🌿'); return; }
-  const somaPercent=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+  const somaPercent=selecionados.reduce((s,c)=>s+Number(c.percentual||0),0);
   if(somaPercent<=0){ toast('Configura um % maior que 0 nos cofres 🌿'); return; }
   const mudancas=[];
-  for(const c of percentuais){
+  for(const c of selecionados){
     const novo=Math.round((pool*(Number(c.percentual)||0)/somaPercent)*100)/100;
     if(Math.abs(novo-Number(c.valor_atual||0))>0.01)mudancas.push(`${c.nome}: ${formatBRL(c.valor_atual)} → ${formatBRL(novo)}`);
     await supabaseClient.from('cofres').update({valor_atual:novo}).eq('id',c.id);
   }
+  fecharRedistribuirPicker();
   await loadCofres();
   await loadHomeData();
   await loadPerfilStats();
   if(!mudancas.length){ toast('Já estava tudo redistribuído certinho 🌿'); return; }
-  const aviso=Math.round(somaPercent)!==100?` (isso é só entre esses cofres — suas % somam ${somaPercent}%, o resto continua livre na Hoje)`:'';
+  const aviso=Math.round(somaPercent)!==100?` (isso é só entre os selecionados)`:'';
   toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
 }
 
@@ -2631,6 +2673,7 @@ function cofreCardHtml(c,editable,index,total){
   const expandeInline=editable&&pendente;
   const onclickRow=expandeInline?`togglePendenteCofre('${c.id}')`:`abrirCofreDetalhe('${c.id}')`;
   const seta=expandeInline?`<span id="pendSeta-${c.id}" style="font-size:11px;color:var(--ink2);padding:6px 0 6px 6px">▾</span>`:'';
+  const editBtn=expandeInline?`<button type="button" onclick='event.stopPropagation();abrirCofreDetalhe("${c.id}")' title="Editar cofre" style="background:0;border:0;color:var(--ink2);font-size:13px;cursor:pointer;padding:6px 2px">✎</button>`:'';
   const pendenteForm=expandeInline?`
     <div id="pendForm-${c.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--amber-soft)">
       <div style="font-size:11px;font-weight:700;color:#8a5a1e;margin-bottom:8px">💰 Dinheiro novo — pra onde foi?</div>
@@ -2659,6 +2702,7 @@ function cofreCardHtml(c,editable,index,total){
           ${prog!==null?`<div class="prog"><i style="width:${prog}%"></i></div>`:''}
         </div>
         <div class="val"><b class="num">${formatBRL(c.valor_atual)}</b>${metaLabel}</div>
+        ${editBtn}
         ${seta}
         ${reorderBtns}
       </div>
@@ -2880,7 +2924,13 @@ async function loadCofres(){
     if(error||!cofresCache.length){
       list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Você ainda não tem cofres. Toca em "+ Criar cofre" ali em cima.</p>';
     }else{
-      list.innerHTML=cofresCache.map((c,i)=>cofreCardHtml(c,true,i,cofresCache.length)).join('');
+      const pendentes=cofresCache.filter(c=>c.concluido===false);
+      const concluidos=cofresCache.filter(c=>c.concluido!==false);
+      const bloco=(titulo,arr)=>arr.length?`
+        <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin:${arr===pendentes?'0':'16px'} 2px 6px">${titulo}</div>
+        ${arr.map((c)=>cofreCardHtml(c,true,cofresCache.indexOf(c),cofresCache.length)).join('')}
+      `:'';
+      list.innerHTML=bloco('🟠 Pendentes',pendentes)+bloco('🟢 Em dia',concluidos);
     }
   }
   const resumoEl=document.getElementById('percentualResumo');
@@ -2891,10 +2941,12 @@ async function loadCofres(){
       resumoEl.innerHTML='';
     }else{
       const restante=Math.max(0,100-somaPercent);
+      const totalPercentuais=percentuais.reduce((s,c)=>s+Number(c.valor_atual||0),0);
       resumoEl.innerHTML=`
         <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)">
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--ink2);margin-bottom:6px">
             <span>${somaPercent}% já destinado aos cofres</span>
+            <span class="num" style="font-weight:700;color:var(--ink)">${formatBRL(totalPercentuais)}</span>
             <span>${restante}% livre</span>
           </div>
           <div style="background:var(--paper);border-radius:6px;height:8px;overflow:hidden">
