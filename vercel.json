@@ -2,7 +2,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "crons": [
-    { "path": "/api/cron/lembretes?tipo=manha", "schedule": "0 10 * * *" },
-    { "path": "/api/cron/lembretes?tipo=noite", "schedule": "0 0 * * *" }
+    { "path": "/api/cron/manha", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/noite", "schedule": "0 0 * * *" }
   ]
 }

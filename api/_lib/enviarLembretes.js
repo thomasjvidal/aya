@@ -1,9 +1,9 @@
 const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
 
-// Chamado automaticamente pelo Vercel Cron (vercel.json) às 7h e 21h (BRT) —
-// manda o lembrete do dia pra todo mundo que já ativou notificações, sem
-// precisar de nenhuma Automação no iPhone.
+// Usado pelos dois crons (api/cron/manha.js e api/cron/noite.js) — o path de
+// um cron do Vercel não pode ter query string, por isso são dois arquivos
+// em vez de um só com ?tipo=.
 const MENSAGENS_LEMBRETE = {
   manha: {
     aperto: 'Bom dia 🌧️ Antes de sair de casa, dá uma olhada no que ficou pendente de ontem — evita perder o fio de novo.',
@@ -19,19 +19,13 @@ const MENSAGENS_LEMBRETE = {
   },
 };
 
-module.exports = async (req, res) => {
+async function enviarLembretes(req, res, tipo) {
   if (process.env.CRON_SECRET) {
     const auth = req.headers['authorization'] || '';
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
       res.status(401).json({ error: 'Não autorizado' });
       return;
     }
-  }
-
-  const tipo = (req.query.tipo || '').trim();
-  if (tipo !== 'manha' && tipo !== 'noite') {
-    res.status(400).json({ error: 'Faltou tipo=manha ou tipo=noite' });
-    return;
   }
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
@@ -75,4 +69,6 @@ module.exports = async (req, res) => {
   );
 
   res.status(200).json({ ok: true, enviados });
-};
+}
+
+module.exports = { enviarLembretes };
