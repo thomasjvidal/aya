@@ -193,6 +193,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .demo-tag{position:absolute;top:52px;right:16px;background:var(--ink);color:#fff;font-size:10px;font-weight:600;padding:5px 10px;border-radius:20px;z-index:50;letter-spacing:.03em;opacity:.85}
 .toast{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 18px;border-radius:14px;z-index:70;opacity:0;transition:.3s;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-undo{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 12px 11px 18px;border-radius:14px;z-index:71;opacity:0;transition:.3s;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.toast-undo.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-undo button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:10px;padding:7px 12px;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
 
 /* AUTH GATE */
 .auth-gate{position:absolute;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center}
@@ -826,6 +829,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="toast-undo" id="toastUndo"><span id="toastUndoMsg"></span><button type="button" id="toastUndoBtn">Desfazer</button></div>
 
   <!-- TAB BAR -->
   <nav class="tabbar">
@@ -850,6 +854,24 @@ function go(v){
   document.getElementById('v-'+v).scrollTop=0;
 }
 function toast(t){if(!t)return;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('show'),2600);}
+// Toast com botão "Desfazer" que some sozinho em 5s — usado em ações que mexem
+// em dinheiro de vários cofres de uma vez (ex: redistribuir), pra dar uma saída rápida.
+function toastComDesfazer(mensagem,aoDesfazer){
+  const el=document.getElementById('toastUndo');
+  const msgEl=document.getElementById('toastUndoMsg');
+  const btn=document.getElementById('toastUndoBtn');
+  if(!el||!msgEl||!btn)return;
+  msgEl.textContent=mensagem;
+  el.classList.add('show');
+  clearTimeout(window._ttUndo);
+  window._ttUndo=setTimeout(()=>el.classList.remove('show'),5000);
+  btn.onclick=async()=>{
+    el.classList.remove('show');
+    clearTimeout(window._ttUndo);
+    btn.onclick=null;
+    await aoDesfazer();
+  };
+}
 
 function abrirMovDetalhesPage(){
   document.getElementById('movDetalhesPage').classList.remove('hidden');
@@ -2645,6 +2667,7 @@ async function confirmarRedistribuicaoSelecionada(){
   if(pool<=0){ toast('Não tem dinheiro nesses cofres pra redistribuir ainda 🌿'); return; }
   const somaPercent=selecionados.reduce((s,c)=>s+Number(c.percentual||0),0);
   if(somaPercent<=0){ toast('Configura um % maior que 0 nos cofres 🌿'); return; }
+  const valoresAntigos=selecionados.map(c=>({id:c.id,valor_atual:Number(c.valor_atual||0)}));
   const mudancas=[];
   for(const c of selecionados){
     const novo=Math.round((pool*(Number(c.percentual)||0)/somaPercent)*100)/100;
@@ -2657,7 +2680,15 @@ async function confirmarRedistribuicaoSelecionada(){
   await loadPerfilStats();
   if(!mudancas.length){ toast('Já estava tudo redistribuído certinho 🌿'); return; }
   const aviso=Math.round(somaPercent)!==100?` (isso é só entre os selecionados)`:'';
-  toast(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`);
+  toastComDesfazer(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`,async()=>{
+    for(const v of valoresAntigos){
+      await supabaseClient.from('cofres').update({valor_atual:v.valor_atual}).eq('id',v.id);
+    }
+    await loadCofres();
+    await loadHomeData();
+    await loadPerfilStats();
+    toast('Desfeito 🌿 voltou como estava');
+  });
 }
 
 function cofreCardHtml(c,editable,index,total){
