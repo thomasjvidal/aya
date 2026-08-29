@@ -1116,6 +1116,10 @@ async function buildChatContext(){
   ]);
   const resumo=await calcResumoFinanceiro(cofresRes.data||[]);
   const cofreNome=(id)=>(cofresRes.data||[]).find(c=>String(c.id)===String(id))?.nome||null;
+  // contas_fixas e favoritos não têm conta_id próprio — filtra pelos que apontam pra um
+  // cofre desta conta (ou sem cofre nenhum), senão a Aya mistura dados de PF com PJ no chat.
+  const cofreIdsDaConta=new Set((cofresRes.data||[]).map(c=>String(c.id)));
+  const pertenceContaAtual=(item)=>!item.cofre_id||cofreIdsDaConta.has(String(item.cofre_id));
   return {
     nome:perfilRes.data?.nome,
     estilo:perfilRes.data?.estilo,
@@ -1126,8 +1130,8 @@ async function buildChatContext(){
       cofre:cofreNome(m.cofre_id),pessoa:m.pessoa||null,dataPrevista:m.data_prevista||null
     })),
     vaiEntrar:(esperadosRes.data||[]).map(m=>({valor:m.valor,descricao:m.descricao,data:m.created_at})),
-    contasFixas:(contasFixasRes.data||[]).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
-    favoritos:(favRes.data||[]).map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:cofreNome(f.cofre_id)}))
+    contasFixas:(contasFixasRes.data||[]).filter(pertenceContaAtual).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
+    favoritos:(favRes.data||[]).filter(pertenceContaAtual).map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:cofreNome(f.cofre_id)}))
   };
 }
 
@@ -1927,16 +1931,19 @@ async function loadFavoritos(){
   const list=document.getElementById('favList');
   if(!list)return;
   popularFavCofre();
-  const [{data,error},{data:cofresFrescos}]=await Promise.all([
+  const [{data:dataTodos,error},{data:cofresFrescos}]=await Promise.all([
     supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}),
     supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId)
   ]);
-  if(error||!data||!data.length){
+  const cofreById={};
+  (cofresFrescos||[]).forEach(c=>{cofreById[c.id]=c;});
+  // favoritos não tem conta_id próprio — filtra pelos que apontam pra um cofre desta
+  // conta (ou sem cofre nenhum), senão mistura favorito de PF com PJ aqui.
+  const data=(dataTodos||[]).filter(f=>!f.cofre_id||cofreById[f.cofre_id]);
+  if(error||!data.length){
     list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
     return;
   }
-  const cofreById={};
-  (cofresFrescos||[]).forEach(c=>{cofreById[c.id]=c;});
   // Recalcula o Livre na hora, em vez de usar livreCache — que só é atualizado quando a
   // Hoje carrega, e podia ficar desatualizado mostrando "pode comprar" com saldo velho.
   const {livre}=await calcResumoFinanceiro(cofresFrescos||[]);
@@ -1981,7 +1988,9 @@ async function loadFavoritos(){
 
 let favoritosCache=[];
 async function conversarSobreFavorito(id){
-  favoritosCache=(await supabaseClient.from('favoritos').select('*')).data||[];
+  const cofreIdsDaConta=new Set((cofresCache||[]).map(c=>String(c.id)));
+  const todos=(await supabaseClient.from('favoritos').select('*')).data||[];
+  favoritosCache=todos.filter(f=>!f.cofre_id||cofreIdsDaConta.has(String(f.cofre_id)));
   const f=favoritosCache.find(x=>String(x.id)===String(id));
   if(!f)return;
   go('aya');
