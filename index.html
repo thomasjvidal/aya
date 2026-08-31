@@ -1334,18 +1334,6 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const dataPrevista=tipoForm==='saida_planejada'?(document.getElementById('qaData').value||null):null;
   const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
-  if(tipo==='saida'&&!cofreId){
-    // "Dinheiro livre" só cobre o que realmente não está preso em nenhuma meta — se o
-    // gasto for maior que isso, obriga escolher de qual cofre ele saiu de verdade, em
-    // vez de deixar o Livre ficar negativo ou o dinheiro sumir sem explicação.
-    const {livre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
-    if(valor>Math.max(0,livreDisponivel)+0.005){
-      toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} livre sem cofre. Escolhe de qual cofre saiu essa 🌿`);
-      const sel=document.getElementById('qaCofre');
-      if(sel){ sel.style.display='block'; sel.focus(); }
-      return;
-    }
-  }
   const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
   if(!error){
     if(tipo==='saida'&&cofreId){
