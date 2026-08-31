@@ -665,9 +665,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="esperado" onchange="toggleQaCofre()"> Vai entrar</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida_planejada" onchange="toggleQaCofre()"> Vai sair</label>
       </div>
-      <select id="qaCofre" style="display:none;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
-        <option value="">De qual cofre? (opcional)</option>
-      </select>
+      <div id="qaCofreWrap" style="display:none;width:100%;text-align:left">
+        <p style="font-size:11.5px;color:var(--ink2);margin:0 0 6px">De qual cofre? (opcional — deixa tudo desmarcado pra sair do não distribuído). Marca mais de um se precisar somar pra cobrir o valor.</p>
+        <div id="qaCofreList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
+      </div>
       <input id="qaPessoa" type="text" placeholder="Pra quem? (opcional)" style="display:none">
       <input id="qaData" type="date" style="display:none">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);width:100%;justify-content:center;margin:2px 0">
@@ -1302,17 +1303,25 @@ window.addEventListener('hashchange',checkQuickAddHash);
 
 function toggleQaCofre(){
   const tipo=document.querySelector('input[name="qaTipo"]:checked').value;
-  const sel=document.getElementById('qaCofre');
+  const wrap=document.getElementById('qaCofreWrap');
+  const lista=document.getElementById('qaCofreList');
   const pessoa=document.getElementById('qaPessoa');
   const data=document.getElementById('qaData');
-  if(!sel)return;
+  if(!wrap)return;
   if(tipo==='saida'||tipo==='saida_planejada'){
-    sel.style.display='block';
-    sel.innerHTML='<option value="">💰 Dinheiro livre (sem cofre)</option>'+
-      (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)} — ${formatBRL(c.valor_atual)}</option>`).join('');
+    wrap.style.display='block';
+    if(lista){
+      lista.innerHTML=(cofresCache||[]).map(c=>`
+        <label style="display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;cursor:pointer">
+          <input type="checkbox" class="qaCofreCheck" value="${c.id}" style="width:16px;height:16px;flex-shrink:0">
+          <span style="flex:1;font-size:13px;color:var(--ink)">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+          <span class="num" style="font-size:12.5px;color:var(--ink2)">${formatBRL(c.valor_atual)}</span>
+        </label>
+      `).join('');
+    }
   }else{
-    sel.style.display='none';
-    sel.value='';
+    wrap.style.display='none';
+    if(lista)lista.innerHTML='';
   }
   if(pessoa)pessoa.style.display=tipo==='saida_planejada'?'block':'none';
   if(data)data.style.display=tipo==='saida_planejada'?'block':'none';
@@ -1329,69 +1338,81 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const valor=parseFloat(document.getElementById('qaValor').value);
   const tipoForm=document.querySelector('input[name="qaTipo"]:checked').value;
   const tipo=tipoForm==='saida_planejada'?'saida':tipoForm;
-  const cofreId=(tipoForm==='saida'||tipoForm==='saida_planejada')?(document.getElementById('qaCofre').value||null):null;
+  const cofresMarcados=(tipoForm==='saida'||tipoForm==='saida_planejada')?[...document.querySelectorAll('.qaCofreCheck:checked')].map(el=>el.value):[];
   const pessoa=tipoForm==='saida_planejada'?(document.getElementById('qaPessoa').value.trim()||null):null;
   const dataPrevista=tipoForm==='saida_planejada'?(document.getElementById('qaData').value||null):null;
   const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
-  let cofreEscolhido=null;
-  if(tipo==='saida'){
-    if(cofreId){
-      cofreEscolhido=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
-      if(cofreEscolhido&&valor>Number(cofreEscolhido.valor_atual||0)+0.005){
-        toast(`O cofre "${cofreEscolhido.nome}" só tem ${formatBRL(cofreEscolhido.valor_atual)} — não dá pra tirar ${formatBRL(valor)} de lá 🌿`);
-        return;
-      }
-    }else{
-      // "Dinheiro livre" só cobre o que realmente não está preso em nenhuma meta — se o
-      // gasto for maior que isso, pede pra escolher de qual cofre ele saiu de verdade,
-      // em vez de deixar o Livre ficar negativo ou o dinheiro sumir sem explicação.
-      const {livre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
-      if(valor>Math.max(0,livreDisponivel)+0.005){
-        toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} livre sem cofre. Escolhe de qual cofre saiu essa 🌿`);
-        const sel=document.getElementById('qaCofre');
-        if(sel){ sel.style.display='block'; sel.focus(); }
-        return;
-      }
+
+  // Monta os "pedaços" a registrar: se marcou um ou mais cofres, tira em cascata de
+  // cada um (na ordem marcada) até cobrir o valor total — dá pra somar mais de um
+  // cofre pra cobrir um gasto maior que qualquer um deles sozinho. Sem cofre marcado,
+  // sai tudo do não distribuído (ou pede pra marcar algum, se não tiver o suficiente).
+  let partes=[];
+  if(tipo==='saida'&&cofresMarcados.length){
+    let falta=valor;
+    for(const id of cofresMarcados){
+      if(falta<=0.005)break;
+      const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
+      if(!c)continue;
+      const pedaco=Math.min(falta,Number(c.valor_atual||0));
+      if(pedaco>0.005){ partes.push({cofre:c,valor:Math.round(pedaco*100)/100}); falta-=pedaco; }
     }
-  }
-  const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
-  if(!error){
-    if(tipo==='saida'&&cofreEscolhido){
-      const novoValor=Number(cofreEscolhido.valor_atual||0)-valor;
-      await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
+    if(falta>0.005){
+      const somaCofres=partes.reduce((s,p)=>s+p.valor,0);
+      toast(`Os cofres marcados só somam ${formatBRL(somaCofres)} — faltam ${formatBRL(falta)}. Marca mais algum ou desmarca tudo pra sair do não distribuído 🌿`);
+      return;
     }
-    if(recorrente){
-      await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:cofreId});
-      await carregarFixasResumo();
+  }else if(tipo==='saida'){
+    const {livre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
+    if(valor>Math.max(0,livreDisponivel)+0.005){
+      toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} livre sem cofre. Marca de qual cofre saiu essa 🌿`);
+      const wrap=document.getElementById('qaCofreWrap');
+      if(wrap)wrap.style.display='block';
+      return;
     }
-    document.getElementById('qaDesc').value='';
-    document.getElementById('qaValor').value='';
-    document.getElementById('qaCofre').value='';
-    document.getElementById('qaPessoa').value='';
-    document.getElementById('qaData').value='';
-    document.getElementById('qaRecorrente').checked=false;
-    closeQuickAdd();
-    if(tipoForm==='entrada'){
-      // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
-      // assim dá pra conferir antes de distribuir.
-      toast('Registrado 🌿 Vai pra fila de organização dos cofres.');
-      go('cofres');
-    }else if(tipoForm==='esperado'){
-      toast('Anotado 🌿 Te aviso pra confirmar quando cair.');
-      go('cofres');
-    }else{
-      toast('Registrado 🌿');
-      go('mov');
-    }
-    await loadCofres();
-    await loadMovimentos();
-    await loadHomeData();
-    await loadPerfilStats();
-    await loadPendentes();
+    partes=[{cofre:null,valor}];
   }else{
-    toast('Não consegui salvar agora 😕');
+    partes=[{cofre:null,valor}];
   }
+
+  for(const parte of partes){
+    const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista});
+    if(error){ toast('Não consegui salvar agora 😕'); return; }
+    if(tipo==='saida'&&parte.cofre){
+      const novoValor=Number(parte.cofre.valor_atual||0)-parte.valor;
+      await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',parte.cofre.id);
+    }
+  }
+  if(recorrente){
+    const primeiroCofre=partes.find(p=>p.cofre)?.cofre||null;
+    await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:primeiroCofre?primeiroCofre.id:null});
+    await carregarFixasResumo();
+  }
+  document.getElementById('qaDesc').value='';
+  document.getElementById('qaValor').value='';
+  document.querySelectorAll('.qaCofreCheck').forEach(el=>{el.checked=false;});
+  document.getElementById('qaPessoa').value='';
+  document.getElementById('qaData').value='';
+  document.getElementById('qaRecorrente').checked=false;
+  closeQuickAdd();
+  if(tipoForm==='entrada'){
+    // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
+    // assim dá pra conferir antes de distribuir.
+    toast('Registrado 🌿 Vai pra fila de organização dos cofres.');
+    go('cofres');
+  }else if(tipoForm==='esperado'){
+    toast('Anotado 🌿 Te aviso pra confirmar quando cair.');
+    go('cofres');
+  }else{
+    toast('Registrado 🌿');
+    go('mov');
+  }
+  await loadCofres();
+  await loadMovimentos();
+  await loadHomeData();
+  await loadPerfilStats();
+  await loadPendentes();
 });
 
 async function distribuirPercentuais(valorEntrada,movimentoId){
