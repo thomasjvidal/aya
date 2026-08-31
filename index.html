@@ -1334,14 +1334,32 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const dataPrevista=tipoForm==='saida_planejada'?(document.getElementById('qaData').value||null):null;
   const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
+  let cofreEscolhido=null;
+  if(tipo==='saida'){
+    if(cofreId){
+      cofreEscolhido=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
+      if(cofreEscolhido&&valor>Number(cofreEscolhido.valor_atual||0)+0.005){
+        toast(`O cofre "${cofreEscolhido.nome}" só tem ${formatBRL(cofreEscolhido.valor_atual)} — não dá pra tirar ${formatBRL(valor)} de lá 🌿`);
+        return;
+      }
+    }else{
+      // "Dinheiro livre" só cobre o que realmente não está preso em nenhuma meta — se o
+      // gasto for maior que isso, pede pra escolher de qual cofre ele saiu de verdade,
+      // em vez de deixar o Livre ficar negativo ou o dinheiro sumir sem explicação.
+      const {livre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
+      if(valor>Math.max(0,livreDisponivel)+0.005){
+        toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} livre sem cofre. Escolhe de qual cofre saiu essa 🌿`);
+        const sel=document.getElementById('qaCofre');
+        if(sel){ sel.style.display='block'; sel.focus(); }
+        return;
+      }
+    }
+  }
   const {data:novoMov,error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor,tipo,cofre_id:cofreId,pessoa,data_prevista:dataPrevista}).select('id').single();
   if(!error){
-    if(tipo==='saida'&&cofreId){
-      const c=(cofresCache||[]).find(x=>String(x.id)===String(cofreId));
-      if(c){
-        const novoValor=Math.max(0,Number(c.valor_atual||0)-valor);
-        await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
-      }
+    if(tipo==='saida'&&cofreEscolhido){
+      const novoValor=Number(cofreEscolhido.valor_atual||0)-valor;
+      await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',cofreId);
     }
     if(recorrente){
       await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:cofreId});
