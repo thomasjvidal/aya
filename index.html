@@ -2720,13 +2720,21 @@ async function confirmarRedistribuicaoSelecionada(){
   for(const c of selecionados){
     const novo=Math.round((pool*(Number(c.percentual)||0)/somaPercent)*100)/100;
     if(Math.abs(novo-Number(c.valor_atual||0))>0.01)mudancas.push(`${c.nome}: ${formatBRL(c.valor_atual)} → ${formatBRL(novo)}`);
-    await supabaseClient.from('cofres').update({valor_atual:novo}).eq('id',c.id);
+    const {error:errUpdate}=await supabaseClient.from('cofres').update({valor_atual:novo}).eq('id',c.id);
+    if(errUpdate){
+      // Antes isso passava batido — a tela fechava e mostrava sucesso mesmo se o
+      // Supabase tivesse recusado o update (RLS, sessão expirada, rede), dando a
+      // sensação de "botão que não faz nada" porque nada era salvo de verdade.
+      toast(`Não consegui salvar o cofre "${c.nome}" 😕 Tenta de novo`);
+      return;
+    }
   }
   fecharRedistribuirPicker();
   await loadCofres();
   await loadHomeData();
   await loadPerfilStats();
-  if(!mudancas.length){ toast('Já estava tudo redistribuído certinho 🌿'); return; }
+  vibrar('success');
+  if(!mudancas.length){ toast('Já estava tudo redistribuído certinho entre os selecionados 🌿'); return; }
   const aviso=Math.round(somaPercent)!==100?` (isso é só entre os selecionados)`:'';
   toastComDesfazer(`Redistribuído 🌿 ${mudancas.join(' · ')}${aviso}`,async()=>{
     for(const v of valoresAntigos){
