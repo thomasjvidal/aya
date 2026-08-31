@@ -2923,7 +2923,10 @@ function atualizarResumoTransferencia(){
   aviso.textContent='';
   if(origemId&&destinoId&&origemId===destinoId){ aviso.textContent='Escolhe dois cofres diferentes.'; return; }
   const origem=cofresCache.find(c=>String(c.id)===String(origemId));
-  if(origem&&valor&&valor>Number(origem.valor_atual||0))aviso.textContent=`Esse cofre só tem ${formatBRL(origem.valor_atual)}.`;
+  // Tolerância de meio real: o card mostra o valor arredondado (ex: R$32 pode ser
+  // R$31,67 de verdade), então digitar exatamente o que aparece na tela não pode
+  // ser barrado como "mais do que tem".
+  if(origem&&valor&&valor>Number(origem.valor_atual||0)+0.5)aviso.textContent=`Esse cofre só tem ${formatBRL(origem.valor_atual)}.`;
 }
 async function confirmarTransferenciaCofre(){
   if(!supabaseClient||!currentUser)return;
@@ -2935,9 +2938,14 @@ async function confirmarTransferenciaCofre(){
   const origem=cofresCache.find(c=>String(c.id)===String(origemId));
   const destino=cofresCache.find(c=>String(c.id)===String(destinoId));
   if(!origem||!destino)return;
-  if(valor>Number(origem.valor_atual||0)){ toast(`${origem.nome} só tem ${formatBRL(origem.valor_atual)} 🌿`); return; }
-  const novoOrigem=Number(origem.valor_atual||0)-valor;
-  const novoDestino=Number(destino.valor_atual||0)+valor;
+  // Mesma tolerância de meio real do aviso: digitar o valor arredondado que aparece
+  // na tela (ex: R$32 quando o real é R$31,67) transfere o saldo inteiro do cofre,
+  // em vez de barrar ou deixar sobrando um centavo perdido.
+  const saldoOrigem=Number(origem.valor_atual||0);
+  if(valor>saldoOrigem+0.5){ toast(`${origem.nome} só tem ${formatBRL(saldoOrigem)} 🌿`); return; }
+  const valorReal=Math.min(valor,saldoOrigem);
+  const novoOrigem=saldoOrigem-valorReal;
+  const novoDestino=Number(destino.valor_atual||0)+valorReal;
   const [{error:err1},{error:err2}]=await Promise.all([
     supabaseClient.from('cofres').update({valor_atual:novoOrigem}).eq('id',origemId),
     supabaseClient.from('cofres').update({valor_atual:novoDestino,concluido:true}).eq('id',destinoId)
@@ -2946,7 +2954,7 @@ async function confirmarTransferenciaCofre(){
   vibrar('success');
   document.getElementById('transfCofresForm').style.display='none';
   document.getElementById('transfSucesso').style.display='block';
-  document.getElementById('transfSucessoTxt').textContent=`${formatBRL(valor)} de ${origem.nome} pra ${destino.nome}`;
+  document.getElementById('transfSucessoTxt').textContent=`${formatBRL(valorReal)} de ${origem.nome} pra ${destino.nome}`;
   document.getElementById('transfCofreValor').value='';
   await loadCofres();
   await loadHomeData();
