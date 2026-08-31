@@ -3014,13 +3014,13 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   // de um cofre "libera" esse valor de volta pro Livre, o que é errado: dinheiro gasto
   // de um cofre já saiu, não deve reaparecer em nenhum outro lugar.
   const totalDistribuido=(distribs||[]).reduce((s,d)=>s+Number(d.valor||0),0);
-  const bufferNaoAlocado=totalOrganizado-totalDistribuido;
-  const naoAlocado=Math.max(0,bufferNaoAlocado-totalGastoLivre);
-  // Se o gasto sem cofre for maior que o "esperando organização", o excedente tem que
-  // sair de verdade do cofre Livre — antes ele só sumia (o Math.max(0,...) acima
-  // escondia o resto do gasto sem tirar de lugar nenhum).
-  const excedenteGastoLivre=Math.max(0,totalGastoLivre-bufferNaoAlocado);
-  const livre=Math.max(0,sum('livre')-excedenteGastoLivre)+naoAlocado;
+  // Sem piso em zero: se o gasto sem cofre for maior que o "esperando organização",
+  // o excedente tem que aparecer descontado do total mesmo assim (antes o Math.max(0,...)
+  // travava aqui e o resto do gasto sumia sem tirar de lugar nenhum). O valor guardado
+  // dentro de cada cofre (cofres.valor_atual) nunca é alterado por essa conta — só o
+  // saldo "esperando organização" fica negativo, mostrando que você já gastou até isso.
+  const naoAlocado=totalOrganizado-totalDistribuido-totalGastoLivre;
+  const livre=sum('livre')+naoAlocado;
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
   const diasRestantes=Math.max(1,fimDoMes-hoje.getDate()+1);
