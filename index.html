@@ -725,9 +725,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <input id="efNome" type="text" placeholder="Nome" required>
       <input id="efUrl" type="url" placeholder="Link" required>
       <input id="efPreco" type="number" step="0.01" min="0" placeholder="Preço (opcional)">
-      <select id="efCofre" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)">
-        <option value="">Vem do Livre</option>
-      </select>
+      <div style="width:100%;text-align:left">
+        <p style="font-size:11.5px;color:var(--ink2);margin:0 0 6px">De quais cofres? (opcional — deixa tudo desmarcado pra vir do Livre). Marca mais de um se o valor for somar de vários.</p>
+        <div id="efCofreList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;width:100%"></div>
+      </div>
       <button type="submit">Salvar alterações</button>
     </form>
     <button class="linklike" type="button" style="color:var(--rose)" onclick="excluirFavoritoDoEditor()">Excluir favorito</button>
@@ -1108,13 +1109,14 @@ function copiarTexto(texto,btn){
 }
 async function buildChatContext(){
   if(!supabaseClient||!currentUser)return null;
-  const [cofresRes,movsRes,esperadosRes,contasFixasRes,perfilRes,favRes]=await Promise.all([
+  const [cofresRes,movsRes,esperadosRes,contasFixasRes,perfilRes,favRes,favVinculosRes]=await Promise.all([
     supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId),
     supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).neq('tipo','esperado').order('created_at',{ascending:false}).limit(40),
     supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','esperado').order('created_at',{ascending:false}),
     supabaseClient.from('contas_fixas').select('*'),
     supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single(),
-    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(15)
+    supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}).limit(15),
+    supabaseClient.from('favorito_cofres').select('favorito_id,cofre_id')
   ]);
   const resumo=await calcResumoFinanceiro(cofresRes.data||[]);
   const cofreNome=(id)=>(cofresRes.data||[]).find(c=>String(c.id)===String(id))?.nome||null;
@@ -1122,6 +1124,8 @@ async function buildChatContext(){
   // cofre desta conta (ou sem cofre nenhum), senão a Aya mistura dados de PF com PJ no chat.
   const cofreIdsDaConta=new Set((cofresRes.data||[]).map(c=>String(c.id)));
   const pertenceContaAtual=(item)=>!item.cofre_id||cofreIdsDaConta.has(String(item.cofre_id));
+  const cofresPorFavorito={};
+  (favVinculosRes.data||[]).forEach(v=>{(cofresPorFavorito[v.favorito_id]=cofresPorFavorito[v.favorito_id]||[]).push(v.cofre_id);});
   return {
     nome:perfilRes.data?.nome,
     estilo:perfilRes.data?.estilo,
@@ -1133,7 +1137,9 @@ async function buildChatContext(){
     })),
     vaiEntrar:(esperadosRes.data||[]).map(m=>({valor:m.valor,descricao:m.descricao,data:m.created_at})),
     contasFixas:(contasFixasRes.data||[]).filter(pertenceContaAtual).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
-    favoritos:(favRes.data||[]).filter(pertenceContaAtual).map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:cofreNome(f.cofre_id)}))
+    favoritos:(favRes.data||[])
+      .filter(f=>{const l=cofresPorFavorito[f.id];return !l||!l.length||l.every(cid=>cofreIdsDaConta.has(String(cid)));})
+      .map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:(cofresPorFavorito[f.id]||[]).map(cofreNome).filter(Boolean).join(' + ')||null}))
   };
 }
 
@@ -1935,6 +1941,9 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
   const preco=precoRaw?parseFloat(precoRaw):null;
   const cofreId=document.getElementById('favCofre').value||null;
   const {data:novoFav,error}=await supabaseClient.from('favoritos').insert({user_id:currentUser.id,titulo,url,preco,cofre_id:cofreId}).select('id').single();
+  if(!error&&cofreId&&novoFav){
+    await supabaseClient.from('favorito_cofres').insert({favorito_id:novoFav.id,cofre_id:cofreId});
+  }
   if(!error){
     input.value='';
     document.getElementById('favNome').value='';
@@ -1971,15 +1980,21 @@ async function loadFavoritos(){
   const list=document.getElementById('favList');
   if(!list)return;
   popularFavCofre();
-  const [{data:dataTodos,error},{data:cofresFrescos}]=await Promise.all([
+  const [{data:dataTodos,error},{data:cofresFrescos},{data:vinculos}]=await Promise.all([
     supabaseClient.from('favoritos').select('*').order('created_at',{ascending:false}),
-    supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId)
+    supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId),
+    supabaseClient.from('favorito_cofres').select('favorito_id,cofre_id')
   ]);
   const cofreById={};
   (cofresFrescos||[]).forEach(c=>{cofreById[c.id]=c;});
-  // favoritos não tem conta_id próprio — filtra pelos que apontam pra um cofre desta
-  // conta (ou sem cofre nenhum), senão mistura favorito de PF com PJ aqui.
-  const data=(dataTodos||[]).filter(f=>!f.cofre_id||cofreById[f.cofre_id]);
+  const cofresPorFavorito={};
+  (vinculos||[]).forEach(v=>{(cofresPorFavorito[v.favorito_id]=cofresPorFavorito[v.favorito_id]||[]).push(v.cofre_id);});
+  // favoritos não tem conta_id próprio — filtra pelos que apontam só pra cofres desta
+  // conta (ou nenhum cofre), senão mistura favorito de PF com PJ aqui.
+  const data=(dataTodos||[]).filter(f=>{
+    const ligados=cofresPorFavorito[f.id];
+    return !ligados||!ligados.length||ligados.every(cid=>cofreById[cid]);
+  });
   if(error||!data.length){
     list.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nada salvo ainda. Cole um link ali em cima.</p>';
     return;
@@ -1990,10 +2005,11 @@ async function loadFavoritos(){
   list.innerHTML=data.map(f=>{
     let statusHtml='';
     let podeComprar=false;
+    const ligados=cofresPorFavorito[f.id]||[];
     if(f.preco){
-      const disponivel=f.cofre_id?Number(cofreById[f.cofre_id]?.valor_atual||0):Number(livre||0);
+      const disponivel=ligados.length?ligados.reduce((s,cid)=>s+Number(cofreById[cid]?.valor_atual||0),0):Number(livre||0);
       podeComprar=disponivel>=Number(f.preco);
-      const origem=f.cofre_id?(cofreById[f.cofre_id]?.nome||'cofre'):'Livre';
+      const origem=ligados.length?ligados.map(cid=>cofreById[cid]?.nome||'cofre').join(' + '):'Livre';
       statusHtml=podeComprar
         ? `<div class="meta" style="color:var(--sage);font-weight:600">Pode comprar</div>`
         : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} · ${origem}</div>`;
@@ -2043,25 +2059,31 @@ async function removeFavorito(id){
   await loadFavoritos();
 }
 
-function popularEfCofre(){
-  const sel=document.getElementById('efCofre');
-  if(!sel)return;
-  const atual=sel.value;
-  sel.innerHTML='<option value="">Vem do Livre</option>'+
-    (cofresCache||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
-  sel.value=atual;
+function popularEfCofre(cofreIdsLigados){
+  const lista=document.getElementById('efCofreList');
+  if(!lista)return;
+  const ligados=new Set((cofreIdsLigados||[]).map(String));
+  lista.innerHTML=(cofresCache||[]).map(c=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;cursor:pointer">
+      <input type="checkbox" class="efCofreCheck" value="${c.id}" ${ligados.has(String(c.id))?'checked':''} style="width:16px;height:16px;flex-shrink:0">
+      <span style="flex:1;font-size:13px;color:var(--ink)">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+      <span class="num" style="font-size:12.5px;color:var(--ink2)">${formatBRL(c.valor_atual)}</span>
+    </label>
+  `).join('');
 }
 
 async function abrirEditarFavorito(id){
   if(!supabaseClient||!currentUser)return;
-  const {data:f}=await supabaseClient.from('favoritos').select('*').eq('id',id).single();
+  const [{data:f},{data:vinculos}]=await Promise.all([
+    supabaseClient.from('favoritos').select('*').eq('id',id).single(),
+    supabaseClient.from('favorito_cofres').select('cofre_id').eq('favorito_id',id)
+  ]);
   if(!f){ toast('Não achei esse favorito 😕'); return; }
-  popularEfCofre();
+  popularEfCofre((vinculos||[]).map(v=>v.cofre_id));
   document.getElementById('efId').value=f.id;
   document.getElementById('efNome').value=f.titulo||'';
   document.getElementById('efUrl').value=f.url||'';
   document.getElementById('efPreco').value=f.preco||'';
-  document.getElementById('efCofre').value=f.cofre_id||'';
   document.getElementById('editFav').classList.remove('hidden');
 }
 function closeEditFav(){
@@ -2082,10 +2104,16 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
   const url=document.getElementById('efUrl').value.trim();
   const precoRaw=document.getElementById('efPreco').value;
   const preco=precoRaw?parseFloat(precoRaw):null;
-  const cofreId=document.getElementById('efCofre').value||null;
+  const cofreIds=[...document.querySelectorAll('.efCofreCheck:checked')].map(el=>el.value);
   if(!id||!titulo||!url)return;
-  const {error}=await supabaseClient.from('favoritos').update({titulo,url,preco,cofre_id:cofreId}).eq('id',id);
+  // cofre_id fica só como referência do primeiro (compatibilidade); quem manda de
+  // verdade agora é favorito_cofres, que aceita mais de um cofre pro mesmo favorito.
+  const {error}=await supabaseClient.from('favoritos').update({titulo,url,preco,cofre_id:cofreIds[0]||null}).eq('id',id);
   if(error){ toast('Não consegui salvar agora 😕'); return; }
+  await supabaseClient.from('favorito_cofres').delete().eq('favorito_id',id);
+  if(cofreIds.length){
+    await supabaseClient.from('favorito_cofres').insert(cofreIds.map(cofre_id=>({favorito_id:id,cofre_id})));
+  }
   closeEditFav();
   toast('Atualizado 🌿');
   await loadFavoritos();
