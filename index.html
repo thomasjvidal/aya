@@ -1020,20 +1020,30 @@ function acertoContinuar(){
   }
   const saiu=-diff;
   const linha=(id,icone,nome,valor)=>`
-    <label style="display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer">
-      <input type="checkbox" class="acertoCheck" value="${id}" onchange="this.dataset.t=this.checked?Date.now():''" style="width:16px;height:16px;flex-shrink:0">
-      <span style="flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${icone} ${escapeHtml(nome)}</span>
-      <span class="num" style="font-size:12.5px;color:var(--ink2)">${formatBRL(valor)}</span>
-    </label>`;
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 10px 9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)">
+      <span style="flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${icone} ${escapeHtml(nome)} <span class="num" style="color:var(--ink2);font-size:12px">· ${formatBRL(valor)}</span></span>
+      <input class="acertoParte" data-id="${id}" data-max="${Number(valor)||0}" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="acertoAtualizarFalta()" style="width:92px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink)">
+    </div>`;
   box.innerHTML=`
     <div class="eyebrow">Acertar saldo</div>
     <div class="h-name" style="margin-top:4px">Saiu ${formatBRL(saiu)}. De onde?</div>
-    <p style="font-size:12.5px;color:var(--ink2);margin:6px 2px 12px;line-height:1.5">Marque um ou mais. O app tira na ordem que você marcar, até completar.</p>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+    <p style="font-size:12.5px;color:var(--ink2);margin:6px 2px 12px;line-height:1.5">Digite quanto saiu de cada lugar.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
       ${acertoState.semCofre>=0.5?linha('livre','💰','Sobra sem cofre',acertoState.semCofre):''}
       ${acertoState.cofres.map(c=>linha(c.id,escapeHtml(c.icone||'🧾'),c.nome,c.valor_atual)).join('')}
     </div>
+    <div id="acertoFalta" style="font-size:12.5px;color:var(--ink2);margin:0 4px 12px">Falta dizer de onde saiu ${formatBRL(saiu)}</div>
     <button class="split-btn" style="margin-top:0" onclick="acertoConfirmarSaida()">Confirmar</button>`;
+}
+function acertoPartes(){
+  return [...document.querySelectorAll('.acertoParte')].map(el=>({id:el.dataset.id,max:Number(el.dataset.max||0),valor:Math.round((parseFloat(el.value)||0)*100)/100})).filter(p=>p.valor>0);
+}
+function acertoAtualizarFalta(){
+  const el=document.getElementById('acertoFalta');
+  if(!el||!acertoState)return;
+  const falta=Math.round((-acertoState.diff-acertoPartes().reduce((s,p)=>s+p.valor,0))*100)/100;
+  el.style.color=Math.abs(falta)<0.005?'var(--sage)':(falta<0?'var(--rose)':'var(--ink2)');
+  el.textContent=Math.abs(falta)<0.005?'Fechou certinho 🌿':(falta<0?`Passou ${formatBRL(-falta)} do que saiu`:`Falta dizer de onde saiu ${formatBRL(falta)}`);
 }
 async function acertoConfirmarEntrada(){
   if(!acertoState||!(acertoState.diff>0))return;
@@ -1049,17 +1059,14 @@ async function acertoConfirmarEntrada(){
 async function acertoConfirmarSaida(){
   if(!acertoState||!(acertoState.diff<0))return;
   const saiu=-acertoState.diff;
-  const marcados=[...document.querySelectorAll('.acertoCheck:checked')].sort((a,b)=>Number(a.dataset.t||0)-Number(b.dataset.t||0)).map(el=>el.value);
-  if(!marcados.length){ toast('Marque de onde saiu 🌿'); return; }
-  let falta=saiu;
-  const partes=[];
-  for(const id of marcados){
-    if(falta<=0.005)break;
-    const disponivel=id==='livre'?acertoState.semCofre:Number(acertoState.cofres.find(c=>String(c.id)===String(id))?.valor_atual||0);
-    const pedaco=Math.round(Math.min(falta,disponivel)*100)/100;
-    if(pedaco>0.005){ partes.push({id,valor:pedaco}); falta-=pedaco; }
+  const partes=acertoPartes();
+  const soma=Math.round(partes.reduce((s,p)=>s+p.valor,0)*100)/100;
+  if(Math.abs(soma-saiu)>=0.01){ toast(soma<saiu?`Falta dizer de onde saiu ${formatBRL(saiu-soma)} 🌿`:`Passou ${formatBRL(soma-saiu)} do que saiu 🌿`); return; }
+  const estourou=partes.find(p=>p.valor>p.max+0.005);
+  if(estourou){
+    const nome=estourou.id==='livre'?'A sobra sem cofre':(acertoState.cofres.find(c=>String(c.id)===String(estourou.id))?.nome||'Esse cofre');
+    toast(`${nome} só tem ${formatBRL(estourou.max)} 🌿`); return;
   }
-  if(falta>0.005){ toast(`O que você marcou só cobre ${formatBRL(saiu-falta)} — faltam ${formatBRL(falta)}. Marque mais algum 🌿`); return; }
   for(const p of partes){
     const cofre=p.id==='livre'?null:acertoState.cofres.find(c=>String(c.id)===String(p.id));
     const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:ACERTO_DESC,valor:p.valor,tipo:'saida',cofre_id:cofre?cofre.id:null});
