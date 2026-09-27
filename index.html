@@ -325,16 +325,16 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">♡ Favoritos</button>
     </div>
 
+    <div style="display:flex;gap:10px;margin:14px 0 0">
+      <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
+      <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
+    </div>
+
     <div class="aya-card">
       <span class="ico">🌿</span>
       <div class="who"><span class="aya-face">✦</span> Aya percebeu</div>
       <p id="aya-hoje-txt">Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿</p>
       <button class="cta" style="width:75%" onclick="go('aya')">Conversar</button>
-    </div>
-
-    <div style="display:flex;gap:10px;margin:14px 0 4px">
-      <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
-      <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
     </div>
 
     <div id="atencaoAviso" style="display:none;margin:14px 0 4px"></div>
