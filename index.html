@@ -327,6 +327,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div style="display:flex;gap:10px;margin:14px 0 0">
       <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
+      <button type="button" onclick="abrirAcertoSaldo()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">± Acertar saldo</button>
       <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
     </div>
 
@@ -569,6 +570,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   <div class="auth-gate hidden" id="infoResumoPage" style="z-index:95;align-items:stretch;justify-content:flex-start;padding:24px 20px;overflow-y:auto">
     <button class="linklike" type="button" style="align-self:flex-start" onclick="document.getElementById('infoResumoPage').classList.add('hidden')">← Voltar</button>
     <div style="text-align:left;margin-top:10px" id="infoResumoConteudo"></div>
+  </div>
+
+  <!-- ACERTAR SALDO: diz quanto tem no banco e o app acerta a diferença -->
+  <div class="auth-gate hidden" id="acertoPage" style="z-index:95;align-items:stretch;justify-content:flex-start;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharAcertoSaldo()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px" id="acertoConteudo"></div>
   </div>
 
   <!-- FAVORITOS: página própria, fora da aba Movimento -->
@@ -963,6 +970,112 @@ async function salvarTipoCofre(id,novoTipo){
   await loadCofres();
   await loadHomeData();
   loadCategorias();
+}
+
+/* ================= ACERTAR SALDO ================= */
+// Pra quando esqueceu de anotar movimento: a pessoa diz quanto tem hoje no banco, o app
+// compara com o que ele acha que ela tem e lança só a diferença, como "Acerto de saldo".
+// Entrou → vai pro Livre pra gastar, sem distribuir. Saiu → pergunta de onde saiu.
+const ACERTO_DESC='Acerto de saldo';
+let acertoState=null;
+function fecharAcertoSaldo(){
+  document.getElementById('acertoPage').classList.add('hidden');
+  acertoState=null;
+}
+async function abrirAcertoSaldo(){
+  if(!supabaseClient||!currentUser)return;
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
+  const lista=cofres||[];
+  const r=await calcResumoFinanceiro(lista);
+  // Entradas que já chegaram e ainda não foram organizadas também estão no banco.
+  const esperado=Math.round((r.total+r.pendentes)*100)/100;
+  acertoState={cofres:lista,semCofre:Math.max(0,r.naoAlocado),esperado};
+  document.getElementById('acertoConteudo').innerHTML=`
+    <div class="eyebrow">Acertar saldo</div>
+    <div class="h-name" style="margin-top:4px">Quanto você tem hoje?</div>
+    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 14px;line-height:1.5">Somando todos os bancos onde estão seus cofres. O app acha que você tem <b class="num" style="color:var(--ink)">${formatBRL(esperado)}</b>.</p>
+    <input id="acertoValor" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" style="width:100%;border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-family:inherit;font-size:20px;font-weight:600;background:var(--card);color:var(--ink);margin-bottom:12px">
+    <button class="split-btn" style="margin-top:0" onclick="acertoContinuar()">Continuar</button>`;
+  document.getElementById('acertoPage').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('acertoValor')?.focus(),50);
+}
+function acertoContinuar(){
+  if(!acertoState)return;
+  const v=parseFloat(document.getElementById('acertoValor').value);
+  if(isNaN(v)||v<0){ toast('Digita quanto você tem hoje 🌿'); return; }
+  const diff=Math.round((v-acertoState.esperado)*100)/100;
+  acertoState.diff=diff;
+  const box=document.getElementById('acertoConteudo');
+  if(Math.abs(diff)<0.5){
+    box.innerHTML=`<div class="h-name">Tudo certo 🌿</div><p style="font-size:13px;color:var(--ink2);margin:8px 2px 0">Bate com o que o app tem. Nada pra acertar.</p>`;
+    return;
+  }
+  if(diff>0){
+    box.innerHTML=`
+      <div class="eyebrow">Acertar saldo</div>
+      <div class="h-name" style="margin-top:4px">Entrou ${formatBRL(diff)}?</div>
+      <p style="font-size:13px;color:var(--ink2);margin:6px 2px 16px;line-height:1.5">Vai pro Livre pra gastar, sem distribuir nos cofres.</p>
+      <button class="split-btn" style="margin-top:0" onclick="acertoConfirmarEntrada()">Confirmar</button>`;
+    return;
+  }
+  const saiu=-diff;
+  const linha=(id,icone,nome,valor)=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer">
+      <input type="checkbox" class="acertoCheck" value="${id}" onchange="this.dataset.t=this.checked?Date.now():''" style="width:16px;height:16px;flex-shrink:0">
+      <span style="flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${icone} ${escapeHtml(nome)}</span>
+      <span class="num" style="font-size:12.5px;color:var(--ink2)">${formatBRL(valor)}</span>
+    </label>`;
+  box.innerHTML=`
+    <div class="eyebrow">Acertar saldo</div>
+    <div class="h-name" style="margin-top:4px">Saiu ${formatBRL(saiu)}. De onde?</div>
+    <p style="font-size:12.5px;color:var(--ink2);margin:6px 2px 12px;line-height:1.5">Marque um ou mais. O app tira na ordem que você marcar, até completar.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+      ${acertoState.semCofre>=0.5?linha('livre','💰','Sobra sem cofre',acertoState.semCofre):''}
+      ${acertoState.cofres.map(c=>linha(c.id,escapeHtml(c.icone||'🧾'),c.nome,c.valor_atual)).join('')}
+    </div>
+    <button class="split-btn" style="margin-top:0" onclick="acertoConfirmarSaida()">Confirmar</button>`;
+}
+async function acertoConfirmarEntrada(){
+  if(!acertoState||!(acertoState.diff>0))return;
+  const valor=acertoState.diff;
+  // organizado:true e sem distribuições → cai direto no Livre pra gastar.
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:ACERTO_DESC,valor,tipo:'entrada',cofre_id:null,organizado:true});
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  vibrar('success');
+  toast(`Acertado 🌿 +${formatBRL(valor)} no Livre pra gastar`);
+  fecharAcertoSaldo();
+  await acertoRecarregar();
+}
+async function acertoConfirmarSaida(){
+  if(!acertoState||!(acertoState.diff<0))return;
+  const saiu=-acertoState.diff;
+  const marcados=[...document.querySelectorAll('.acertoCheck:checked')].sort((a,b)=>Number(a.dataset.t||0)-Number(b.dataset.t||0)).map(el=>el.value);
+  if(!marcados.length){ toast('Marque de onde saiu 🌿'); return; }
+  let falta=saiu;
+  const partes=[];
+  for(const id of marcados){
+    if(falta<=0.005)break;
+    const disponivel=id==='livre'?acertoState.semCofre:Number(acertoState.cofres.find(c=>String(c.id)===String(id))?.valor_atual||0);
+    const pedaco=Math.round(Math.min(falta,disponivel)*100)/100;
+    if(pedaco>0.005){ partes.push({id,valor:pedaco}); falta-=pedaco; }
+  }
+  if(falta>0.005){ toast(`O que você marcou só cobre ${formatBRL(saiu-falta)} — faltam ${formatBRL(falta)}. Marque mais algum 🌿`); return; }
+  for(const p of partes){
+    const cofre=p.id==='livre'?null:acertoState.cofres.find(c=>String(c.id)===String(p.id));
+    const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:ACERTO_DESC,valor:p.valor,tipo:'saida',cofre_id:cofre?cofre.id:null});
+    if(error){ toast('Não consegui salvar agora 😕'); await acertoRecarregar(); return; }
+    if(cofre)await supabaseClient.from('cofres').update({valor_atual:Number(cofre.valor_atual||0)-p.valor}).eq('id',cofre.id);
+  }
+  vibrar('success');
+  toast(`Acertado 🌿 −${formatBRL(saiu)}`);
+  fecharAcertoSaldo();
+  await acertoRecarregar();
+}
+async function acertoRecarregar(){
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
 }
 
 /* ================= ⓘ DOS NÚMEROS DA HOME ================= */
