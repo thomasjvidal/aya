@@ -78,7 +78,6 @@ function buildSystemPrompt(context) {
 Livre pra gastar (sobra das entradas que não foi pra nenhum cofre + cofres marcados como Livre): ${formatBRL(r.livre)}
 Contas a pagar (cofres de contas — dinheiro que já vai sair): ${formatBRL(r.contas)}
 Guardado (cofres com objetivo de guardar: reserva, sonhos, investimentos): ${formatBRL(r.guardado)}
-Saldo disponível (Livre pra gastar + Guardado, sem as contas): ${formatBRL(r.saldoDisponivel ?? ((r.livre || 0) + (r.guardado || 0)))}
 Total somando tudo, inclusive as contas: ${formatBRL(r.total)}`
     : 'Ainda não dá pra calcular um resumo (sem cofres ou sem movimentos organizados ainda).';
 
