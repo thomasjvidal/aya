@@ -88,6 +88,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .info-lista .row:last-child{border-bottom:0}
 .info-lista .row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 .info-lista .row b{font-weight:700;color:var(--ink)}
+/* olho: esconde os valores da Home (preferência fica salva no aparelho) */
+.olho-btn{background:0;border:0;padding:4px;margin-left:2px;color:var(--ink2);cursor:pointer;display:grid;place-items:center;opacity:.8}
+.olho-btn svg{width:18px;height:18px}
+.v-oculto{display:none}
+.ocultar-valores .v-real{display:none}
+.ocultar-valores .v-oculto{display:inline}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 
 .aya-card{margin-top:16px;background:linear-gradient(135deg,#2F7D5B,#276849);color:#eafaf2;border-radius:22px;padding:18px 18px 17px;box-shadow:0 10px 24px rgba(47,125,91,.28);position:relative;overflow:hidden}
@@ -297,8 +303,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <div class="resumo-hero" onclick="abrirInfoResumo('hoje')">
       <span class="folha">🌿</span>
-      <div class="rh-top"><span class="rh-ic">🌿</span>Disponível hoje</div>
-      <div class="breathe"><span class="amount num" id="heroAmount"><small>R$</small>0</span></div>
+      <div class="rh-top"><span class="rh-ic">🌿</span>Disponível hoje<button type="button" class="olho-btn" id="olhoBtn" aria-label="Esconder valores" onclick="event.stopPropagation();alternarValores()"></button></div>
+      <div class="breathe"><span class="amount num v-real" id="heroAmount"><small>R$</small>0</span><span class="amount num v-oculto"><small>R$</small>••••</span></div>
       <div class="sub" id="hero-sub">Assim que você criar seus cofres, calculo isso de verdade.</div>
       <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('hoje')">i</button>
     </div>
@@ -306,17 +312,17 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="resumo-grid">
       <div class="resumo-card largo" onclick="abrirInfoResumo('livre')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><path d="M16 13.5h.01"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Livre pra gastar</div><div class="rc-v num" id="barLivre">R$ 0</div><div class="rc-s">Gaste como quiser</div></div>
+        <div class="rc-txt"><div class="rc-t">Livre pra gastar</div><div class="rc-v num"><span class="v-real" id="barLivre">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Gaste como quiser</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('livre')">i</button>
       </div>
       <div class="resumo-card contas" onclick="go('cofres')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-2.5-1.5-2 1.5-1.5-1.2-1.5 1.2-2-1.5L6 20.5z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Contas a pagar</div><div class="rc-v num" id="barContas">R$ 0</div><div class="rc-s">Já vai sair</div></div>
+        <div class="rc-txt"><div class="rc-t">Contas a pagar</div><div class="rc-v num"><span class="v-real" id="barContas">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Já vai sair</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('contas')">i</button>
       </div>
       <div class="resumo-card" onclick="go('cofres')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num" id="barGuardado">R$ 0</div><div class="rc-s">Em seus cofres</div></div>
+        <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num"><span class="v-real" id="barGuardado">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Em seus cofres</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('guardado')">i</button>
       </div>
     </div>
@@ -971,6 +977,28 @@ async function salvarTipoCofre(id,novoTipo){
   await loadHomeData();
   loadCategorias();
 }
+
+/* ================= OLHO: MOSTRAR/ESCONDER VALORES ================= */
+const ICON_OLHO_ABERTO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_OLHO_FECHADO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.6A10 10 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.1 3.9M6.3 7.3C3.9 9 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function aplicarValoresOcultos(ocultar){
+  document.body.classList.toggle('ocultar-valores',ocultar);
+  const btn=document.getElementById('olhoBtn');
+  if(btn){
+    btn.innerHTML=ocultar?ICON_OLHO_FECHADO:ICON_OLHO_ABERTO;
+    btn.setAttribute('aria-label',ocultar?'Mostrar valores':'Esconder valores');
+  }
+}
+function alternarValores(){
+  const ocultar=!document.body.classList.contains('ocultar-valores');
+  aplicarValoresOcultos(ocultar);
+  try{ localStorage.setItem('aya_ocultar_valores',ocultar?'1':'0'); }catch(e){}
+}
+(function(){
+  let ocultar=false;
+  try{ ocultar=localStorage.getItem('aya_ocultar_valores')==='1'; }catch(e){}
+  aplicarValoresOcultos(ocultar);
+})();
 
 /* ================= ACERTAR SALDO ================= */
 // Pra quando esqueceu de anotar movimento: a pessoa diz quanto tem hoje no banco, o app
@@ -3361,7 +3389,7 @@ async function loadHomeData(){
   if(ayaTxt){
     if(movs&&movs.length){
       const totalGasto=movs.reduce((s,m)=>s+Number(m.valor||0),0);
-      ayaTxt.textContent=`Você já registrou ${movs.length} saída${movs.length>1?'s':''}, totalizando ${formatBRL(totalGasto)}. Continue registrando pra eu te ajudar melhor 🌿`;
+      ayaTxt.innerHTML=`Você já registrou ${movs.length} saída${movs.length>1?'s':''}, totalizando <span class="v-real">${formatBRL(totalGasto)}</span><span class="v-oculto">R$ ••••</span>. Continue registrando pra eu te ajudar melhor 🌿`;
     }else{
       ayaTxt.textContent='Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿';
     }
