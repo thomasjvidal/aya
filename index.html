@@ -1010,22 +1010,65 @@ function fecharAcertoSaldo(){
   document.getElementById('acertoPage').classList.add('hidden');
   acertoState=null;
 }
+// Quais cofres ficam no banco que a pessoa confere (cada um organiza os bancos de um
+// jeito). A escolha fica salva no aparelho, por conta; cofre novo entra pelo padrão:
+// tudo menos Guardado.
+function acertoChaveBanco(){ return 'aya_acerto_banco_'+contaAtualId; }
+function acertoLerBanco(){
+  try{ const v=JSON.parse(localStorage.getItem(acertoChaveBanco())||'null'); return v&&typeof v==='object'?v:null; }catch(e){ return null; }
+}
+function acertoNoBanco(c,salvo){ return salvo&&(c.id in salvo)?!!salvo[c.id]:c.tipo!=='guardado'; }
 async function abrirAcertoSaldo(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
   const lista=cofres||[];
   const r=await calcResumoFinanceiro(lista);
-  // O Guardado fica de fora (muita gente guarda em outro banco): compara só o disponível —
-  // Livre pra gastar + Contas a pagar + entradas que chegaram e ainda não foram organizadas.
-  const esperado=Math.round((r.total-r.guardado+r.pendentes)*100)/100;
-  acertoState={cofres:lista.filter(c=>c.tipo!=='guardado'),semCofre:Math.max(0,r.naoAlocado),esperado,guardado:r.guardado};
+  acertoState={todos:lista,naoAlocado:r.naoAlocado,pendentes:r.pendentes};
+  document.getElementById('acertoPage').classList.remove('hidden');
+  if(!acertoLerBanco()&&lista.length)acertoEscolherBanco();
+  else acertoPerguntarValor();
+}
+function acertoEscolherBanco(){
+  if(!acertoState)return;
+  const salvo=acertoLerBanco();
   document.getElementById('acertoConteudo').innerHTML=`
     <div class="eyebrow">Acertar saldo</div>
-    <div class="h-name" style="margin-top:4px">Quanto você tem disponível hoje?</div>
-    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 14px;line-height:1.5">Sem contar o que está guardado${r.guardado>=0.5?` (${formatBRL(r.guardado)})`:''}. O app acha que você tem <b class="num" style="color:var(--ink)">${formatBRL(esperado)}</b> disponível.</p>
+    <div class="h-name" style="margin-top:4px">Quais cofres ficam nesse banco?</div>
+    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 14px;line-height:1.5">Marque os cofres cujo dinheiro fica no banco que você vai conferir. O app lembra da próxima vez.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+      ${acertoState.todos.map(c=>`
+        <label style="display:flex;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer">
+          <input type="checkbox" class="acertoBancoCheck" value="${c.id}" ${acertoNoBanco(c,salvo)?'checked':''} style="width:16px;height:16px;flex-shrink:0">
+          <span style="flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+          <span class="num" style="font-size:12.5px;color:var(--ink2)">${formatBRL(c.valor_atual)}</span>
+        </label>`).join('')}
+    </div>
+    <button class="split-btn" style="margin-top:0" onclick="acertoSalvarBanco()">Salvar</button>`;
+}
+function acertoSalvarBanco(){
+  const escolha={};
+  document.querySelectorAll('.acertoBancoCheck').forEach(el=>{escolha[el.value]=el.checked;});
+  try{ localStorage.setItem(acertoChaveBanco(),JSON.stringify(escolha)); }catch(e){}
+  acertoState.escolhaSessao=escolha;
+  acertoPerguntarValor();
+}
+function acertoPerguntarValor(){
+  if(!acertoState)return;
+  const salvo=acertoLerBanco()||acertoState.escolhaSessao||null;
+  const noBanco=acertoState.todos.filter(c=>acertoNoBanco(c,salvo));
+  // Dinheiro sem cofre (e entradas que chegaram e não foram organizadas) fica no banco do dia a dia.
+  const esperado=Math.round((acertoState.naoAlocado+acertoState.pendentes+noBanco.reduce((s,c)=>s+Number(c.valor_atual||0),0))*100)/100;
+  acertoState.cofres=noBanco;
+  acertoState.semCofre=Math.max(0,acertoState.naoAlocado);
+  acertoState.esperado=esperado;
+  const nomes=noBanco.map(c=>escapeHtml(c.nome));
+  document.getElementById('acertoConteudo').innerHTML=`
+    <div class="eyebrow">Acertar saldo</div>
+    <div class="h-name" style="margin-top:4px">Quanto tem nesse banco hoje?</div>
+    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 4px;line-height:1.5">O app acha que tem <b class="num" style="color:var(--ink)">${formatBRL(esperado)}</b>${nomes.length?` — ${nomes.join(', ')} e o que está sem cofre`:' — o que está sem cofre'}.</p>
+    ${acertoState.todos.length?'<button type="button" class="linklike" style="font-size:12.5px;margin:0 2px 14px" onclick="acertoEscolherBanco()">Mudar cofres desse banco</button>':'<div style="height:10px"></div>'}
     <input id="acertoValor" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" style="width:100%;border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-family:inherit;font-size:20px;font-weight:600;background:var(--card);color:var(--ink);margin-bottom:12px">
     <button class="split-btn" style="margin-top:0" onclick="acertoContinuar()">Continuar</button>`;
-  document.getElementById('acertoPage').classList.remove('hidden');
   setTimeout(()=>document.getElementById('acertoValor')?.focus(),50);
 }
 function acertoContinuar(){
