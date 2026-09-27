@@ -1015,13 +1015,14 @@ async function abrirAcertoSaldo(){
   const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
   const lista=cofres||[];
   const r=await calcResumoFinanceiro(lista);
-  // Entradas que já chegaram e ainda não foram organizadas também estão no banco.
-  const esperado=Math.round((r.total+r.pendentes)*100)/100;
-  acertoState={cofres:lista,semCofre:Math.max(0,r.naoAlocado),esperado};
+  // O Guardado fica de fora (muita gente guarda em outro banco): compara só o disponível —
+  // Livre pra gastar + Contas a pagar + entradas que chegaram e ainda não foram organizadas.
+  const esperado=Math.round((r.total-r.guardado+r.pendentes)*100)/100;
+  acertoState={cofres:lista.filter(c=>c.tipo!=='guardado'),semCofre:Math.max(0,r.naoAlocado),esperado,guardado:r.guardado};
   document.getElementById('acertoConteudo').innerHTML=`
     <div class="eyebrow">Acertar saldo</div>
-    <div class="h-name" style="margin-top:4px">Quanto você tem hoje?</div>
-    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 14px;line-height:1.5">Somando todos os bancos onde estão seus cofres. O app acha que você tem <b class="num" style="color:var(--ink)">${formatBRL(esperado)}</b>.</p>
+    <div class="h-name" style="margin-top:4px">Quanto você tem disponível hoje?</div>
+    <p style="font-size:13px;color:var(--ink2);margin:6px 2px 14px;line-height:1.5">Sem contar o que está guardado${r.guardado>=0.5?` (${formatBRL(r.guardado)})`:''}. O app acha que você tem <b class="num" style="color:var(--ink)">${formatBRL(esperado)}</b> disponível.</p>
     <input id="acertoValor" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" style="width:100%;border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-family:inherit;font-size:20px;font-weight:600;background:var(--card);color:var(--ink);margin-bottom:12px">
     <button class="split-btn" style="margin-top:0" onclick="acertoContinuar()">Continuar</button>`;
   document.getElementById('acertoPage').classList.remove('hidden');
