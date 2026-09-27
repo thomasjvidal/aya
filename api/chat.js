@@ -74,11 +74,13 @@ function buildSystemPrompt(context) {
 
   const r = c.resumo || null;
   const resumoTxt = r
-    ? `Livre pra gastar hoje: ${formatBRL(r.disponivelHoje)} (esse é o valor livre dividido pelos dias que faltam no mês)
-Livre no total (mês): ${formatBRL(r.livre)}
-Comprometido (contas): ${formatBRL(r.contas)}
-Guardado (reservas/sonhos): ${formatBRL(r.guardado)}
-Total geral somando tudo: ${formatBRL(r.total)}${r.naoAlocado > 0.005 ? `\nDesse "Livre", ${formatBRL(r.naoAlocado)} ainda não foi posto em nenhum cofre — sobra automática das % que não somam 100%.` : ''}`
+    ? `Disponível hoje: ${formatBRL(r.disponivelHoje)} (o "Em conta" dividido pelos dias que faltam no mês)
+Em conta (cofres marcados como Livre, já disponível pra gastar): ${formatBRL(r.livre)}
+Sem destino (dinheiro que entrou e ainda não foi pra nenhum cofre — a pessoa organiza tocando no card "Sem destino" da Home): ${formatBRL(r.semDestino ?? Math.max(0, r.naoAlocado || 0))}
+Guardado em cofres (soma de todos os cofres que não são Livre): ${formatBRL(r.emCofres ?? ((r.contas || 0) + (r.guardado || 0)))}
+  - desses, cofres de contas: ${formatBRL(r.contas)}
+  - desses, reservas/sonhos: ${formatBRL(r.guardado)}
+Saldo total (tudo que a pessoa tem): ${formatBRL(r.total)}`
     : 'Ainda não dá pra calcular um resumo (sem cofres ou sem movimentos organizados ainda).';
 
   const favoritos = Array.isArray(c.favoritos) ? c.favoritos : [];

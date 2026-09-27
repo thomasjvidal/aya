@@ -62,6 +62,31 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .bar .t{font-size:12px;color:var(--ink2);margin-bottom:7px}
 .bar .v{font-size:18px;font-weight:600;letter-spacing:-.01em}
 .bar .v.small{font-size:16px}
+/* HOJE resumo (Disponível hoje + 4 cards) */
+.resumo-hero{position:relative;overflow:hidden;margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;box-shadow:var(--shadow);cursor:pointer}
+.resumo-hero .folha{position:absolute;right:-6px;top:-8px;font-size:92px;opacity:.07;pointer-events:none}
+.resumo-hero .rh-top{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink2);margin-bottom:8px}
+.resumo-hero .rh-ic{width:30px;height:30px;border-radius:50%;background:var(--sage-soft);display:grid;place-items:center;font-size:14px}
+.resumo-hero .amount{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.05;color:var(--ink)}
+.resumo-hero .amount small{font-size:inherit;font-weight:inherit;margin-right:8px}
+.resumo-hero .breathe{animation:none}
+.resumo-hero .sub{font-size:12.5px;color:var(--ink2);margin-top:6px;padding-right:18px;line-height:1.4}
+.resumo-hero .chev,.resumo-card .chev{position:absolute;right:14px;bottom:14px;font-size:22px;line-height:1;color:var(--ink2)}
+.resumo-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:9px 0 0}
+.resumo-card{position:relative;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:13px 12px;box-shadow:var(--shadow);cursor:pointer;min-width:0}
+.resumo-card .rc-ic{width:38px;height:38px;border-radius:50%;background:var(--sage-tint);color:var(--sage);display:grid;place-items:center;flex-shrink:0}
+.resumo-card .rc-ic svg{width:19px;height:19px}
+.resumo-card .rc-txt{min-width:0;padding-right:8px}
+.resumo-card .rc-t{font-size:12px;color:var(--ink2)}
+.resumo-card .rc-v{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--ink);margin:2px 0 1px;white-space:nowrap}
+.resumo-card .rc-s{font-size:11px;color:var(--ink2);line-height:1.25}
+.resumo-card .chev{right:10px;bottom:auto;top:50%;transform:translateY(-50%);font-size:18px}
+.resumo-card.sem-destino{background:var(--amber-tint);border-color:var(--amber-soft)}
+.resumo-card.sem-destino .rc-ic{background:var(--amber-soft);color:#a8692a}
+.resumo-card.sem-destino .rc-t,.resumo-card.sem-destino .chev{color:#a8692a}
+.resumo-card.sem-destino.vazio{background:var(--card);border-color:var(--line)}
+.resumo-card.sem-destino.vazio .rc-ic{background:var(--paper);color:var(--ink2)}
+.resumo-card.sem-destino.vazio .rc-t,.resumo-card.sem-destino.vazio .chev{color:var(--ink2)}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 
 .aya-card{margin-top:16px;background:linear-gradient(135deg,#2F7D5B,#276849);color:#eafaf2;border-radius:22px;padding:18px 18px 17px;box-shadow:0 10px 24px rgba(47,125,91,.28);position:relative;overflow:hidden}
@@ -269,17 +294,34 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <span style="color:var(--ink2);font-size:10px">▾</span>
     </button>
 
-    <div class="hero">
-      <div class="lbl">livre pra gastar hoje</div>
-      <div class="breathe"><span class="amount" id="heroAmount"><small>R$</small>0</span></div>
+    <div class="resumo-hero" onclick="abrirEditarGrupo('livre')">
+      <span class="folha">🌿</span>
+      <div class="rh-top"><span class="rh-ic">🌿</span>Disponível hoje</div>
+      <div class="breathe"><span class="amount num" id="heroAmount"><small>R$</small>0</span></div>
       <div class="sub" id="hero-sub">Assim que você criar seus cofres, calculo isso de verdade.</div>
+      <span class="chev">›</span>
     </div>
 
-    <div class="bars" style="flex-wrap:wrap;row-gap:9px">
-      <div class="bar" onclick="abrirEditarGrupo('livre')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage)"></span>Livre</div><div class="v num" id="barLivre">R$ 0</div></div>
-      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--amber)"></span>Não distribuído</div><div class="v num small" id="barComprometido">R$ 0</div></div>
-      <div class="bar" onclick="abrirEditarGrupo('guardado')" style="cursor:pointer;flex:1 1 45%"><div class="t"><span class="dot" style="background:var(--sage-soft)"></span>Guardado</div><div class="v num small" id="barGuardado">R$ 0</div></div>
-      <div class="bar" onclick="go('cofres')" style="cursor:pointer;flex:1 1 45%;background:var(--sage);border-color:var(--sage)"><div class="t" style="color:rgba(255,255,255,.85)"><span class="dot" style="background:#fff"></span>Total</div><div class="v num small" id="barTotal" style="color:#fff">R$ 0</div></div>
+    <div class="resumo-grid">
+      <div class="resumo-card" onclick="abrirEditarGrupo('livre')">
+        <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><path d="M16 13.5h.01"/></svg></span>
+        <div class="rc-txt"><div class="rc-t">Em conta</div><div class="rc-v num" id="barLivre">R$ 0</div><div class="rc-s">Já disponível</div></div>
+      </div>
+      <div class="resumo-card sem-destino" id="cardSemDestino" onclick="organizarSemDestino()">
+        <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+        <div class="rc-txt"><div class="rc-t">Sem destino</div><div class="rc-v num" id="barSemDestino">R$ 0</div><div class="rc-s">Para você organizar</div></div>
+        <span class="chev">›</span>
+      </div>
+      <div class="resumo-card" onclick="go('cofres')">
+        <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2"/></svg></span>
+        <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num" id="barGuardado">R$ 0</div><div class="rc-s">Em seus cofres</div></div>
+        <span class="chev">›</span>
+      </div>
+      <div class="resumo-card" onclick="go('cofres')">
+        <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z" fill="currentColor"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z" fill="currentColor"/></svg></span>
+        <div class="rc-txt"><div class="rc-t">Saldo total</div><div class="rc-v num" id="barTotal">R$ 0</div><div class="rc-s">Tudo que você tem</div></div>
+        <span class="chev">›</span>
+      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:8px auto 0">
       <button type="button" onclick="go('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Ver seus cofres →</button>
@@ -324,7 +366,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
       <input id="cofreNome" placeholder="Nome (ex: Reserva de emergência)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <select id="cofreTipo" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-        <option value="livre">Livre pra gastar</option>
+        <option value="livre">Livre pra gastar (entra em "Em conta")</option>
         <option value="contas">Contas / essenciais</option>
         <option value="guardado" selected>Guardado (reserva, sonho...)</option>
       </select>
@@ -440,7 +482,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
   </div>
 
-  <!-- CATEGORIA DOS COFRES: pra onde vai cada cofre (Livre/Não distribuído/Guardado) -->
+  <!-- CATEGORIA DOS COFRES: pra onde vai cada cofre (Em conta/Contas/Guardado) -->
   <!-- CONTAS: trocar entre Pessoal e PJ, criar nova conta -->
   <div class="auth-gate hidden" id="contaPickerPage" style="z-index:96;align-items:stretch;padding:24px 20px;overflow-y:auto">
     <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharContaPicker()">← Voltar</button>
@@ -521,7 +563,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div style="text-align:left;margin-top:10px">
       <div class="eyebrow">Cofres</div>
       <div class="h-name" style="margin-top:4px">Cada cofre,<br>seu grupo</div>
-      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Livre e Guardado, na Home, somam os cofres marcados aqui. Muda a qualquer momento.</p>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Na Home, "Em conta" soma os cofres Livre; "Guardado" soma todos os outros. Muda a qualquer momento.</p>
       <div id="categoriasList" class="mini-cofres"></div>
     </div>
   </div>
@@ -667,7 +709,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida_planejada" onchange="toggleQaCofre()"> Vai sair</label>
       </div>
       <div id="qaCofreWrap" style="display:none;width:100%;text-align:left">
-        <p style="font-size:11.5px;color:var(--ink2);margin:0 0 6px">De qual cofre? (opcional — deixa tudo desmarcado pra sair do não distribuído). Marca mais de um se precisar somar pra cobrir o valor.</p>
+        <p style="font-size:11.5px;color:var(--ink2);margin:0 0 6px">De qual cofre? (opcional — deixa tudo desmarcado pra sair do que está sem cofre). Marca mais de um se precisar somar pra cobrir o valor.</p>
         <div id="qaCofreList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
       </div>
       <input id="qaPessoa" type="text" placeholder="Pra quem? (opcional)" style="display:none">
@@ -891,7 +933,7 @@ function abrirEditarGrupo(grupo){
 function fecharCategoriasPage(){
   document.getElementById('categoriasPage').classList.add('hidden');
 }
-const TIPO_LABEL={livre:'🌿 Livre',contas:'📎 Não distribuído',guardado:'🛟 Guardado'};
+const TIPO_LABEL={livre:'🌿 Em conta',contas:'🧾 Contas',guardado:'🛟 Guardado'};
 function loadCategorias(grupoFoco){
   const list=document.getElementById('categoriasList');
   if(!list)return;
@@ -918,6 +960,76 @@ async function salvarTipoCofre(id,novoTipo){
   await loadCofres();
   await loadHomeData();
   loadCategorias();
+}
+
+/* ================= ORGANIZAR O "SEM DESTINO" ================= */
+// Toque no card "Sem destino": a Aya manda tudo pros cofres sozinha, pelas % configuradas.
+// Entradas que ainda não foram organizadas passam pela distribuição de sempre; a sobra
+// (quando as % não somam 100%, ou dinheiro antigo que ficou sem cofre) é dividida na
+// mesma proporção das % — assim nada fica sem destino.
+let organizandoSemDestino=false;
+async function organizarSemDestino(){
+  if(!supabaseClient||!currentUser||organizandoSemDestino)return;
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId);
+  const lista=cofres||[];
+  const {semDestino}=await calcResumoFinanceiro(lista);
+  if(semDestino<0.005){ toast('Tudo organizado 🌿 Não tem dinheiro sem destino agora'); return; }
+  const comPercentual=lista.filter(c=>c.meta_tipo==='percentual'&&Number(c.percentual)>0);
+  if(!comPercentual.length){
+    toast('Coloque % nos seus cofres pra Aya organizar sozinha 🌿');
+    go('cofres');
+    return;
+  }
+  if(!confirm(`Organizar ${formatBRL(semDestino)} nos seus cofres, pelas % de cada um?`))return;
+  organizandoSemDestino=true;
+  try{
+    await organizarPendentes();
+    const {data:frescos}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId);
+    const {naoAlocado}=await calcResumoFinanceiro(frescos||[]);
+    const sobra=Math.round(Math.max(0,naoAlocado)*100)/100;
+    if(sobra>0.005)await distribuirSobraPorPercentual(sobra,(frescos||[]).filter(c=>c.meta_tipo==='percentual'&&Number(c.percentual)>0));
+    vibrar('success');
+    toast(`Organizado 🌿 ${formatBRL(semDestino)} foi pros seus cofres`);
+  }finally{
+    organizandoSemDestino=false;
+  }
+  await loadCofres();
+  await loadHomeData();
+}
+async function distribuirSobraPorPercentual(sobra,cofres){
+  // "distribuicoes" precisa de um movimento de origem: pendura cada pedaço nas entradas
+  // já organizadas que ainda têm sobra (das mais novas pras mais antigas). Assim, excluir
+  // uma dessas entradas depois desfaz certinho, igual à distribuição por %.
+  const [{data:entradas,error:errE},{data:distribs,error:errD}]=await Promise.all([
+    supabaseClient.from('movimentos').select('id,valor').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',true).order('created_at',{ascending:false}),
+    supabaseClient.from('distribuicoes').select('movimento_id,valor')
+  ]);
+  if(errE||errD){ toast('Não consegui organizar agora 😕'); return; }
+  const jaDistribuido={};
+  (distribs||[]).forEach(d=>{jaDistribuido[d.movimento_id]=(jaDistribuido[d.movimento_id]||0)+Number(d.valor||0);});
+  const origens=(entradas||[]).map(m=>({id:m.id,sobra:Number(m.valor||0)-(jaDistribuido[m.id]||0)})).filter(o=>o.sobra>0.005);
+  const somaPercent=cofres.reduce((s,c)=>s+Number(c.percentual),0);
+  let restante=sobra;
+  const falhas=[];
+  cofres.forEach((c,i)=>{c._parte=i===cofres.length-1?restante:Math.round(sobra*Number(c.percentual)/somaPercent*100)/100; restante=Math.round((restante-c._parte)*100)/100;});
+  for(const c of cofres){
+    let falta=c._parte;
+    for(const o of origens){
+      if(falta<=0.005)break;
+      if(o.sobra<=0.005)continue;
+      const pedaco=Math.round(Math.min(falta,o.sobra)*100)/100;
+      const {error}=await supabaseClient.from('distribuicoes').insert({movimento_id:o.id,cofre_id:c.id,valor:pedaco});
+      if(error){ falhas.push(c.nome); break; }
+      o.sobra-=pedaco;
+      falta-=pedaco;
+    }
+    const colocado=Math.round((c._parte-Math.max(0,falta))*100)/100;
+    if(colocado>0){
+      const {error}=await supabaseClient.from('cofres').update({valor_atual:Number(c.valor_atual||0)+colocado,concluido:false}).eq('id',c.id);
+      if(error)falhas.push(c.nome);
+    }
+  }
+  if(falhas.length)toast(`Deu erro organizando: ${[...new Set(falhas)].join(', ')} 😕`);
 }
 
 function abrirFavoritosPage(){
@@ -1354,7 +1466,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   // Monta os "pedaços" a registrar: se marcou um ou mais cofres, tira em cascata de
   // cada um (na ordem marcada) até cobrir o valor total — dá pra somar mais de um
   // cofre pra cobrir um gasto maior que qualquer um deles sozinho. Sem cofre marcado,
-  // sai tudo do não distribuído (ou pede pra marcar algum, se não tiver o suficiente).
+  // sai do dinheiro sem cofre (ou pede pra marcar algum, se não tiver o suficiente).
   let partes=[];
   if(tipo==='saida'&&cofresMarcados.length){
     let falta=valor;
@@ -1367,13 +1479,13 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
     }
     if(falta>0.005){
       const somaCofres=partes.reduce((s,p)=>s+p.valor,0);
-      toast(`Os cofres marcados só somam ${formatBRL(somaCofres)} — faltam ${formatBRL(falta)}. Marca mais algum ou desmarca tudo pra sair do não distribuído 🌿`);
+      toast(`Os cofres marcados só somam ${formatBRL(somaCofres)} — faltam ${formatBRL(falta)}. Marca mais algum ou desmarca tudo pra sair do que está sem cofre 🌿`);
       return;
     }
   }else if(tipo==='saida'){
-    const {livre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
+    const {gastavelSemCofre:livreDisponivel}=await calcResumoFinanceiro(cofresCache);
     if(valor>Math.max(0,livreDisponivel)+0.005){
-      toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} livre sem cofre. Marca de qual cofre saiu essa 🌿`);
+      toast(`Você só tem ${formatBRL(Math.max(0,livreDisponivel))} sem cofre. Marca de qual cofre saiu essa 🌿`);
       const wrap=document.getElementById('qaCofreWrap');
       if(wrap)wrap.style.display='block';
       return;
@@ -2009,7 +2121,7 @@ async function loadFavoritos(){
     if(f.preco){
       const disponivel=ligados.length?ligados.reduce((s,cid)=>s+Number(cofreById[cid]?.valor_atual||0),0):Number(livre||0);
       podeComprar=disponivel>=Number(f.preco);
-      const origem=ligados.length?ligados.map(cid=>cofreById[cid]?.nome||'cofre').join(' + '):'Livre';
+      const origem=ligados.length?ligados.map(cid=>cofreById[cid]?.nome||'cofre').join(' + '):'Em conta';
       statusHtml=podeComprar
         ? `<div class="meta" style="color:var(--sage);font-weight:600">Pode comprar</div>`
         : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} · ${origem}</div>`;
@@ -3071,7 +3183,7 @@ async function loadCofres(){
           <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--ink2);margin-bottom:6px">
             <span>${somaPercent}% já destinado aos cofres</span>
             <span class="num" style="font-weight:700;color:var(--ink)">${formatBRL(totalPercentuais)}</span>
-            <span>${restante}% livre</span>
+            <span>${restante}% fica sem destino</span>
           </div>
           <div style="background:var(--paper);border-radius:6px;height:8px;overflow:hidden">
             <div style="width:${Math.min(100,somaPercent)}%;height:100%;background:${somaPercent>100?'var(--rose)':'var(--sage)'};border-radius:6px"></div>
@@ -3085,32 +3197,38 @@ async function loadCofres(){
 async function calcResumoFinanceiro(cofresJaCarregados){
   const list=cofresJaCarregados||(await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId)).data||[];
   const cofreIds=list.map(c=>c.id);
-  const [{data:entradas},{data:saidasLivres},{data:distribs}]=await Promise.all([
+  const [{data:entradas},{data:saidasLivres},{data:distribs},{data:pendentesMovs}]=await Promise.all([
     supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true).eq('conta_id',contaAtualId),
     supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null).eq('conta_id',contaAtualId),
-    cofreIds.length?supabaseClient.from('distribuicoes').select('valor,cofre_id').in('cofre_id',cofreIds):Promise.resolve({data:[]})
+    cofreIds.length?supabaseClient.from('distribuicoes').select('valor,cofre_id').in('cofre_id',cofreIds):Promise.resolve({data:[]}),
+    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',false).eq('conta_id',contaAtualId)
   ]);
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
   const totalOrganizado=(entradas||[]).reduce((s,m)=>s+Number(m.valor||0),0);
   const totalGastoLivre=(saidasLivres||[]).reduce((s,m)=>s+Number(m.valor||0),0);
   // Usa o histórico de distribuições (fixo), não a soma atual dos cofres — senão gastar
-  // de um cofre "libera" esse valor de volta pro Livre, o que é errado: dinheiro gasto
-  // de um cofre já saiu, não deve reaparecer em nenhum outro lugar.
+  // de um cofre "libera" esse valor de volta, o que é errado: dinheiro gasto de um
+  // cofre já saiu, não deve reaparecer em nenhum outro lugar.
   const totalDistribuido=(distribs||[]).reduce((s,d)=>s+Number(d.valor||0),0);
-  // Sem piso em zero: se o gasto sem cofre for maior que o "esperando organização",
-  // o excedente tem que aparecer descontado do total mesmo assim (antes o Math.max(0,...)
-  // travava aqui e o resto do gasto sumia sem tirar de lugar nenhum). O valor guardado
-  // dentro de cada cofre (cofres.valor_atual) nunca é alterado por essa conta — só o
-  // saldo "esperando organização" fica negativo, mostrando que você já gastou até isso.
+  // O que entrou, não foi pra nenhum cofre e ainda não foi gasto. Pode ficar negativo
+  // quando o gasto sem cofre passa disso — aí o excedente é descontado do "Em conta".
   const naoAlocado=totalOrganizado-totalDistribuido-totalGastoLivre;
-  const livre=sum('livre')+naoAlocado;
+  const pendentes=(pendentesMovs||[]).reduce((s,m)=>s+Number(m.valor||0),0);
+  // "Sem destino": dinheiro que ainda não foi pra cofre nenhum — sobra das % e entradas
+  // que chegaram e ainda não foram organizadas. Só vira "Em conta" depois de distribuído.
+  const semDestino=Math.max(0,naoAlocado)+pendentes;
+  // "Em conta": só o que está nos cofres marcados como Livre.
+  const livre=sum('livre')+Math.min(0,naoAlocado);
+  // O que dá pra gastar sem escolher cofre (sai primeiro do sem destino, depois do Em conta).
+  const gastavelSemCofre=livre+Math.max(0,naoAlocado);
+  const emCofres=contas+guardado;
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
   const diasRestantes=Math.max(1,fimDoMes-hoje.getDate()+1);
   const disponivelHoje=Math.floor(livre/diasRestantes);
   const cofresComHistorico=new Set((distribs||[]).map(d=>d.cofre_id)).size;
-  return {livre,contas,guardado,naoAlocado,totalOrganizado,disponivelHoje,total:livre+contas+guardado,cofresComHistorico};
+  return {livre,contas,guardado,emCofres,naoAlocado,pendentes,semDestino,gastavelSemCofre,totalOrganizado,disponivelHoje,diasRestantes,total:livre+emCofres+semDestino,cofresComHistorico};
 }
 
 let livreCache=0;
@@ -3118,7 +3236,7 @@ async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('created_at',{ascending:true});
   const list=cofres||[];
-  const {livre,contas,guardado,disponivelHoje,naoAlocado,cofresComHistorico,total}=await calcResumoFinanceiro(list);
+  const {livre,emCofres,semDestino,disponivelHoje,total}=await calcResumoFinanceiro(list);
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -3132,20 +3250,19 @@ async function loadHomeData(){
       animarValor(document.getElementById('heroAmountVal'),anterior,disponivelHoje,{formatar:(v)=>String(Math.round(v))});
     }
   }
-  const bL=document.getElementById('barLivre'); if(bL)bL.textContent=formatBRL(livre);
-  const bC=document.getElementById('barComprometido'); if(bC)bC.textContent=formatBRL(contas);
-  const bG=document.getElementById('barGuardado'); if(bG)bG.textContent=formatBRL(guardado);
-  const bT=document.getElementById('barTotal'); if(bT)bT.textContent=formatBRL(total);
+  const setTxt=(id,v)=>{const el=document.getElementById(id); if(el)el.textContent=v;};
+  setTxt('barLivre',formatBRL(livre));
+  setTxt('barSemDestino',formatBRL(semDestino));
+  setTxt('barGuardado',formatBRL(emCofres));
+  setTxt('barTotal',formatBRL(total));
+  const semDestinoCard=document.getElementById('cardSemDestino');
+  if(semDestinoCard)semDestinoCard.classList.toggle('vazio',semDestino<0.005);
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
-    if(!list.length){
-      subEl.textContent='Crie seus cofres que eu calculo isso de verdade.';
-    }else if(cofresComHistorico>0){
-      subEl.textContent=`${formatBRL(contas+guardado)} no total, em ${cofresComHistorico} cofre${cofresComHistorico>1?'s':''} com histórico real`;
-    }else{
-      subEl.textContent=`${formatBRL(contas+guardado)} no total, mas ainda não foi distribuído de verdade`;
-    }
+    subEl.textContent=list.length
+      ?'O que você pode gastar agora.'
+      :'Crie seus cofres que eu calculo isso de verdade.';
   }
 
   const atencao=list.filter(c=>c.concluido===false);
@@ -3157,7 +3274,7 @@ async function loadHomeData(){
       avisoEl.innerHTML=`<button type="button" onclick="go('cofres')" style="width:100%;display:flex;align-items:center;gap:10px;background:var(--amber-tint);border:1px solid var(--amber-soft);border-radius:16px;padding:14px 15px;font-family:inherit;cursor:pointer;text-align:left">
         <span style="font-size:20px;flex-shrink:0">🌿</span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;font-weight:700;font-size:13.5px;color:#8a5a1e">${formatBRL(totalPendente)} esperando destino</span>
+          <span style="display:block;font-weight:700;font-size:13.5px;color:#8a5a1e">${formatBRL(totalPendente)} pra conferir nos cofres</span>
           <span style="display:block;font-size:12px;color:#8a5a1e;opacity:.85;margin-top:1px">${atencao.length} caixinha${atencao.length>1?'s':''} — toca pra dizer pra onde foi</span>
         </span>
       </button>`;
