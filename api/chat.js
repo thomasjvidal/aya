@@ -74,13 +74,12 @@ function buildSystemPrompt(context) {
 
   const r = c.resumo || null;
   const resumoTxt = r
-    ? `Disponível hoje: ${formatBRL(r.disponivelHoje)} (o "Em conta" dividido pelos dias que faltam no mês)
-Em conta (cofres marcados como Livre, já disponível pra gastar): ${formatBRL(r.livre)}
-Sem destino (dinheiro que entrou e ainda não foi pra nenhum cofre — a pessoa organiza tocando no card "Sem destino" da Home): ${formatBRL(r.semDestino ?? Math.max(0, r.naoAlocado || 0))}
-Guardado em cofres (soma de todos os cofres que não são Livre): ${formatBRL(r.emCofres ?? ((r.contas || 0) + (r.guardado || 0)))}
-  - desses, cofres de contas: ${formatBRL(r.contas)}
-  - desses, reservas/sonhos: ${formatBRL(r.guardado)}
-Saldo total (tudo que a pessoa tem): ${formatBRL(r.total)}`
+    ? `Disponível hoje: ${formatBRL(r.disponivelHoje)} (o "Livre pra gastar" dividido pelos dias que faltam no mês)
+Livre pra gastar (sobra das entradas que não foi pra nenhum cofre + cofres marcados como Livre): ${formatBRL(r.livre)}
+Contas a pagar (cofres de contas — dinheiro que já vai sair): ${formatBRL(r.contas)}
+Guardado (cofres com objetivo de guardar: reserva, sonhos, investimentos): ${formatBRL(r.guardado)}
+Saldo disponível (Livre pra gastar + Guardado, sem as contas): ${formatBRL(r.saldoDisponivel ?? ((r.livre || 0) + (r.guardado || 0)))}
+Total somando tudo, inclusive as contas: ${formatBRL(r.total)}`
     : 'Ainda não dá pra calcular um resumo (sem cofres ou sem movimentos organizados ainda).';
 
   const favoritos = Array.isArray(c.favoritos) ? c.favoritos : [];
