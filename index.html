@@ -81,6 +81,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .resumo-card .rc-t{font-size:12px;color:var(--ink2)}
 .resumo-card .rc-v{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--ink);margin:2px 0 1px;white-space:nowrap}
 .resumo-card .rc-s{font-size:11px;color:var(--ink2);line-height:1.25}
+.resumo-card.largo{grid-column:1/-1}
 .resumo-card.contas .rc-ic{background:var(--amber-tint);color:#a8692a}
 .info-lista{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .info-lista .row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:13.5px}
@@ -303,7 +304,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
 
     <div class="resumo-grid">
-      <div class="resumo-card" onclick="abrirInfoResumo('livre')">
+      <div class="resumo-card largo" onclick="abrirInfoResumo('livre')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><path d="M16 13.5h.01"/></svg></span>
         <div class="rc-txt"><div class="rc-t">Livre pra gastar</div><div class="rc-v num" id="barLivre">R$ 0</div><div class="rc-s">Gaste como quiser</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('livre')">i</button>
@@ -318,15 +319,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num" id="barGuardado">R$ 0</div><div class="rc-s">Em seus cofres</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('guardado')">i</button>
       </div>
-      <div class="resumo-card" onclick="abrirInfoResumo('saldo')">
-        <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z" fill="currentColor"/><path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z" fill="currentColor"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Saldo disponível</div><div class="rc-v num" id="barSaldo">R$ 0</div><div class="rc-s">Sem as contas</div></div>
-        <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('saldo')">i</button>
-      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:8px auto 0">
       <button type="button" onclick="go('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Ver seus cofres →</button>
       <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">♡ Favoritos</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin:14px 0 0">
+      <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
+      <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
     </div>
 
     <div class="aya-card">
@@ -334,11 +335,6 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="who"><span class="aya-face">✦</span> Aya percebeu</div>
       <p id="aya-hoje-txt">Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿</p>
       <button class="cta" style="width:75%" onclick="go('aya')">Conversar</button>
-    </div>
-
-    <div style="display:flex;gap:10px;margin:14px 0 4px">
-      <button type="button" onclick="irCriarCofre()" style="flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Criar cofre</button>
-      <button type="button" onclick="openQuickAdd()" style="flex:1;background:var(--sage);border:0;color:#fff;font-family:inherit;font-weight:600;font-size:13px;padding:14px 10px;border-radius:14px;cursor:pointer">+ Adicionar movimento</button>
     </div>
 
     <div id="atencaoAviso" style="display:none;margin:14px 0 4px"></div>
@@ -984,8 +980,7 @@ async function abrirInfoResumo(qual){
     hoje:{titulo:'Disponível hoje',valor:r.disponivelHoje,texto:`Quanto dá pra gastar por dia até o fim do mês. É o seu Livre pra gastar dividido pelos ${r.diasRestantes} dia${r.diasRestantes>1?'s':''} que faltam.`,corpo:''},
     livre:{titulo:'Livre pra gastar',valor:r.livre,texto:'O que sobrou das suas entradas depois de separar pros cofres — pra gastar como quiser. Não precisa de cofre pra isso. Gastos que você registra sem escolher cofre saem daqui.',corpo:lista(livreLinhas,'Nada livre agora.')},
     contas:{titulo:'Contas a pagar',valor:r.contas,texto:'Dinheiro já separado pras contas. Ele já tem destino: vai sair.',corpo:lista(cofresDo('contas'),'Nenhum cofre de contas ainda.')},
-    guardado:{titulo:'Guardado',valor:r.guardado,texto:'Dinheiro separado com objetivo de guardar: reserva, sonhos, investimentos.',corpo:lista(cofresDo('guardado'),'Nenhum cofre de guardar ainda.')},
-    saldo:{titulo:'Saldo disponível',valor:r.saldoDisponivel,texto:'Seu dinheiro sem contar o que já está separado pras contas.',corpo:lista([linha('🌿','Livre pra gastar',r.livre),linha('🛟','Guardado',r.guardado)],'')}
+    guardado:{titulo:'Guardado',valor:r.guardado,texto:'Dinheiro separado com objetivo de guardar: reserva, sonhos, investimentos.',corpo:lista(cofresDo('guardado'),'Nenhum cofre de guardar ainda.')}
   };
   const i=infos[qual]; if(!i)return;
   box.innerHTML=`
@@ -994,7 +989,7 @@ async function abrirInfoResumo(qual){
     <div class="num" style="font-size:30px;font-weight:700;color:var(--ink);margin:6px 0 4px">${formatBRL(i.valor)}</div>
     <p style="font-size:13px;color:var(--ink2);margin:4px 2px 16px;line-height:1.5">${i.texto}</p>
     ${i.corpo}
-    ${qual!=='hoje'&&qual!=='saldo'?'<p style="font-size:11.5px;color:var(--ink2);margin:14px 4px 0;line-height:1.4">Pra mudar em qual grupo um cofre entra, edite o cofre na aba Cofres.</p>':''}`;
+    ${qual!=='hoje'?'<p style="font-size:11.5px;color:var(--ink2);margin:14px 4px 0;line-height:1.4">Pra mudar em qual grupo um cofre entra, edite o cofre na aba Cofres.</p>':''}`;
   page.classList.remove('hidden');
 }
 
@@ -3184,14 +3179,12 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   // "Livre pra gastar": a sobra sem cofre + os cofres marcados como Livre, se tiver.
   const livre=sum('livre')+naoAlocado;
   const gastavelSemCofre=livre;
-  // "Saldo disponível": seu dinheiro sem contar o que já está separado pras contas.
-  const saldoDisponivel=livre+guardado;
   const hoje=new Date();
   const fimDoMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
   const diasRestantes=Math.max(1,fimDoMes-hoje.getDate()+1);
   const disponivelHoje=Math.floor(livre/diasRestantes);
   const cofresComHistorico=new Set((distribs||[]).map(d=>d.cofre_id)).size;
-  return {livre,contas,guardado,saldoDisponivel,naoAlocado,pendentes,gastavelSemCofre,totalOrganizado,disponivelHoje,diasRestantes,total:livre+contas+guardado,cofresComHistorico};
+  return {livre,contas,guardado,naoAlocado,pendentes,gastavelSemCofre,totalOrganizado,disponivelHoje,diasRestantes,total:livre+contas+guardado,cofresComHistorico};
 }
 
 let livreCache=0;
@@ -3199,7 +3192,7 @@ async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
   const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('created_at',{ascending:true});
   const list=cofres||[];
-  const {livre,contas,guardado,saldoDisponivel,disponivelHoje}=await calcResumoFinanceiro(list);
+  const {livre,contas,guardado,disponivelHoje}=await calcResumoFinanceiro(list);
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -3217,7 +3210,6 @@ async function loadHomeData(){
   setTxt('barLivre',formatBRL(livre));
   setTxt('barContas',formatBRL(contas));
   setTxt('barGuardado',formatBRL(guardado));
-  setTxt('barSaldo',formatBRL(saldoDisponivel));
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
