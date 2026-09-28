@@ -3044,6 +3044,18 @@ async function toggleCofreConcluido(id){
   toast(novo?'Marcado como em dia 🌿':'Marcado pra dar atenção 🌿');
 }
 
+async function marcarTodosEmDia(){
+  if(!supabaseClient||!currentUser)return;
+  const ids=(cofresCache||[]).filter(c=>c.concluido===false).map(c=>c.id);
+  if(!ids.length)return;
+  const {error}=await supabaseClient.from('cofres').update({concluido:true}).in('id',ids);
+  if(error){ toast('Não consegui marcar agora 😕'); return; }
+  vibrar('success');
+  toast(`${ids.length} cofre${ids.length>1?'s':''} em dia 🌿`);
+  await loadCofres();
+  await loadHomeData();
+}
+
 function redistribuirCofres(){
   if(!supabaseClient||!currentUser)return;
   const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
@@ -3404,7 +3416,10 @@ async function loadCofres(){
       const pendentes=cofresCache.filter(c=>c.concluido===false);
       const concluidos=cofresCache.filter(c=>c.concluido!==false);
       const bloco=(titulo,arr)=>arr.length?`
-        <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin:${arr===pendentes?'0':'16px'} 2px 6px">${titulo}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:${arr===pendentes?'0':'16px'} 2px 6px">
+          <span style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em">${titulo}</span>
+          ${arr===pendentes?'<button type="button" onclick="marcarTodosEmDia()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;padding:2px 0">✓ Marcar todos em dia</button>':''}
+        </div>
         ${arr.map((c)=>cofreCardHtml(c,true,cofresCache.indexOf(c),cofresCache.length)).join('')}
       `:'';
       list.innerHTML=bloco('🟠 Pendentes',pendentes)+bloco('🟢 Em dia',concluidos);
