@@ -1802,7 +1802,8 @@ async function loadPendentes(){
       <div id="pendenteAcaoWrap">
         <button class="split-btn" onclick="iniciarOrganizar()">Deixar a Aya organizar</button>
         <button type="button" onclick="iniciarTransferirEntrada()" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:11px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px">⇄ Eu mesmo transfiro pros cofres</button>
-        <div class="split-note">A Aya divide pelas % dos cofres. Ou você diz quanto vai pra cada um — o que sobrar continua aqui.</div>
+        <button type="button" onclick="iniciarSaidaPendente()" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:11px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px">− Registrar saída</button>
+        <div class="split-note">A Aya divide pelas % dos cofres. Ou você diz quanto vai pra cada um — o que sobrar continua aqui. Se parte já saiu (ou foi erro), registra a saída.</div>
       </div>
     `;
   }
@@ -1967,8 +1968,78 @@ async function confirmarTransferirEntrada(){
   await loadPerfilStats();
 }
 
+// "Registrar saída": parte do dinheiro esperando organização já saiu (ou entrou por
+// engano). A parte que sai é organizada como livre e a saída é registrada em seguida,
+// então o livre fica igual e o "esperando organização" diminui.
+let saidaPendenteState=null;
+async function iniciarSaidaPendente(){
+  if(!supabaseClient||!currentUser)return;
+  const {pend,error}=await buscarPendentes();
+  if(error||!pend||!pend.length)return;
+  const total=Math.round(pend.reduce((s,m)=>s+m.restante,0)*100)/100;
+  saidaPendenteState={pend,total};
+  const wrap=document.getElementById('pendenteAcaoWrap');
+  if(!wrap)return;
+  const campo='width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px';
+  wrap.innerHTML=`
+    <p style="font-size:12.5px;color:var(--ink2);margin:0 0 10px">O que saiu dos ${formatBRL(total)}?</p>
+    <input id="saidaPendDesc" type="text" placeholder="Descrição (ex: ajuste, mercado…)" style="${campo}">
+    <input id="saidaPendValor" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="atualizarSaidaPendente()" style="${campo}">
+    <div id="saidaPendResto" style="font-size:12px;color:var(--ink2);margin:0 2px 10px">Continua esperando organização: ${formatBRL(total)}</div>
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="cancelarOrganizarComValor()" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Cancelar</button>
+      <button type="button" onclick="confirmarSaidaPendente()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Registrar saída</button>
+    </div>
+  `;
+  document.getElementById('saidaPendDesc').focus();
+}
+function atualizarSaidaPendente(){
+  const el=document.getElementById('saidaPendResto');
+  if(!el||!saidaPendenteState)return;
+  const valor=Math.round((parseFloat(document.getElementById('saidaPendValor').value)||0)*100)/100;
+  const resto=Math.round((saidaPendenteState.total-valor)*100)/100;
+  el.style.color=resto<-0.005?'var(--rose)':'var(--ink2)';
+  el.textContent=resto<-0.005?`Passou ${formatBRL(-resto)} do que está esperando`:`Continua esperando organização: ${formatBRL(resto)}`;
+}
+async function confirmarSaidaPendente(){
+  if(!supabaseClient||!currentUser||!saidaPendenteState)return;
+  const {pend,total}=saidaPendenteState;
+  const descricao=(document.getElementById('saidaPendDesc').value||'').trim()||'Saída';
+  const valor=Math.round((parseFloat(document.getElementById('saidaPendValor').value)||0)*100)/100;
+  if(!(valor>0)){ toast('Coloca quanto saiu 🌿'); return; }
+  if(valor>total+0.005){ toast('Isso é mais do que está esperando 🌿'); return; }
+  // Tira das entradas mais antigas primeiro. Entrada consumida inteira vira organizada;
+  // se for só uma parte, ela é dividida: a parte que saiu fica organizada à parte.
+  let falta=valor;
+  for(const m of pend){
+    if(falta<=0.005)break;
+    if(m.restante<=0.005)continue;
+    const pedaco=Math.round(Math.min(falta,m.restante)*100)/100;
+    if(pedaco>=m.restante-0.005){
+      const {error}=await supabaseClient.from('movimentos').update({organizado:true}).eq('id',m.id);
+      if(error){ toast('Não consegui registrar agora 😕'); return; }
+    }else{
+      const {error:e1}=await supabaseClient.from('movimentos').update({valor:Math.round((Number(m.valor)-pedaco)*100)/100}).eq('id',m.id);
+      if(e1){ toast('Não consegui registrar agora 😕'); return; }
+      await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao:m.descricao,valor:pedaco,tipo:'entrada',cofre_id:null,organizado:true});
+    }
+    falta-=pedaco;
+  }
+  const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor,tipo:'saida',cofre_id:null});
+  if(error){ toast('Não consegui registrar a saída 😕'); return; }
+  saidaPendenteState=null;
+  vibrar('success');
+  toast(`Saída registrada 🌿 ${formatBRL(valor)}`);
+  await loadPendentes();
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
+}
+
 function cancelarOrganizarComValor(){
   transferirEntradaState=null;
+  saidaPendenteState=null;
   organizarComValorState=null;
   loadPendentes();
 }
