@@ -1726,13 +1726,27 @@ async function distribuirPercentuais(valorEntrada,movimentoId){
   else toast(partes.length?`Registrado 🌿 Separei: ${partes.join(', ')}`:'Registrado 🌿');
 }
 
+// Entradas que chegaram e ainda não foram organizadas, com quanto de cada uma ainda falta
+// organizar (dá pra transferir só uma parte pra um cofre e deixar o resto esperando).
+async function buscarPendentes(){
+  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
+  if(error)return {pend:null,error};
+  const lista=pend||[];
+  if(!lista.length)return {pend:[],error:null};
+  const {data:ds,error:errD}=await supabaseClient.from('distribuicoes').select('movimento_id,valor').in('movimento_id',lista.map(m=>m.id));
+  if(errD)return {pend:null,error:errD};
+  const jaFoi={};
+  (ds||[]).forEach(d=>{jaFoi[d.movimento_id]=(jaFoi[d.movimento_id]||0)+Number(d.valor||0);});
+  return {pend:lista.map(m=>({...m,restante:Math.round((Number(m.valor||0)-(jaFoi[m.id]||0))*100)/100})),error:null};
+}
+
 async function loadPendentes(){
   if(!supabaseClient||!currentUser)return;
   const card=document.getElementById('pendenteCard');
   if(!card)return;
-  const [{data:esperados,error:errEsperados},{data:pend,error:errPend}]=await Promise.all([
+  const [{data:esperados,error:errEsperados},{pend,error:errPend}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','esperado').order('created_at',{ascending:false}),
-    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false)
+    buscarPendentes()
   ]);
   if(errEsperados||errPend){
     card.style.display='block';
@@ -1780,7 +1794,7 @@ async function loadPendentes(){
     html+=`</div>`;
   }
   if(listaPend.length){
-    const total=listaPend.reduce((s,m)=>s+Number(m.valor||0),0);
+    const total=listaPend.reduce((s,m)=>s+m.restante,0);
     html+=`
       <div class="head"><span class="pulse"></span><h3>Dinheiro esperando organização</h3></div>
       <div class="amt num">+ ${formatBRL(total)}</div>
@@ -1788,7 +1802,7 @@ async function loadPendentes(){
       <div id="pendenteAcaoWrap">
         <button class="split-btn" onclick="iniciarOrganizar()">Deixar a Aya organizar</button>
         <button type="button" onclick="iniciarTransferirEntrada()" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:11px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px">⇄ Eu mesmo transfiro pros cofres</button>
-        <div class="split-note">A Aya divide pelas % dos cofres. Ou você diz quanto vai pra cada um — o que sobrar fica no Livre pra gastar.</div>
+        <div class="split-note">A Aya divide pelas % dos cofres. Ou você diz quanto vai pra cada um — o que sobrar continua aqui.</div>
       </div>
     `;
   }
@@ -1814,10 +1828,10 @@ async function confirmarChegada(id){
 
 async function organizarPendentes(){
   if(!supabaseClient||!currentUser)return;
-  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false);
+  const {pend,error}=await buscarPendentes();
   if(error||!pend||!pend.length)return;
   for(const m of pend){
-    await distribuirPercentuais(Number(m.valor||0),m.id);
+    if(m.restante>0.005)await distribuirPercentuais(m.restante,m.id);
     await supabaseClient.from('movimentos').update({organizado:true}).eq('id',m.id);
   }
   await loadPendentes();
@@ -1830,7 +1844,7 @@ async function organizarPendentes(){
 let organizarComValorState=null;
 async function iniciarOrganizar(){
   if(!supabaseClient||!currentUser)return;
-  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
+  const {pend,error}=await buscarPendentes();
   if(error||!pend||!pend.length)return;
   // Cofres com meta em R$ (não %) que ainda não bateram a meta — pra esses a Aya
   // pergunta quanto vai antes de espalhar o resto pelos % configurados.
@@ -1839,7 +1853,7 @@ async function iniciarOrganizar(){
     await organizarPendentes();
     return;
   }
-  const total=pend.reduce((s,m)=>s+Number(m.valor||0),0);
+  const total=Math.round(pend.reduce((s,m)=>s+m.restante,0)*100)/100;
   organizarComValorState={pend,total};
   const wrap=document.getElementById('pendenteAcaoWrap');
   if(!wrap)return;
@@ -1859,13 +1873,13 @@ async function iniciarOrganizar(){
 }
 
 // "Eu mesmo transfiro": a pessoa diz quanto do dinheiro que entrou vai pra cada cofre,
-// sem as % automáticas. O que sobrar fica sem cofre, ou seja, no Livre pra gastar.
+// sem as % automáticas. O que sobrar continua esperando organização.
 let transferirEntradaState=null;
 async function iniciarTransferirEntrada(){
   if(!supabaseClient||!currentUser)return;
-  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
+  const {pend,error}=await buscarPendentes();
   if(error||!pend||!pend.length)return;
-  const total=Math.round(pend.reduce((s,m)=>s+Number(m.valor||0),0)*100)/100;
+  const total=Math.round(pend.reduce((s,m)=>s+m.restante,0)*100)/100;
   transferirEntradaState={pend,total};
   const wrap=document.getElementById('pendenteAcaoWrap');
   if(!wrap)return;
@@ -1877,7 +1891,7 @@ async function iniciarTransferirEntrada(){
         <input class="transfEntradaValor" data-id="${c.id}" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="atualizarTransferirEntrada()" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
       </div>
     `).join('')}
-    <div id="transfEntradaResto" style="font-size:12px;color:var(--ink2);margin:4px 2px 10px">Fica no Livre pra gastar: ${formatBRL(total)}</div>
+    <div id="transfEntradaResto" style="font-size:12px;color:var(--ink2);margin:4px 2px 10px">Continua esperando organização: ${formatBRL(total)}</div>
     <div style="display:flex;gap:8px">
       <button type="button" onclick="cancelarOrganizarComValor()" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Cancelar</button>
       <button type="button" onclick="confirmarTransferirEntrada()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Transferir</button>
@@ -1892,7 +1906,7 @@ function atualizarTransferirEntrada(){
   if(!el||!transferirEntradaState)return;
   const resto=Math.round((transferirEntradaState.total-valoresTransferirEntrada().reduce((s,a)=>s+a.valor,0))*100)/100;
   el.style.color=resto<-0.005?'var(--rose)':'var(--ink2)';
-  el.textContent=resto<-0.005?`Passou ${formatBRL(-resto)} do que entrou`:`Fica no Livre pra gastar: ${formatBRL(resto)}`;
+  el.textContent=resto<-0.005?`Passou ${formatBRL(-resto)} do que entrou`:`Continua esperando organização: ${formatBRL(resto)}`;
 }
 async function confirmarTransferirEntrada(){
   if(!supabaseClient||!currentUser||!transferirEntradaState)return;
@@ -1901,7 +1915,7 @@ async function confirmarTransferirEntrada(){
   const soma=alocacoes.reduce((s,a)=>s+a.valor,0);
   if(soma>total+0.005){ toast('Isso é mais do que entrou 🌿'); return; }
   // Registra em "distribuicoes" por movimento, assim excluir a entrada depois desfaz certinho.
-  const restantes=pend.map(m=>({id:m.id,restante:Number(m.valor||0)}));
+  const restantes=pend.map(m=>({id:m.id,restante:m.restante}));
   for(const aloc of alocacoes){
     let faltaAlocar=aloc.valor;
     for(const rp of restantes){
@@ -1914,8 +1928,9 @@ async function confirmarTransferirEntrada(){
     }
     await supabaseClient.from('cofres').update({valor_atual:Number(aloc.cofre.valor_atual||0)+aloc.valor}).eq('id',aloc.cofre.id);
   }
+  // Só sai da fila a entrada que foi toda transferida; o resto continua esperando organização.
   for(const rp of restantes){
-    await supabaseClient.from('movimentos').update({organizado:true}).eq('id',rp.id);
+    if(rp.restante<=0.005)await supabaseClient.from('movimentos').update({organizado:true}).eq('id',rp.id);
   }
   transferirEntradaState=null;
   vibrar('success');
@@ -1947,7 +1962,7 @@ async function confirmarOrganizarComValor(){
 
   // Espalha cada alocação manual pelos movimentos pendentes, na ordem, registrando em
   // "distribuicoes" — assim excluir um desses movimentos depois desfaz certinho.
-  const restantes=pend.map(m=>({id:m.id,restante:Number(m.valor||0)}));
+  const restantes=pend.map(m=>({id:m.id,restante:m.restante}));
   for(const aloc of alocacoes){
     let faltaAlocar=aloc.valor;
     for(const rp of restantes){
@@ -3469,8 +3484,8 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   const [{data:entradas},{data:saidasLivres},{data:distribs},{data:pendentesMovs}]=await Promise.all([
     supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',true).eq('conta_id',contaAtualId),
     supabaseClient.from('movimentos').select('valor').eq('tipo','saida').is('cofre_id',null).eq('conta_id',contaAtualId),
-    cofreIds.length?supabaseClient.from('distribuicoes').select('valor,cofre_id').in('cofre_id',cofreIds):Promise.resolve({data:[]}),
-    supabaseClient.from('movimentos').select('valor').eq('tipo','entrada').eq('organizado',false).eq('conta_id',contaAtualId)
+    cofreIds.length?supabaseClient.from('distribuicoes').select('valor,cofre_id,movimento_id').in('cofre_id',cofreIds):Promise.resolve({data:[]}),
+    supabaseClient.from('movimentos').select('id,valor').eq('tipo','entrada').eq('organizado',false).eq('conta_id',contaAtualId)
   ]);
   const sum=(tipo)=>list.filter(c=>c.tipo===tipo).reduce((s,c)=>s+Number(c.valor_atual||0),0);
   const contas=sum('contas'),guardado=sum('guardado');
@@ -3479,11 +3494,15 @@ async function calcResumoFinanceiro(cofresJaCarregados){
   // Usa o histórico de distribuições (fixo), não a soma atual dos cofres — senão gastar
   // de um cofre "libera" esse valor de volta, o que é errado: dinheiro gasto de um
   // cofre já saiu, não deve reaparecer em nenhum outro lugar.
-  const totalDistribuido=(distribs||[]).reduce((s,d)=>s+Number(d.valor||0),0);
+  // Entrada pendente pode já ter uma parte transferida pra um cofre: essa parte sai do
+  // "esperando organização", e não da sobra das entradas já organizadas.
+  const idsPendentes=new Set((pendentesMovs||[]).map(m=>m.id));
+  const distribuidoDePendentes=(distribs||[]).filter(d=>idsPendentes.has(d.movimento_id)).reduce((s,d)=>s+Number(d.valor||0),0);
+  const totalDistribuido=(distribs||[]).reduce((s,d)=>s+Number(d.valor||0),0)-distribuidoDePendentes;
   // O que entrou, não foi pra nenhum cofre e ainda não foi gasto (sobra das %). Conta
   // como livre pra gastar — não precisa de cofre Livre pra ter dinheiro livre.
   const naoAlocado=totalOrganizado-totalDistribuido-totalGastoLivre;
-  const pendentes=(pendentesMovs||[]).reduce((s,m)=>s+Number(m.valor||0),0);
+  const pendentes=(pendentesMovs||[]).reduce((s,m)=>s+Number(m.valor||0),0)-distribuidoDePendentes;
   // "Livre pra gastar": a sobra sem cofre + os cofres marcados como Livre, se tiver.
   const livre=sum('livre')+naoAlocado;
   const gastavelSemCofre=livre;
