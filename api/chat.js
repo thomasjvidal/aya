@@ -27,6 +27,11 @@ function formatBRL(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Quando a pessoa usa o app em inglês, a Aya responde em inglês e usa os nomes dos
+// botões como aparecem na tela em inglês.
+const INGLES_PROMPT = `
+IMPORTANT — LANGUAGE: The user set the app to English. Always reply in English, even though the data below is written in Portuguese (translate names of sections naturally; keep the user's own vault names as they are). Format amounts like R$ 294.30. The app buttons in English are: "🔄 Redistribute" (Vaults tab), "Let Aya organize" (Vaults tab), "+ Create vault", "+ Add transaction" (Activity tab), and the Profile tab. In English, "cofres" are "vaults", "Livre pra gastar" is "Free to spend", "Contas a pagar" is "Bills to pay" and "Guardado" is "Saved".`;
+
 function buildSystemPrompt(context) {
   const c = context || {};
   const nome = c.nome || 'a pessoa usando o app';
@@ -113,7 +118,7 @@ ${contasFixasTxt}
 
 Links que ${nome} salvou nos favoritos (coisas que quer comprar, ainda não decidiu):
 ${favoritosTxt}
-Se fizer sentido na conversa (a pessoa perguntar sobre compras, dinheiro sobrando, ou mencionar algo parecido), você pode puxar assunto sobre um desses favoritos espontaneamente — pergunte se ela já decidiu sobre aquilo.`;
+Se fizer sentido na conversa (a pessoa perguntar sobre compras, dinheiro sobrando, ou mencionar algo parecido), você pode puxar assunto sobre um desses favoritos espontaneamente — pergunte se ela já decidiu sobre aquilo.${c.idioma === 'en' ? INGLES_PROMPT : ''}`;
 }
 
 module.exports = async (req, res) => {
@@ -163,7 +168,7 @@ module.exports = async (req, res) => {
 
     const data = await groqRes.json();
     const reply = data.choices?.[0]?.message?.content?.trim()
-      || 'Desculpa, não consegui pensar em nada agora 🌿';
+      || (context && context.idioma === 'en' ? "Sorry, I couldn't think of anything right now 🌿" : 'Desculpa, não consegui pensar em nada agora 🌿');
     res.status(200).json({ reply });
   } catch (err) {
     res.status(500).json({ error: 'Erro interno', detail: String(err) });

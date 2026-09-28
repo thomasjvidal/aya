@@ -1,5 +1,6 @@
 const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
+const { idiomaDoUsuario } = require('./_lib/idioma');
 
 module.exports = async (req, res) => {
   const token = req.query.token;
@@ -49,6 +50,22 @@ module.exports = async (req, res) => {
     },
   };
 
+  const MENSAGENS_LEMBRETE_EN = {
+    manha: {
+      aperto: "Good morning 🌧️ Before you head out, take a look at what's left from yesterday — so you don't lose track again.",
+      auto: 'Good morning 💼 Did you split what came in yesterday between personal and business? Log it quickly before the day takes over.',
+      impulso: "Good morning ⚡ Start the day logging what happened yesterday — it helps you notice patterns before temptation hits.",
+      default: "Good morning 🌿 Anything from yesterday to log? Start the day with your accounts up to date.",
+    },
+    noite: {
+      aperto: "Good evening 🌧️ Wrap up the day with me: what went out today? Don't let it pile up.",
+      auto: 'Good evening 💼 Done for the day? Log what came in and went out before bed, split by personal/business.',
+      impulso: "Good evening ⚡ Before bed, log what happened today — including that urge to buy you resisted (or didn't).",
+      default: "Good evening 🌿 Wrap up the day by logging what happened. That way you don't lose track again.",
+    },
+  };
+
+  const en = (await idiomaDoUsuario(supabaseAdmin, sub.user_id)) === 'en';
   let body, url;
   if (tipo === 'manha' || tipo === 'noite') {
     let estilo = 'default';
@@ -58,15 +75,21 @@ module.exports = async (req, res) => {
       .eq('id', sub.user_id)
       .single();
     if (perfil && MENSAGENS_LEMBRETE[tipo][perfil.estilo]) estilo = perfil.estilo;
-    body = MENSAGENS_LEMBRETE[tipo][estilo];
+    body = (en ? MENSAGENS_LEMBRETE_EN : MENSAGENS_LEMBRETE)[tipo][estilo];
     url = '/#add';
   } else if (tipo === 'banco') {
-    body = 'Vi que você abriu o banco 🌿 Rolou alguma coisa? Toca aqui pra eu registrar rapidinho.';
+    body = en
+      ? 'I saw you opened your bank 🌿 Anything happen? Tap here and I\'ll log it quickly.'
+      : 'Vi que você abriu o banco 🌿 Rolou alguma coisa? Toca aqui pra eu registrar rapidinho.';
     url = '/#add';
   } else {
-    body = app
-      ? `Vi que você abriu ${app} 🌿 Calma — respira 3 segundos comigo antes de decidir.`
-      : 'Calma 🌿 Respira 3 segundos comigo antes de decidir essa compra.';
+    body = en
+      ? (app
+        ? `I saw you opened ${app} 🌿 Easy — breathe with me for 3 seconds before deciding.`
+        : 'Easy 🌿 Breathe with me for 3 seconds before deciding on this purchase.')
+      : (app
+        ? `Vi que você abriu ${app} 🌿 Calma — respira 3 segundos comigo antes de decidir.`
+        : 'Calma 🌿 Respira 3 segundos comigo antes de decidir essa compra.');
     url = app ? `/#calma=${encodeURIComponent(app)}` : '/#calma';
   }
 

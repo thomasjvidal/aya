@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { idiomaDoUsuario } = require('./_lib/idioma');
 const webpush = require('web-push');
 
 const PROMPT = `Essa imagem é um comprovante ou extrato de uma transação bancária (Pix, transferência, pagamento). Extraia os dados e responda SOMENTE com um JSON puro, sem texto antes ou depois, exatamente neste formato:
@@ -85,10 +86,11 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const en = (await idiomaDoUsuario(supabaseAdmin, sub.user_id)) === 'en';
   const valorValido = extraido && typeof extraido.valor === 'number' && extraido.valor > 0;
   const tipoValido = extraido && (extraido.tipo === 'entrada' || extraido.tipo === 'saida');
   if (!extraido || extraido.erro || !valorValido || !tipoValido) {
-    res.status(422).json({ error: (extraido && extraido.erro) || 'Não consegui identificar valor e tipo nesse comprovante. Registra na mão dessa vez 🌿' });
+    res.status(422).json({ error: (extraido && extraido.erro) || (en ? "Couldn't identify the amount and type on this receipt. Log it by hand this time 🌿" : 'Não consegui identificar valor e tipo nesse comprovante. Registra na mão dessa vez 🌿') });
     return;
   }
 
@@ -120,8 +122,10 @@ module.exports = async (req, res) => {
   if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails('mailto:contato@aya.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
     const sinal = extraido.tipo === 'entrada' ? '+' : '−';
-    const valorTxt = extraido.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const body = `Registrei ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Toca pra conferir.`;
+    const valorTxt = extraido.valor.toLocaleString(en ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const body = en
+      ? `Logged ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Tap to check.`
+      : `Registrei ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Toca pra conferir.`;
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
