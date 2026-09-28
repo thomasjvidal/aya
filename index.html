@@ -806,6 +806,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
           <button type="button" id="cdConversar" style="background:rgba(255,255,255,.14);color:#eaf3ee;border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer" onclick="iniciarConversaCofreDetalhe()">💬 Aya</button>
           <button type="button" style="background:rgba(255,255,255,.14);color:#eaf3ee;border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer" onclick="toggleRendimentoForm()">+ Rendeu</button>
           <button type="button" style="background:rgba(255,255,255,.14);color:#eaf3ee;border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer" onclick="toggleSaidaCofreForm()">− Saída</button>
+          <button type="button" style="background:rgba(255,255,255,.14);color:#eaf3ee;border:0;border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer" onclick="transferirDoCofreDetalhe()">⇄ Transferir</button>
         </div>
         <div id="rendimentoForm" style="display:none;gap:8px;margin-top:12px;max-width:280px;margin-left:auto;margin-right:auto">
           <div style="display:flex;gap:8px">
@@ -1700,7 +1701,7 @@ async function distribuirPercentuais(valorEntrada,movimentoId){
     if(parte<=0)continue;
     const valorAntigo=Number(c.valor_atual||0);
     const valorNovo=valorAntigo+parte;
-    const {error}=await supabaseClient.from('cofres').update({valor_atual:valorNovo,concluido:false}).eq('id',c.id);
+    const {error}=await supabaseClient.from('cofres').update({valor_atual:valorNovo}).eq('id',c.id);
     if(error){ falhas.push(c.nome); continue; }
     if(movimentoId)await supabaseClient.from('distribuicoes').insert({movimento_id:movimentoId,cofre_id:c.id,valor:parte});
     partes.push(`${formatBRL(parte)} → ${c.nome}`);
@@ -1786,7 +1787,8 @@ async function loadPendentes(){
       <div class="cap">${listaPend.length} entrada${listaPend.length>1?'s':''} registrada${listaPend.length>1?'s':''} no Movimento, ainda não distribuída${listaPend.length>1?'s':''}</div>
       <div id="pendenteAcaoWrap">
         <button class="split-btn" onclick="iniciarOrganizar()">Deixar a Aya organizar</button>
-        <div class="split-note">Cofres com meta em R$ perguntam quanto vai pra eles primeiro. O resto é distribuído pelos cofres com % configurado.</div>
+        <button type="button" onclick="iniciarTransferirEntrada()" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:11px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px">⇄ Eu mesmo transfiro pros cofres</button>
+        <div class="split-note">A Aya divide pelas % dos cofres. Ou você diz quanto vai pra cada um — o que sobrar fica no Livre pra gastar.</div>
       </div>
     `;
   }
@@ -1856,7 +1858,77 @@ async function iniciarOrganizar(){
   `;
 }
 
+// "Eu mesmo transfiro": a pessoa diz quanto do dinheiro que entrou vai pra cada cofre,
+// sem as % automáticas. O que sobrar fica sem cofre, ou seja, no Livre pra gastar.
+let transferirEntradaState=null;
+async function iniciarTransferirEntrada(){
+  if(!supabaseClient||!currentUser)return;
+  const {data:pend,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','entrada').eq('organizado',false).order('created_at',{ascending:true});
+  if(error||!pend||!pend.length)return;
+  const total=Math.round(pend.reduce((s,m)=>s+Number(m.valor||0),0)*100)/100;
+  transferirEntradaState={pend,total};
+  const wrap=document.getElementById('pendenteAcaoWrap');
+  if(!wrap)return;
+  wrap.innerHTML=`
+    <p style="font-size:12.5px;color:var(--ink2);margin:0 0 10px">Quanto dos ${formatBRL(total)} vai pra cada cofre?</p>
+    ${(cofresCache||[]).map(c=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+        <input class="transfEntradaValor" data-id="${c.id}" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="atualizarTransferirEntrada()" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
+      </div>
+    `).join('')}
+    <div id="transfEntradaResto" style="font-size:12px;color:var(--ink2);margin:4px 2px 10px">Fica no Livre pra gastar: ${formatBRL(total)}</div>
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="cancelarOrganizarComValor()" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Cancelar</button>
+      <button type="button" onclick="confirmarTransferirEntrada()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Transferir</button>
+    </div>
+  `;
+}
+function valoresTransferirEntrada(){
+  return [...document.querySelectorAll('.transfEntradaValor')].map(el=>({cofre:(cofresCache||[]).find(c=>String(c.id)===String(el.dataset.id)),valor:Math.round((parseFloat(el.value)||0)*100)/100})).filter(a=>a.cofre&&a.valor>0);
+}
+function atualizarTransferirEntrada(){
+  const el=document.getElementById('transfEntradaResto');
+  if(!el||!transferirEntradaState)return;
+  const resto=Math.round((transferirEntradaState.total-valoresTransferirEntrada().reduce((s,a)=>s+a.valor,0))*100)/100;
+  el.style.color=resto<-0.005?'var(--rose)':'var(--ink2)';
+  el.textContent=resto<-0.005?`Passou ${formatBRL(-resto)} do que entrou`:`Fica no Livre pra gastar: ${formatBRL(resto)}`;
+}
+async function confirmarTransferirEntrada(){
+  if(!supabaseClient||!currentUser||!transferirEntradaState)return;
+  const {pend,total}=transferirEntradaState;
+  const alocacoes=valoresTransferirEntrada();
+  const soma=alocacoes.reduce((s,a)=>s+a.valor,0);
+  if(soma>total+0.005){ toast('Isso é mais do que entrou 🌿'); return; }
+  // Registra em "distribuicoes" por movimento, assim excluir a entrada depois desfaz certinho.
+  const restantes=pend.map(m=>({id:m.id,restante:Number(m.valor||0)}));
+  for(const aloc of alocacoes){
+    let faltaAlocar=aloc.valor;
+    for(const rp of restantes){
+      if(faltaAlocar<=0.005)break;
+      if(rp.restante<=0.005)continue;
+      const pedaco=Math.round(Math.min(faltaAlocar,rp.restante)*100)/100;
+      await supabaseClient.from('distribuicoes').insert({movimento_id:rp.id,cofre_id:aloc.cofre.id,valor:pedaco});
+      rp.restante-=pedaco;
+      faltaAlocar-=pedaco;
+    }
+    await supabaseClient.from('cofres').update({valor_atual:Number(aloc.cofre.valor_atual||0)+aloc.valor}).eq('id',aloc.cofre.id);
+  }
+  for(const rp of restantes){
+    await supabaseClient.from('movimentos').update({organizado:true}).eq('id',rp.id);
+  }
+  transferirEntradaState=null;
+  vibrar('success');
+  toast('Transferido 🌿');
+  await loadPendentes();
+  await loadCofres();
+  await loadHomeData();
+  await loadMovimentos();
+  await loadPerfilStats();
+}
+
 function cancelarOrganizarComValor(){
+  transferirEntradaState=null;
   organizarComValorState=null;
   loadPendentes();
 }
@@ -1887,7 +1959,7 @@ async function confirmarOrganizarComValor(){
       faltaAlocar-=pedaco;
     }
     const novoValor=Number(aloc.cofre.valor_atual||0)+aloc.valor;
-    await supabaseClient.from('cofres').update({valor_atual:novoValor,concluido:false}).eq('id',aloc.cofre.id);
+    await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',aloc.cofre.id);
   }
 
   // O que sobrar de cada movimento passa pela distribuição por % de sempre.
@@ -3179,6 +3251,22 @@ function abrirTransferencia(modo){
 }
 function fecharTransferencia(){
   document.getElementById('transferenciaPage').classList.add('hidden');
+  // Veio da página de um cofre: atualiza o valor mostrado lá.
+  if(cofreDetalheId)abrirCofreDetalhe(cofreDetalheId);
+}
+// Botão "⇄ Transferir" na página de um cofre: abre a transferência já com esse cofre na origem.
+function transferirDoCofreDetalhe(){
+  if(!cofreDetalheId)return;
+  abrirTransferencia('cofres');
+  const origem=document.getElementById('transfCofreOrigem');
+  const destino=document.getElementById('transfCofreDestino');
+  if(!origem||!destino||![...origem.options].some(o=>String(o.value)===String(cofreDetalheId)))return;
+  origem.value=String(cofreDetalheId);
+  if(String(destino.value)===String(cofreDetalheId)){
+    const outro=[...destino.options].find(o=>String(o.value)!==String(cofreDetalheId));
+    if(outro)destino.value=outro.value;
+  }
+  atualizarResumoTransferencia();
 }
 function trocarModoTransferencia(modo){
   transfModoAtual=modo;
