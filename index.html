@@ -1887,8 +1887,11 @@ async function iniciarTransferirEntrada(){
     <p style="font-size:12.5px;color:var(--ink2);margin:0 0 10px">Quanto dos ${formatBRL(total)} vai pra cada cofre?</p>
     ${(cofresCache||[]).map(c=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
-        <input class="transfEntradaValor" data-id="${c.id}" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="atualizarTransferirEntrada()" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</div>
+          <div id="transfEntradaSub-${c.id}" style="font-size:11px;color:var(--ink2);margin-top:2px">tem ${formatBRL(c.valor_atual)} · <button type="button" onclick="abrirCompletarCofre('${c.id}')" style="background:0;border:0;padding:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11px;cursor:pointer">completar até…</button></div>
+        </div>
+        <input class="transfEntradaValor" id="transfEntradaValor-${c.id}" data-id="${c.id}" type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$ 0" oninput="atualizarTransferirEntrada()" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12.5px;background:var(--card);color:var(--ink)">
       </div>
     `).join('')}
     <div id="transfEntradaResto" style="font-size:12px;color:var(--ink2);margin:4px 2px 10px">Continua esperando organização: ${formatBRL(total)}</div>
@@ -1897,6 +1900,28 @@ async function iniciarTransferirEntrada(){
       <button type="button" onclick="confirmarTransferirEntrada()" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:10px;padding:10px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Transferir</button>
     </div>
   `;
+}
+// "Completar até": a pessoa diz quanto quer que o cofre tenha (ex: a fatura do cartão
+// deu R$ 1.372) e a gente calcula quanto falta pôr, a partir do que o cofre já tem.
+function abrirCompletarCofre(id){
+  const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
+  const sub=document.getElementById(`transfEntradaSub-${id}`);
+  if(!c||!sub)return;
+  sub.innerHTML=`tem ${formatBRL(c.valor_atual)} · chegar em <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="R$" oninput="completarCofreAte('${id}',this.value)" style="width:70px;border:0;border-bottom:1px solid var(--line);padding:0 2px;font-family:inherit;font-size:11px;background:transparent;color:var(--ink)"> <span id="transfEntradaFalta-${id}"></span>`;
+  const input=sub.querySelector('input');
+  if(input)input.focus();
+}
+function completarCofreAte(id,alvoRaw){
+  const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
+  const campo=document.getElementById(`transfEntradaValor-${id}`);
+  const falta=document.getElementById(`transfEntradaFalta-${id}`);
+  if(!c||!campo)return;
+  const alvo=parseFloat(alvoRaw);
+  if(!(alvo>0)){ campo.value=''; if(falta)falta.textContent=''; atualizarTransferirEntrada(); return; }
+  const precisa=Math.round(Math.max(0,alvo-Number(c.valor_atual||0))*100)/100;
+  campo.value=precisa>0?precisa:'';
+  if(falta)falta.textContent=precisa>0?'':'já tem 🟢';
+  atualizarTransferirEntrada();
 }
 function valoresTransferirEntrada(){
   return [...document.querySelectorAll('.transfEntradaValor')].map(el=>({cofre:(cofresCache||[]).find(c=>String(c.id)===String(el.dataset.id)),valor:Math.round((parseFloat(el.value)||0)*100)/100})).filter(a=>a.cofre&&a.valor>0);
