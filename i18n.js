@@ -17,10 +17,14 @@
   document.documentElement.lang=lang==='en'?'en':'pt-BR';
 
   // Troca de idioma: salva e recarrega (o DOM começa sempre em português).
+  // A escolha fica guardada até a pessoa trocar de novo (sair da conta não apaga).
   window.setAyaLang=function(novo,semRecarregar){
     novo=novo==='en'?'en':'pt';
-    try{ localStorage.setItem(LANG_KEY,novo); }catch(e){}
-    if(!semRecarregar&&novo!==lang)location.reload();
+    var salvou=false;
+    try{ localStorage.setItem(LANG_KEY,novo); salvou=localStorage.getItem(LANG_KEY)===novo; }catch(e){}
+    // Sem conseguir salvar (ex: modo privado), recarregar voltaria pro idioma antigo
+    // e ficaria em loop — nesse caso não recarrega.
+    if(!semRecarregar&&novo!==lang&&salvou)location.reload();
   };
   // Pra textos montados no JS que não passam pelo DOM (ex: fala da Aya em voz alta).
   window.tr=function(s){ return lang==='en'?traduzir(String(s)):s; };
