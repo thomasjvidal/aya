@@ -516,6 +516,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
   </div>
 
+  <!-- ORGANIZAR: escolhe em quais cofres de % a Aya coloca o dinheiro que entrou -->
+  <div class="auth-gate hidden" id="organizarPage" style="z-index:96;align-items:stretch;padding:24px 20px;overflow-y:auto">
+    <button class="linklike" type="button" style="align-self:flex-start" onclick="fecharOrganizarPicker()">← Voltar</button>
+    <div style="text-align:left;margin-top:10px">
+      <div class="eyebrow">Cofres</div>
+      <div class="h-name" style="margin-top:4px">Pra onde vai<br>esse dinheiro?</div>
+      <p id="organizarIntro" style="font-size:12.5px;color:var(--ink2);margin:8px 4px 6px;line-height:1.5"></p>
+      <div id="organizarLista" style="display:flex;flex-direction:column;gap:6px;margin:12px 0 18px"></div>
+      <button type="button" onclick="confirmarOrganizarPicker()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Organizar nos selecionados</button>
+    </div>
+  </div>
+
   <!-- TRANSFERÊNCIA: entre cofres (mesma conta) ou entre contas (Pessoal/PJ) — tudo fake, fica só aqui dentro -->
   <div class="auth-gate hidden" id="transferenciaPage" style="z-index:97;align-items:stretch;padding:24px 20px;overflow-y:auto;background:#12201a">
     <button class="linklike" type="button" style="align-self:flex-start;color:#cfe3d8" onclick="fecharTransferencia()">← Voltar</button>
@@ -1688,16 +1700,23 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   await loadPendentes();
 });
 
-async function distribuirPercentuais(valorEntrada,movimentoId){
+// idsSelecionados (opcional): só esses cofres recebem. A parte dos que ficaram de fora é
+// dividida entre os selecionados na proporção dos % deles, então o total que vai pros
+// cofres continua o mesmo de sempre.
+async function distribuirPercentuais(valorEntrada,movimentoId,idsSelecionados){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).eq('meta_tipo','percentual').not('percentual','is',null);
+  const {data:todos,error:selectErr}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).eq('meta_tipo','percentual').not('percentual','is',null);
   if(selectErr){ toast('Registrado, mas não consegui checar os % 😕'); return; }
-  if(!cofres||!cofres.length){ toast('Registrado 🌿 (nenhum cofre com % configurado ainda)'); return; }
+  if(!todos||!todos.length){ toast('Registrado 🌿 (nenhum cofre com % configurado ainda)'); return; }
+  const cofres=idsSelecionados?todos.filter(c=>idsSelecionados.includes(String(c.id))):todos;
+  const somaTodos=todos.reduce((s,c)=>s+(Number(c.percentual)||0),0);
+  const somaSel=cofres.reduce((s,c)=>s+(Number(c.percentual)||0),0);
+  const escala=idsSelecionados&&somaSel>0?somaTodos/somaSel:1;
   const partes=[];
   const falhas=[];
   const atualizados=[];
   for(const c of cofres){
-    const parte=Math.round((valorEntrada*(Number(c.percentual)||0)/100)*100)/100;
+    const parte=Math.round((valorEntrada*(Number(c.percentual)||0)*escala/100)*100)/100;
     if(parte<=0)continue;
     const valorAntigo=Number(c.valor_atual||0);
     const valorNovo=valorAntigo+parte;
@@ -1832,9 +1851,10 @@ async function organizarPendentes(){
   const {pend,error}=await buscarPendentes();
   if(error||!pend||!pend.length)return;
   for(const m of pend){
-    if(m.restante>0.005)await distribuirPercentuais(m.restante,m.id);
+    if(m.restante>0.005)await distribuirPercentuais(m.restante,m.id,organizarSelecao);
     await supabaseClient.from('movimentos').update({organizado:true}).eq('id',m.id);
   }
+  organizarSelecao=null;
   await loadPendentes();
   await loadCofres();
   await loadHomeData();
@@ -1843,8 +1863,53 @@ async function organizarPendentes(){
 }
 
 let organizarComValorState=null;
+// Antes de organizar, a pessoa escolhe em quais cofres de % a Aya coloca o dinheiro.
+let organizarSelecao=null;
 async function iniciarOrganizar(){
   if(!supabaseClient||!currentUser)return;
+  const {pend,error}=await buscarPendentes();
+  if(error||!pend||!pend.length)return;
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  if(!percentuais.length){ organizarSelecao=null; return seguirOrganizar(); }
+  abrirOrganizarPicker(Math.round(pend.reduce((s,m)=>s+m.restante,0)*100)/100);
+}
+let organizarPickerTotal=0;
+function abrirOrganizarPicker(total){
+  organizarPickerTotal=total;
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  document.getElementById('organizarIntro').textContent=`Você tem ${formatBRL(total)} pra organizar. Desmarca os cofres que não devem receber agora — a parte deles vai pros outros marcados, na proporção das %.`;
+  document.getElementById('organizarLista').innerHTML=percentuais.map(c=>linhaCofreEscolha(c,'orgCheck',true,'atualizarOrganizarPicker()')).join('');
+  atualizarOrganizarPicker();
+  document.getElementById('organizarPage').classList.remove('hidden');
+}
+function fecharOrganizarPicker(){
+  document.getElementById('organizarPage').classList.add('hidden');
+}
+// Mostra quanto cada cofre marcado vai receber, e pros desmarcados o que eles deixariam
+// de receber e por que aquele cofre importa.
+function atualizarOrganizarPicker(){
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  const marcados=[...document.querySelectorAll('.orgCheck:checked')].map(el=>el.value);
+  const somaTodos=percentuais.reduce((s,c)=>s+Number(c.percentual||0),0);
+  const somaSel=percentuais.filter(c=>marcados.includes(String(c.id))).reduce((s,c)=>s+Number(c.percentual||0),0);
+  const escala=somaSel>0?somaTodos/somaSel:1;
+  const temMetaFixa=(cofresCache||[]).some(c=>c.meta_tipo==='valor'&&Number(c.valor_meta||0)>0&&Number(c.valor_atual||0)<Number(c.valor_meta||0));
+  const aprox=temMetaFixa?'≈ ':'';
+  percentuais.forEach(c=>{
+    const marcado=marcados.includes(String(c.id));
+    const prev=document.getElementById(`orgCheckPrev-${c.id}`);
+    if(prev)prev.textContent=marcado?`${aprox}+ ${formatBRL(organizarPickerTotal*Number(c.percentual)*escala/100)}`:`${c.percentual}%`;
+    mostrarImportanciaCofre(c,'orgCheck',!marcado,organizarPickerTotal*Number(c.percentual)/100);
+  });
+}
+async function confirmarOrganizarPicker(){
+  const marcados=[...document.querySelectorAll('.orgCheck:checked')].map(el=>el.value);
+  if(!marcados.length){ toast('Marca pelo menos um cofre 🌿'); return; }
+  organizarSelecao=marcados;
+  fecharOrganizarPicker();
+  await seguirOrganizar();
+}
+async function seguirOrganizar(){
   const {pend,error}=await buscarPendentes();
   if(error||!pend||!pend.length)return;
   // Cofres com meta em R$ (não %) que ainda não bateram a meta — pra esses a Aya
@@ -2038,6 +2103,7 @@ async function confirmarSaidaPendente(){
 }
 
 function cancelarOrganizarComValor(){
+  organizarSelecao=null;
   transferirEntradaState=null;
   saidaPendenteState=null;
   organizarComValorState=null;
@@ -2075,11 +2141,12 @@ async function confirmarOrganizarComValor(){
 
   // O que sobrar de cada movimento passa pela distribuição por % de sempre.
   for(const rp of restantes){
-    if(rp.restante>0)await distribuirPercentuais(rp.restante,rp.id);
+    if(rp.restante>0)await distribuirPercentuais(rp.restante,rp.id,organizarSelecao);
     await supabaseClient.from('movimentos').update({organizado:true}).eq('id',rp.id);
   }
 
   organizarComValorState=null;
+  organizarSelecao=null;
   vibrar('success');
   toast('Organizado 🌿');
   await loadPendentes();
@@ -3261,23 +3328,56 @@ function redistribuirCofres(){
   if(!percentuais.length){ toast('Nenhum cofre com % configurado ainda 🌿'); return; }
   abrirRedistribuirPicker();
 }
+// Linha de cofre com checkbox, usada no Organizar e no Redistribuir. Embaixo tem um
+// espaço pro aviso de importância que aparece quando a pessoa desmarca o cofre.
+function linhaCofreEscolha(c,classe,marcado,aoMudar){
+  const pendente=c.concluido===false;
+  return `
+    <div>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:${pendente?'var(--amber-tint)':'var(--card)'};cursor:pointer">
+        <input type="checkbox" class="${classe}" value="${c.id}" ${marcado?'checked':''} onchange="${aoMudar}" style="width:16px;height:16px;flex-shrink:0">
+        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pendente?'🟠':'🟢'} ${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
+        <span id="${classe}Prev-${c.id}" style="font-size:12px;color:var(--ink2)" class="num">${formatBRL(c.valor_atual)} · ${c.percentual}%</span>
+      </label>
+      <div id="${classe}Aviso-${c.id}" style="display:none;font-size:11.5px;color:#8a5a1e;background:var(--amber-tint);border-radius:10px;padding:8px 10px;margin:4px 2px 0;line-height:1.45"></div>
+    </div>
+  `;
+}
+// Por que esse cofre importa — usa as anotações do cofre, se tiver; senão, o tipo dele.
+function importanciaCofre(c){
+  const nota=String(c.notas||'').trim().split('\n')[0];
+  if(nota)return nota.length>110?nota.slice(0,110)+'…':nota;
+  if(c.tipo==='contas')return 'É daqui que saem suas contas — sem essa parte, pode faltar na hora de pagar.';
+  if(c.tipo==='livre')return 'É seu dinheiro sem culpa — sem ele, o mês fica mais apertado pra você.';
+  return 'É um objetivo seu — pular essa vez deixa ele um pouco mais longe.';
+}
+// Só avisa quando a própria pessoa desmarca (cofre que já vem desmarcado não ganha aviso).
+function mostrarImportanciaCofre(c,classe,desmarcado,deixaDeReceber){
+  const aviso=document.getElementById(`${classe}Aviso-${c.id}`);
+  const check=document.querySelector(`.${classe}[value="${c.id}"]`);
+  if(!aviso||!check)return;
+  const mostrar=desmarcado&&check.dataset.tocado==='1';
+  aviso.style.display=mostrar?'block':'none';
+  if(mostrar){
+    const quanto=deixaDeReceber>0?` Ia receber ${formatBRL(deixaDeReceber)} (${c.percentual}%).`:'';
+    aviso.innerHTML=`<b>${escapeHtml(c.nome)} fica de fora.</b>${quanto} ${escapeHtml(importanciaCofre(c))} Toca de novo se quiser incluir.`;
+  }
+}
+document.addEventListener('change',e=>{
+  if(e.target.matches&&e.target.matches('.orgCheck,.redistCheck'))e.target.dataset.tocado='1';
+},true);
+function atualizarRedistribuirPicker(){
+  (cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual).forEach(c=>{
+    const check=document.querySelector(`.redistCheck[value="${c.id}"]`);
+    mostrarImportanciaCofre(c,'redistCheck',check&&!check.checked,0);
+  });
+}
 function abrirRedistribuirPicker(){
   const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
   const lista=document.getElementById('redistribuirLista');
-  if(lista){
-    lista.innerHTML=percentuais.map(c=>{
-      const pendente=c.concluido===false;
-      // Cofres já em dia (verde) vêm desmarcados por padrão: a redistribuição
-      // prioriza quem ainda está faltando, sem mexer no que já foi resolvido.
-      return `
-        <label style="display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:${pendente?'var(--amber-tint)':'var(--card)'};cursor:pointer">
-          <input type="checkbox" class="redistCheck" value="${c.id}" ${pendente?'checked':''} style="width:16px;height:16px;flex-shrink:0">
-          <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pendente?'🟠':'🟢'} ${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</span>
-          <span style="font-size:12px;color:var(--ink2)" class="num">${formatBRL(c.valor_atual)} · ${c.percentual}%</span>
-        </label>
-      `;
-    }).join('');
-  }
+  // Cofres já em dia (verde) vêm desmarcados por padrão: a redistribuição
+  // prioriza quem ainda está faltando, sem mexer no que já foi resolvido.
+  if(lista)lista.innerHTML=percentuais.map(c=>linhaCofreEscolha(c,'redistCheck',c.concluido===false,'atualizarRedistribuirPicker()')).join('');
   document.getElementById('redistribuirPage').classList.remove('hidden');
 }
 function fecharRedistribuirPicker(){
