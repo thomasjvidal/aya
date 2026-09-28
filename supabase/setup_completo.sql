@@ -54,6 +54,9 @@ alter table public.cofres
   add column if not exists concluido boolean not null default true;
 
 alter table public.cofres
+  add column if not exists valor_em_dia numeric;
+
+alter table public.cofres
   add column if not exists meta_tipo text not null default 'valor'
   check (meta_tipo in ('valor','percentual'));
 

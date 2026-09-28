@@ -3115,6 +3115,8 @@ async function registrarMovCofre(id){
     const ok=await registrarSaidaCofre(id,valor,descricao||'Saída');
     if(!ok){ toast('Não consegui registrar agora 😕'); return; }
     await supabaseClient.from('cofres').update({concluido:true}).eq('id',id);
+    const {data:cDepois}=await supabaseClient.from('cofres').select('valor_atual').eq('id',id).single();
+    if(cDepois)await salvarValorEmDia([{id,valor_atual:cDepois.valor_atual}]);
     toast(`Registrado 🌿 −${formatBRL(valor)}`);
   }else{
     // Entrada já organizada e toda neste cofre (fica em "distribuicoes", então excluir desfaz).
@@ -3168,7 +3170,12 @@ async function toggleCofreConcluido(id){
   const c=cofresCache.find(x=>String(x.id)===String(id));
   if(!c)return;
   const novo=c.concluido===false;
+  if(novo){
+    const [item]=await calcularFaltaTransferir([c]);
+    if(item.falta>0.5&&!(await perguntarJaTransferiu([item])))return;
+  }
   await supabaseClient.from('cofres').update({concluido:novo}).eq('id',id);
+  if(novo)await salvarValorEmDia([c]);
   await loadCofres();
   await loadHomeData();
   toast(novo?'Marcado como em dia 🌿':'Marcado pra dar atenção 🌿');
@@ -3176,14 +3183,76 @@ async function toggleCofreConcluido(id){
 
 async function marcarTodosEmDia(){
   if(!supabaseClient||!currentUser)return;
-  const ids=(cofresCache||[]).filter(c=>c.concluido===false).map(c=>c.id);
-  if(!ids.length)return;
+  const pendentes=(cofresCache||[]).filter(c=>c.concluido===false);
+  if(!pendentes.length)return;
+  const itens=(await calcularFaltaTransferir(pendentes)).filter(i=>i.falta>0.5);
+  if(itens.length&&!(await perguntarJaTransferiu(itens)))return;
+  const ids=pendentes.map(c=>c.id);
   const {error}=await supabaseClient.from('cofres').update({concluido:true}).in('id',ids);
   if(error){ toast('Não consegui marcar agora 😕'); return; }
+  await salvarValorEmDia(pendentes);
   vibrar('success');
   toast(`${ids.length} cofre${ids.length>1?'s':''} em dia 🌿`);
   await loadCofres();
   await loadHomeData();
+}
+
+// Quanto entrou no cofre desde a última vez que ele ficou em dia — é isso que a pessoa
+// precisa ter transferido de verdade no banco. Usa "valor_em_dia" (guardado ao marcar
+// em dia); cofre que ainda não tem esse registro usa o que recebeu na última entrada.
+async function calcularFaltaTransferir(cofres){
+  const semBase=cofres.filter(c=>c.valor_em_dia==null).map(c=>c.id);
+  const ultimaParte={};
+  if(semBase.length){
+    const {data}=await supabaseClient.from('distribuicoes').select('cofre_id,movimento_id,valor,created_at').in('cofre_id',semBase).order('created_at',{ascending:false});
+    const ultimoMov={};
+    (data||[]).forEach(d=>{
+      if(!(d.cofre_id in ultimoMov))ultimoMov[d.cofre_id]=d.movimento_id;
+      if(ultimoMov[d.cofre_id]===d.movimento_id)ultimaParte[d.cofre_id]=(ultimaParte[d.cofre_id]||0)+Number(d.valor||0);
+    });
+  }
+  return cofres.map(c=>{
+    const agora=Number(c.valor_atual||0);
+    const antes=c.valor_em_dia!=null?Number(c.valor_em_dia):Math.max(0,agora-(ultimaParte[c.id]||0));
+    return {cofre:c,antes,agora,falta:Math.round((agora-antes)*100)/100};
+  });
+}
+// Coluna nova (migration_006): se ainda não existir no banco, só ignora.
+async function salvarValorEmDia(cofres){
+  await Promise.all(cofres.map(c=>supabaseClient.from('cofres').update({valor_em_dia:Number(c.valor_atual||0)}).eq('id',c.id)));
+}
+function perguntarJaTransferiu(itens){
+  return new Promise(resolve=>{
+    const total=itens.reduce((s,i)=>s+i.falta,0);
+    const fundo=document.createElement('div');
+    fundo.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center';
+    const linhas=itens.map(i=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+        <span style="font-size:18px">${escapeHtml(i.cofre.icone||'🧾')}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(i.cofre.nome)}</div>
+          <div style="font-size:11.5px;color:var(--ink2)">tinha ${formatBRL(i.antes)} → agora ${formatBRL(i.agora)}</div>
+        </div>
+        <b class="num" style="font-size:14px;color:var(--sage)">${formatBRL(i.falta)}</b>
+      </div>`).join('');
+    fundo.innerHTML=`
+      <div style="width:100%;max-width:480px;max-height:80vh;overflow-y:auto;background:var(--card);border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom))">
+        <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px">Você já transferiu ${formatBRL(total)}?</div>
+        <p style="font-size:12.5px;color:var(--ink2);margin:0 0 6px;line-height:1.5">${itens.length>1?'É o que entrou nesses cofres':'É o que entrou nesse cofre'} desde a última vez que ficou em dia.</p>
+        ${linhas}
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button type="button" data-r="0" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Ainda não</button>
+          <button type="button" data-r="1" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Sim, já transferi</button>
+        </div>
+      </div>`;
+    const fechar=r=>{fundo.remove();resolve(r);};
+    fundo.addEventListener('click',e=>{
+      if(e.target===fundo)return fechar(false);
+      const b=e.target.closest('button[data-r]');
+      if(b)fechar(b.dataset.r==='1');
+    });
+    document.body.appendChild(fundo);
+  });
 }
 
 function redistribuirCofres(){
@@ -3261,7 +3330,8 @@ function cofreCardHtml(c,editable,index,total){
   const pendente=c.concluido===false;
   const dotColor=pendente?'var(--amber)':'var(--sage)';
   const dotTitle=pendente?'Precisa de atenção — toca pra marcar como resolvido':'Em dia — toca se precisar de atenção';
-  const statusDot=`<span onclick='event.stopPropagation();toggleCofreConcluido("${c.id}")' title="${dotTitle}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor};margin-right:6px;cursor:pointer;vertical-align:middle"></span>`;
+  // Área de toque maior que a bolinha, pra acertar fácil no celular.
+  const statusDot=`<span onclick='event.stopPropagation();toggleCofreConcluido("${c.id}")' title="${dotTitle}" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;margin:-8px -2px -8px -8px;cursor:pointer;vertical-align:middle"><span style="width:11px;height:11px;border-radius:50%;background:${dotColor};box-shadow:0 0 0 3px ${pendente?'var(--amber-soft)':'var(--sage-tint)'}"></span></span>`;
   const cardStyle=pendente?'border-color:var(--amber-soft);background:var(--amber-tint)':'';
   // Toque no cofre abre, na própria linha, um painel curto: Saída / Entrada + valor,
   // e Transferir. O ✎ leva pra página completa do cofre.
@@ -3477,6 +3547,7 @@ async function confirmarTransferenciaCofre(){
     supabaseClient.from('cofres').update({valor_atual:novoDestino,concluido:true}).eq('id',destinoId)
   ]);
   if(err1||err2){ toast('Não consegui transferir agora 😕'); return; }
+  await salvarValorEmDia([{id:destinoId,valor_atual:novoDestino}]);
   vibrar('success');
   document.getElementById('transfCofresForm').style.display='none';
   document.getElementById('transfSucesso').style.display='block';
