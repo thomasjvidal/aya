@@ -520,7 +520,11 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="eyebrow">Cofres</div>
       <div class="h-name" style="margin-top:4px">Redistribuir<br>entre cofres</div>
       <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 6px;line-height:1.5">Escolhe quais cofres entram nessa redistribuição. Os que já estão em dia (🟢) vêm desmarcados pra priorizar quem ainda está faltando.</p>
-      <div id="redistribuirLista" style="display:flex;flex-direction:column;gap:6px;margin:12px 0 18px"></div>
+      <div id="redistribuirLista" style="display:flex;flex-direction:column;gap:6px;margin:12px 0 12px"></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px">
+        <span style="font-size:12.5px;color:var(--ink2)">Total pra redistribuir</span>
+        <b class="num" id="redistribuirTotal" style="font-size:16px;color:var(--ink)">R$ 0</b>
+      </div>
       <button type="button" onclick="confirmarRedistribuicaoSelecionada()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Redistribuir selecionados</button>
     </div>
   </div>
@@ -3412,10 +3416,23 @@ function mostrarImportanciaCofre(c,classe,desmarcado,deixaDeReceber){
 document.addEventListener('change',e=>{
   if(e.target.matches&&e.target.matches('.orgCheck,.redistCheck'))e.target.dataset.tocado='1';
 },true);
+// Mostra o total que vai ser redistribuído (soma dos marcados) e, em cada marcado,
+// com quanto ele fica depois — a mesma conta de confirmarRedistribuicaoSelecionada.
 function atualizarRedistribuirPicker(){
-  (cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual).forEach(c=>{
-    const check=document.querySelector(`.redistCheck[value="${c.id}"]`);
-    mostrarImportanciaCofre(c,'redistCheck',check&&!check.checked,0);
+  const percentuais=(cofresCache||[]).filter(c=>c.meta_tipo==='percentual'&&c.percentual);
+  const marcados=percentuais.filter(c=>document.querySelector(`.redistCheck[value="${c.id}"]`)?.checked);
+  const pool=marcados.reduce((s,c)=>s+Number(c.valor_atual||0),0);
+  const somaPercent=marcados.reduce((s,c)=>s+Number(c.percentual||0),0);
+  const totalEl=document.getElementById('redistribuirTotal');
+  if(totalEl)totalEl.textContent=formatBRL(pool);
+  percentuais.forEach(c=>{
+    const marcado=marcados.includes(c);
+    const prev=document.getElementById(`redistCheckPrev-${c.id}`);
+    if(prev){
+      const novo=somaPercent>0?pool*Number(c.percentual)/somaPercent:0;
+      prev.textContent=marcado&&marcados.length>1?`${formatBRL(c.valor_atual)} → ${formatBRL(novo)}`:`${formatBRL(c.valor_atual)} · ${c.percentual}%`;
+    }
+    mostrarImportanciaCofre(c,'redistCheck',!marcado,0);
   });
 }
 function abrirRedistribuirPicker(){
@@ -3424,6 +3441,7 @@ function abrirRedistribuirPicker(){
   // Cofres já em dia (verde) vêm desmarcados por padrão: a redistribuição
   // prioriza quem ainda está faltando, sem mexer no que já foi resolvido.
   if(lista)lista.innerHTML=percentuais.map(c=>linhaCofreEscolha(c,'redistCheck',c.concluido===false,'atualizarRedistribuirPicker()')).join('');
+  atualizarRedistribuirPicker();
   document.getElementById('redistribuirPage').classList.remove('hidden');
 }
 function fecharRedistribuirPicker(){
