@@ -1,5 +1,6 @@
 const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
+const { idiomaDoUsuario } = require('./idioma');
 
 // Usado pelos dois crons (api/cron/manha.js e api/cron/noite.js) — o path de
 // um cron do Vercel não pode ter query string, por isso são dois arquivos
@@ -16,6 +17,21 @@ const MENSAGENS_LEMBRETE = {
     auto: 'Boa noite 💼 Bateu o dia? Registra o que entrou e saiu antes de dormir, separado por PF/PJ.',
     impulso: 'Boa noite ⚡ Antes de dormir, registra o que rolou hoje — inclusive aquela vontade de comprar que você resistiu (ou não).',
     default: 'Boa noite 🌿 Fecha o dia registrando o que rolou. Assim você não perde o fio de novo.',
+  },
+};
+
+const MENSAGENS_LEMBRETE_EN = {
+  manha: {
+    aperto: "Good morning 🌧️ Before you head out, take a look at what's left from yesterday — so you don't lose track again.",
+    auto: 'Good morning 💼 Did you split what came in yesterday between personal and business? Log it quickly before the day takes over.',
+    impulso: "Good morning ⚡ Start the day logging what happened yesterday — it helps you notice patterns before temptation hits.",
+    default: "Good morning 🌿 Anything from yesterday to log? Start the day with your accounts up to date.",
+  },
+  noite: {
+    aperto: "Good evening 🌧️ Wrap up the day with me: what went out today? Don't let it pile up.",
+    auto: 'Good evening 💼 Done for the day? Log what came in and went out before bed, split by personal/business.',
+    impulso: "Good evening ⚡ Before bed, log what happened today — including that urge to buy you resisted (or didn't).",
+    default: "Good evening 🌿 Wrap up the day by logging what happened. That way you don't lose track again.",
   },
 };
 
@@ -52,7 +68,9 @@ async function enviarLembretes(req, res, tipo) {
   await Promise.all(
     subs.map(async (sub) => {
       const estilo = estiloPorUser.get(sub.user_id);
-      const body = MENSAGENS_LEMBRETE[tipo][estilo] || MENSAGENS_LEMBRETE[tipo].default;
+      const idioma = await idiomaDoUsuario(supabaseAdmin, sub.user_id);
+      const msgs = idioma === 'en' ? MENSAGENS_LEMBRETE_EN : MENSAGENS_LEMBRETE;
+      const body = msgs[tipo][estilo] || msgs[tipo].default;
       const payload = JSON.stringify({ title: 'Aya', body, url: '/#add' });
       try {
         await webpush.sendNotification(

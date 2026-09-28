@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Aya</title>
+<script src="i18n-en.js"></script>
+<script src="i18n.js"></script>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png">
@@ -240,6 +242,9 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .auth-gate input{border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)}
 .auth-gate button[type=submit]{background:var(--sage);color:#fff;border:0;font-family:inherit;font-size:14.5px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;margin-top:4px}
 .auth-gate button[type=submit]:disabled{opacity:.6}
+.lang-switch{position:absolute;top:calc(18px + env(safe-area-inset-top));right:18px;display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lang-switch button{border:0;background:0;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink2);padding:6px 11px;border-radius:999px;cursor:pointer}
+.lang-switch button.sel{background:var(--sage);color:#fff}
 .auth-gate .linklike{background:0;border:0;color:var(--sage);font-family:inherit;font-size:13px;margin-top:14px;cursor:pointer;text-decoration:underline}
 .auth-gate .err{color:var(--rose);font-size:12.5px;margin-top:12px;min-height:16px;max-width:280px}
 
@@ -256,6 +261,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
   <div class="notch"></div>
 
   <div class="auth-gate" id="authGate">
+    <div class="lang-switch" data-noi18n>
+      <button type="button" data-lang="pt" onclick="escolherIdioma('pt')">🇧🇷 Português</button>
+      <button type="button" data-lang="en" onclick="escolherIdioma('en')">🇺🇸 English</button>
+    </div>
     <div class="halo">✦</div>
     <h1 class="serif">Aya</h1>
     <p id="authTagline">Carregando…</p>
@@ -688,6 +697,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <input id="nomeInput" placeholder="Como a Aya deve te chamar?" style="flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
       <button type="submit" style="background:var(--sage);color:#fff;border:0;border-radius:12px;padding:0 16px;font-family:inherit;font-weight:600;cursor:pointer">Salvar</button>
     </form>
+
+    <div class="sec-title" style="margin-top:22px">Idioma</div>
+    <div class="profile-pick" data-noi18n>
+      <div class="pp-opt" data-lang="pt" onclick="escolherIdioma('pt')"><span class="e">🇧🇷</span><div><div class="nm">Português</div><div class="d">Idioma principal do app</div></div><div class="rd"></div></div>
+      <div class="pp-opt" data-lang="en" onclick="escolherIdioma('en')"><span class="e">🇺🇸</span><div><div class="nm">English</div><div class="d">The whole app in English</div></div><div class="rd"></div></div>
+    </div>
 
     <div class="sec-title" style="margin-top:22px">Como a Aya fala com você</div>
     <div class="profile-pick">
@@ -1293,6 +1308,7 @@ function pushMsg(cls,txt){
   const c=document.getElementById('chat');
   const d=document.createElement('div');
   d.className='msg '+cls;
+  d.setAttribute('data-noi18n','');
   d.textContent=txt;
   c.appendChild(d);
   if(cls==='aya'){
@@ -1350,7 +1366,7 @@ function toggleSpeak(btn,texto){
   synth.cancel();
   if(vozBtnAtivo)vozBtnAtivo.innerHTML=ICON_PLAY;
   const u=new SpeechSynthesisUtterance(texto);
-  u.lang='pt-BR';
+  u.lang=window.AYA_LOCALE||'pt-BR';
   u.rate=vozRate;
   u.onend=()=>{btn.innerHTML=ICON_PLAY;if(vozBtnAtivo===btn)vozBtnAtivo=null;};
   u.onerror=u.onend;
@@ -1368,7 +1384,7 @@ function cycleSpeed(speedBtn,playBtn,texto){
   if(vozBtnAtivo===playBtn&&synth.speaking){
     synth.cancel();
     const u=new SpeechSynthesisUtterance(texto);
-    u.lang='pt-BR';
+    u.lang=window.AYA_LOCALE||'pt-BR';
     u.rate=vozRate;
     u.onend=()=>{playBtn.innerHTML=ICON_PLAY;if(vozBtnAtivo===playBtn)vozBtnAtivo=null;};
     u.onerror=u.onend;
@@ -1406,6 +1422,7 @@ async function buildChatContext(){
   (favVinculosRes.data||[]).forEach(v=>{(cofresPorFavorito[v.favorito_id]=cofresPorFavorito[v.favorito_id]||[]).push(v.cofre_id);});
   return {
     nome:perfilRes.data?.nome,
+    idioma:window.AYA_LANG,
     estilo:perfilRes.data?.estilo,
     resumo,
     cofres:(cofresRes.data||[]).map(c=>({nome:c.nome,tipo:c.tipo,valor_atual:c.valor_atual,valor_meta:c.valor_meta,percentual:c.meta_tipo==='percentual'?c.percentual:null,notas:c.notas||null,precisaAtencao:c.concluido===false})),
@@ -1422,6 +1439,7 @@ async function buildChatContext(){
 }
 
 async function askAya(q){
+  q=window.tr?tr(q):q;
   if(chatBusy||!q.trim())return;
   chatBusy=true;
   pushMsg('me',q);
@@ -1483,7 +1501,7 @@ async function salvarMemoriaCofre(){
 /* profile */
 const profileGreetings={aperto:'Boa noite,',auto:'E aí, chefe.',impulso:'Opa,'};
 function applyProfileCopy(p){
-  document.querySelectorAll('.pp-opt').forEach(o=>o.classList.toggle('sel',o.dataset.p===p));
+  document.querySelectorAll('.pp-opt[data-p]').forEach(o=>o.classList.toggle('sel',o.dataset.p===p));
   document.getElementById('greet').textContent=profileGreetings[p]||profileGreetings.aperto;
 }
 async function setProfile(el,p){
@@ -1498,6 +1516,33 @@ async function setProfile(el,p){
 let supabaseClient=null;
 let currentUser=null;
 let authMode='login';
+
+// Idioma: fica salvo no aparelho (i18n.js) e na conta (user_metadata.idioma), pra
+// valer em outros aparelhos e pras notificações/Aya no servidor.
+function marcarIdiomaAtual(){
+  document.querySelectorAll('[data-lang]').forEach(el=>{
+    el.classList.toggle('sel',el.dataset.lang===window.AYA_LANG);
+  });
+}
+async function escolherIdioma(novo){
+  if(novo===window.AYA_LANG)return;
+  try{ sessionStorage.setItem('aya_lang_escolhido','1'); }catch(e){}
+  if(supabaseClient&&currentUser){
+    try{ await supabaseClient.auth.updateUser({data:{idioma:novo}}); }catch(e){}
+  }
+  setAyaLang(novo);
+}
+async function sincronizarIdiomaDaConta(user){
+  const daConta=user&&user.user_metadata&&user.user_metadata.idioma;
+  let escolhidoAgora=false;
+  try{ escolhidoAgora=sessionStorage.getItem('aya_lang_escolhido')==='1'; }catch(e){}
+  if(daConta&&daConta!==window.AYA_LANG&&!escolhidoAgora){ setAyaLang(daConta); return true; }
+  if(daConta!==window.AYA_LANG){
+    try{ await supabaseClient.auth.updateUser({data:{idioma:window.AYA_LANG}}); }catch(e){}
+  }
+  return false;
+}
+document.addEventListener('DOMContentLoaded',marcarIdiomaAtual);
 
 async function initApp(){
   let cfg={};
@@ -1547,6 +1592,7 @@ function showAuthForm(){
 
 async function onAuthed(session){
   currentUser=session.user;
+  if(await sincronizarIdiomaDaConta(session.user))return;
   document.getElementById('authGate').classList.add('hidden');
   await loadProfile();
   await loadContas();
@@ -2264,11 +2310,11 @@ async function exportarDadosCSV(){
   if(error||!data||!data.length){ toast('Nada pra exportar ainda 😕'); return; }
   const cofreById={};
   (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
-  const linhas=[['Data','Tipo','Descrição','Valor','Cofre','Pra quem','Data prevista']];
+  const linhas=[['Data','Tipo','Descrição','Valor','Cofre','Pra quem','Data prevista'].map(h=>window.tr?tr(h):h)];
   data.forEach(m=>{
     linhas.push([
-      new Date(m.created_at).toLocaleString('pt-BR'),
-      m.tipo,
+      new Date(m.created_at).toLocaleString(window.AYA_LOCALE||'pt-BR'),
+      window.AYA_LANG==='en'?tr(m.tipo==='entrada'?'Entrada':m.tipo==='saida'?'Saída':m.tipo==='rendimento'?'Rendimento':m.tipo):m.tipo,
       m.descricao,
       Number(m.valor||0).toFixed(2).replace('.',','),
       m.cofre_id?(cofreById[m.cofre_id]?.nome||''):'',
@@ -2300,7 +2346,7 @@ document.getElementById('excluirContaForm').addEventListener('submit',async(e)=>
   e.preventDefault();
   if(!supabaseClient||!currentUser)return;
   const confirmaTxt=document.getElementById('excluirContaConfirma').value.trim().toLowerCase();
-  if(confirmaTxt!=='excluir'){ toast('Digita "excluir" certinho pra confirmar 🌿'); return; }
+  if(confirmaTxt!=='excluir'&&confirmaTxt!=='delete'){ toast('Digita "excluir" certinho pra confirmar 🌿'); return; }
   const btn=e.target.querySelector('button[type=submit]');
   btn.disabled=true;
   const original=btn.textContent;
@@ -2415,7 +2461,7 @@ document.getElementById('authForm').addEventListener('submit',async(e)=>{
       const {error}=await supabaseClient.auth.signInWithPassword({email,password});
       if(error)throw error;
     }else{
-      const {error}=await supabaseClient.auth.signUp({email,password,options:{data:nome?{nome}:{}}});
+      const {error}=await supabaseClient.auth.signUp({email,password,options:{data:nome?{nome,idioma:window.AYA_LANG}:{idioma:window.AYA_LANG}}});
       if(error)throw error;
       errEl.style.color='var(--sage)';
       errEl.textContent='Conta criada! Se pedir confirmação, olha seu e-mail — senão já tenta entrar.';
@@ -2636,7 +2682,7 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
 });
 
 /* ================= COFRES (reais) ================= */
-function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString(window.AYA_LOCALE||'pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 // Vibração tátil curta (fraca no iOS Safari — trocar por @capacitor/haptics se virar app nativo).
 function vibrar(tipo){
   if(!('vibrate' in navigator))return;
@@ -2646,7 +2692,7 @@ function vibrar(tipo){
 // Anima um número subindo (ou descendo) de "de" até "para", em vez de trocar o valor seco.
 function animarValor(el,de,para,{duracao=650,formatar}={}){
   if(!el)return;
-  const fmt=formatar||((v)=>'R$ '+Math.round(v).toLocaleString('pt-BR'));
+  const fmt=formatar||((v)=>'R$ '+Math.round(v).toLocaleString(window.AYA_LOCALE||'pt-BR'));
   const inicio=performance.now();
   function passo(agora){
     const t=Math.min(1,(agora-inicio)/duracao);
@@ -2807,7 +2853,7 @@ async function loadAnotacoesCofre(cofreId){
     <div style="background:#F6EEDA;border:1px solid #e6d5a8;border-radius:14px;padding:12px 14px;margin-bottom:8px">
       <div style="font-size:12.5px;color:#5a4a1f;line-height:1.5;white-space:pre-wrap">${escapeHtml(a.texto)}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-        <span style="font-size:10.5px;color:#8a793f">${new Date(a.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>
+        <span style="font-size:10.5px;color:#8a793f">${new Date(a.created_at).toLocaleDateString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'short'})}</span>
         <button type="button" onclick="excluirAnotacao('${a.id}')" style="background:0;border:0;color:#8a793f;font-family:inherit;font-size:11px;cursor:pointer;text-decoration:underline">excluir</button>
       </div>
     </div>
@@ -2897,7 +2943,7 @@ async function carregarExtratoCofre(){
     return `
       <div class="tx">
         <div class="tx-ic">${icone}</div>
-        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div>
         <div class="amt num${positivo?' in':''}">${positivo?'+':'−'} ${formatBRL(m.valor)}</div>
       </div>
     `;
@@ -3854,7 +3900,7 @@ function popularFiltroCofre(){
   sel.value=atual;
 }
 
-const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_PT=window.AYA_LANG==='en'?['January','February','March','April','May','June','July','August','September','October','November','December']:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 /* ================= GRÁFICOS ================= */
 let graficoPeriodoAtual='semana';
@@ -3873,7 +3919,7 @@ const PERIODO_LABEL={semana:'essa semana',mes:'esse mês',trimestre:'esse trimes
 function bucketKeyPara(periodo,data){
   const d=new Date(data);
   if(periodo==='semana'){
-    return d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+    return d.toLocaleDateString(window.AYA_LOCALE||'pt-BR',{weekday:'short'}).replace('.','');
   }else if(periodo==='mes'){
     return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
   }else{
@@ -4106,7 +4152,7 @@ function renderMovimentosPeriodo(){
     let dataPrevTxt='';
     if(m.data_prevista){
       const dp=new Date(m.data_prevista+'T00:00:00');
-      dataPrevTxt='previsto '+dp.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+      dataPrevTxt='previsto '+dp.toLocaleDateString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'2-digit'});
       const diasFaltam=Math.ceil((dp-new Date(new Date().toDateString()))/86400000);
       if(diasFaltam>0)dataPrevTxt+=` (faltam ${diasFaltam} dia${diasFaltam>1?'s':''})`;
       else if(diasFaltam===0)dataPrevTxt+=' (hoje)';
@@ -4115,7 +4161,7 @@ function renderMovimentosPeriodo(){
     html+=`
       <div class="tx">
         <div class="tx-ic">${icone}</div>
-        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}${pessoaTxt?' · '+pessoaTxt:''}${dataPrevTxt?' · '+dataPrevTxt:''}</div></div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}${pessoaTxt?' · '+pessoaTxt:''}${dataPrevTxt?' · '+dataPrevTxt:''}</div></div>
         <div class="amt num${positivo?' in':''}">${positivo?'+':'−'} ${formatBRL(m.valor)}</div>
         <button onclick='abrirEditarMovimento("${m.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;flex-shrink:0;margin-left:2px">✎</button>
       </div>
@@ -4277,7 +4323,7 @@ async function loadPerfilStats(){
     supabaseClient.from('movimentos').select('created_at').gte('created_at',desde.toISOString()),
     supabaseClient.from('cofres').select('valor_meta,percentual,valor_atual')
   ]);
-  const diasSemana=['D','S','T','Q','Q','S','S'];
+  const diasSemana=window.AYA_LANG==='en'?['S','M','T','W','T','F','S']:['D','S','T','Q','Q','S','S'];
   const hoje=new Date();
   const dias=[];
   for(let i=6;i>=0;i--){
