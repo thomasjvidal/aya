@@ -276,6 +276,7 @@ window.AYA_EN={
 "entre cofres":"across vaults",
 "Escolhe quais cofres entram nessa redistribuição. Os que já estão em dia (🟢) vêm desmarcados pra priorizar quem ainda está faltando.":"Choose which vaults are part of this redistribution. The ones already up to date (🟢) start unchecked to prioritize the ones still behind.",
 "Redistribuir selecionados":"Redistribute selected",
+"Total pra redistribuir":"Total to redistribute",
 "Marca pelo menos dois cofres pra redistribuir entre eles 🌿":"Check at least two vaults to redistribute between them 🌿",
 "Não tem dinheiro nesses cofres pra redistribuir ainda 🌿":"There's no money in these vaults to redistribute yet 🌿",
 "Não consegui salvar o cofre \"{X}\" 😕 Tenta de novo":"Couldn't save the vault \"{0}\" 😕 Try again",
