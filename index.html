@@ -1830,16 +1830,16 @@ function prazoVaiEntrar(dataPrevista){
   const dias=Math.round((new Date(dataPrevista+'T00:00:00')-hoje)/86400000);
   return {estado:dias<0?'atrasada':dias===0?'hoje':'futura',dias};
 }
+// Texto pequeno que vai embaixo do valor: quanto falta (ou hoje/atrasada) e "todo mês".
 function linhaPrazoVaiEntrar(m){
   const {estado,dias}=prazoVaiEntrar(m.data_prevista);
-  const mensal=m.categoria===VAI_ENTRAR_MENSAL?' · <span>todo mês</span>':'';
-  if(estado==='sem')return `<span>ainda não caiu</span>${mensal}`;
-  const [,mes,dia]=m.data_prevista.split('-');
+  const mensal=m.categoria===VAI_ENTRAR_MENSAL?'<span>todo mês</span>':'';
+  if(estado==='sem')return mensal;
   const quando=estado==='atrasada'
     ?`<span style="color:var(--rose);font-weight:600">atrasada ${-dias} dia${-dias>1?'s':''}</span>`
     :estado==='hoje'?`<span style="color:#a8692a;font-weight:600">cai hoje</span>`
     :dias===1?'<span>amanhã</span>':`<span>faltam ${dias} dias</span>`;
-  return `<span>${dia}/${mes}</span> · ${quando}${mensal}`;
+  return mensal?`${quando} · ${mensal}`:quando;
 }
 function proximoMes(dataISO){
   const [a,m,d]=dataISO.split('-').map(Number);
@@ -1896,8 +1896,11 @@ async function loadPendentes(){
       <div style="border-bottom:1px solid var(--line);padding:10px 4px">
         <div style="display:flex;align-items:center;gap:13px;cursor:pointer" onclick="toggleVaiEntrar('${m.id}')">
           <div class="tx-ic">${({hoje:'❗',atrasada:'⚠️'})[prazoVaiEntrar(m.data_prevista).estado]||'🕓'}</div>
-          <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${linhaPrazoVaiEntrar(m)}</div></div>
-          <div class="amt num in">+ ${formatBRL(m.valor)}</div>
+          <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div>${m.data_prevista?'':'<div class="cat">ainda não caiu</div>'}</div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="amt num in">+ ${formatBRL(m.valor)}</div>
+            ${linhaPrazoVaiEntrar(m)?`<div style="font-size:11px;color:var(--ink2);margin-top:2px;white-space:nowrap">${linhaPrazoVaiEntrar(m)}</div>`:''}
+          </div>
           <span id="veSeta-${m.id}" style="font-size:11px;color:var(--ink2);margin-left:2px">▾</span>
         </div>
         <div id="veForm-${m.id}" style="display:none;margin-top:10px;gap:8px;justify-content:flex-end">
