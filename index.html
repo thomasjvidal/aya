@@ -765,7 +765,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <input id="qaData" type="date" style="flex:1;min-width:0;margin:0">
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);width:100%;justify-content:center;margin:2px 0">
-        <input type="checkbox" id="qaRecorrente"> <span id="qaRecorrenteTxt">É recorrente? (vira uma conta fixa)</span>
+        <input type="checkbox" id="qaRecorrente" onchange="toggleQaCofre()"> <span id="qaRecorrenteTxt">É recorrente? (vira uma conta fixa)</span>
       </label>
       <button type="submit">Salvar</button>
     </form>
@@ -905,6 +905,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div style="display:flex;gap:8px;margin-bottom:18px">
         <input id="cfNome" placeholder="Ex: Conta de luz" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
         <input id="cfValor" type="number" step="0.01" min="0" placeholder="R$" style="width:80px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
+        <input id="cfDia" type="number" min="1" max="31" inputmode="numeric" placeholder="Dia" title="Dia que vence" style="width:54px;border:1px solid var(--line);border-radius:10px;padding:9px 8px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
         <button type="button" onclick="adicionarContaFixa()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">+</button>
       </div>
 
@@ -1666,7 +1667,7 @@ function toggleQaCofre(){
     if(lista)lista.innerHTML='';
   }
   if(pessoa)pessoa.style.display=tipo==='saida_planejada'?'block':'none';
-  const comData=tipo==='saida_planejada'||tipo==='esperado';
+  const comData=tipo==='saida_planejada'||tipo==='esperado'||(tipo==='saida'&&document.getElementById('qaRecorrente')?.checked);
   const dataWrap=document.getElementById('qaDataWrap');
   if(dataWrap)dataWrap.style.display=comData?'flex':'none';
   if(tipo!=='saida_planejada'&&pessoa)pessoa.value='';
@@ -1685,6 +1686,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   const cofresMarcados=(tipoForm==='saida'||tipoForm==='saida_planejada')?[...document.querySelectorAll('.qaCofreCheck:checked')].map(el=>el.value):[];
   const pessoa=tipoForm==='saida_planejada'?(document.getElementById('qaPessoa').value.trim()||null):null;
   const dataPrevista=(tipoForm==='saida_planejada'||tipoForm==='esperado')?(document.getElementById('qaData').value||null):null;
+  const dataRecorrente=document.getElementById('qaData').value||null;
   const recorrente=document.getElementById('qaRecorrente').checked;
   if(!descricao||!valor||isNaN(valor))return;
 
@@ -1732,7 +1734,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   // Conta fixa é só pra gasto; "Vai entrar" recorrente já foi marcado acima.
   if(recorrente&&tipo!=='esperado'){
     const primeiroCofre=partes.find(p=>p.cofre)?.cofre||null;
-    await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,nome:descricao,valor,cofre_id:primeiroCofre?primeiroCofre.id:null});
+    await salvarContaFixa('insert',{user_id:currentUser.id,nome:descricao,valor,cofre_id:primeiroCofre?primeiroCofre.id:null,dia_vencimento:dataRecorrente?Number(dataRecorrente.split('-')[2]):null});
     await carregarFixasResumo();
   }
   document.getElementById('qaDesc').value='';
@@ -3104,24 +3106,86 @@ async function loadContasFixasDoCofre(cofreId){
     return;
   }
   wrap.innerHTML=data.map(cf=>`
-    <div class="tx">
-      <div class="tx-ic">${escapeHtml(cf.icone||'🧾')}</div>
-      <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(cf.nome)}</div><div class="cat">${formatBRL(cf.valor)} / mês</div></div>
-      <button type="button" onclick="pagarContaFixa('${cf.id}')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:10px;padding:8px 12px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;margin-right:4px">Paga</button>
-      <button type="button" onclick="removerContaFixa('${cf.id}')" title="Remover" style="background:0;border:0;color:var(--ink2);font-size:16px;cursor:pointer">×</button>
+    <div style="border-bottom:1px solid var(--line)">
+      <div class="tx" style="border-bottom:0">
+        <div class="tx-ic">${diasParaVencer(cf.dia_vencimento)===0?'❗':escapeHtml(cf.icone||'🧾')}</div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(cf.nome)}</div><div class="cat"><span>${formatBRL(cf.valor)} / mês</span>${linhaVencimento(cf.dia_vencimento)}</div></div>
+        <button type="button" onclick="pagarContaFixa('${cf.id}')" style="background:var(--sage-tint);color:var(--sage);border:0;border-radius:10px;padding:8px 12px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;margin-right:4px">Paga</button>
+        <button type="button" onclick="toggleEditarContaFixa('${cf.id}')" title="Editar" style="background:0;border:0;color:var(--ink2);font-size:14px;cursor:pointer;padding:4px">✎</button>
+      </div>
+      <div id="cfEdit-${cf.id}" style="display:none;padding:0 0 12px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="cfEditNome-${cf.id}" value="${escapeHtml(cf.nome)}" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
+          <input id="cfEditValor-${cf.id}" type="number" step="0.01" min="0" value="${Number(cf.valor)||''}" style="width:80px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
+          <input id="cfEditDia-${cf.id}" type="number" min="1" max="31" inputmode="numeric" placeholder="Dia" value="${cf.dia_vencimento||''}" style="width:54px;border:1px solid var(--line);border-radius:10px;padding:9px 8px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink)">
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button type="button" onclick="removerContaFixa('${cf.id}')" style="background:0;border:0;color:var(--rose);font-family:inherit;font-size:12px;cursor:pointer;padding:4px 0">Remover</button>
+          <button type="button" onclick="salvarEdicaoContaFixa('${cf.id}')" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">Salvar</button>
+        </div>
+      </div>
     </div>
   `).join('');
+}
+
+// Dias até o próximo vencimento de uma conta fixa (0 = vence hoje). Mês curto: vence no último dia.
+function diasParaVencer(dia){
+  if(!dia)return null;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const noMes=(a,m)=>new Date(a,m,Math.min(dia,new Date(a,m+1,0).getDate()));
+  let alvo=noMes(hoje.getFullYear(),hoje.getMonth());
+  if(alvo<hoje)alvo=noMes(hoje.getFullYear(),hoje.getMonth()+1);
+  return Math.round((alvo-hoje)/86400000);
+}
+function linhaVencimento(dia){
+  const d=diasParaVencer(dia);
+  if(d===null)return '';
+  const quando=d===0?'<span style="color:#a8692a;font-weight:600">vence hoje</span>':d===1?'<span>amanhã</span>':`<span>faltam ${d} dias</span>`;
+  return ` · <span>dia ${dia}</span> · ${quando}`;
+}
+// Grava conta fixa; se o banco ainda não tem a coluna dia_vencimento (SQL 006 não rodado),
+// salva sem o dia em vez de falhar.
+async function salvarContaFixa(acao,dados,id){
+  const q=()=>acao==='insert'?supabaseClient.from('contas_fixas').insert(dados):supabaseClient.from('contas_fixas').update(dados).eq('id',id);
+  let {error}=await q();
+  if(error&&/dia_vencimento/.test(error.message||'')&&'dia_vencimento' in dados){
+    delete dados.dia_vencimento;
+    ({error}=await q());
+    if(!error)toast('Salvo, mas sem o dia — falta rodar o SQL 006 no Supabase 🌿');
+  }
+  return {error};
+}
+function toggleEditarContaFixa(id){
+  const el=document.getElementById(`cfEdit-${id}`);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+async function salvarEdicaoContaFixa(id){
+  if(!supabaseClient||!cofreDetalheId)return;
+  const nome=document.getElementById(`cfEditNome-${id}`).value.trim();
+  const valor=parseFloat(document.getElementById(`cfEditValor-${id}`).value);
+  const diaTxt=document.getElementById(`cfEditDia-${id}`).value;
+  const dia=diaTxt?Math.round(Number(diaTxt)):null;
+  if(!nome||!valor||isNaN(valor)){ toast('Preenche nome e valor 🌿'); return; }
+  if(dia!==null&&(dia<1||dia>31)){ toast('O dia vai de 1 a 31 🌿'); return; }
+  const {error}=await salvarContaFixa('update',{nome,valor,dia_vencimento:dia},id);
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  toast('Salvo 🌿');
+  await loadContasFixasDoCofre(cofreDetalheId);
 }
 
 async function adicionarContaFixa(){
   if(!supabaseClient||!currentUser||!cofreDetalheId)return;
   const nome=document.getElementById('cfNome').value.trim();
   const valor=parseFloat(document.getElementById('cfValor').value);
+  const diaTxt=document.getElementById('cfDia').value;
+  const dia=diaTxt?Math.round(Number(diaTxt)):null;
   if(!nome||!valor||isNaN(valor)){ toast('Preenche nome e valor 🌿'); return; }
-  const {error}=await supabaseClient.from('contas_fixas').insert({user_id:currentUser.id,cofre_id:cofreDetalheId,nome,valor});
+  if(dia!==null&&(dia<1||dia>31)){ toast('O dia vai de 1 a 31 🌿'); return; }
+  const {error}=await salvarContaFixa('insert',{user_id:currentUser.id,cofre_id:cofreDetalheId,nome,valor,dia_vencimento:dia});
   if(error){ toast('Não consegui salvar agora 😕'); return; }
   document.getElementById('cfNome').value='';
   document.getElementById('cfValor').value='';
+  document.getElementById('cfDia').value='';
   await loadContasFixasDoCofre(cofreDetalheId);
   toast('Conta fixa adicionada 🌿');
 }
@@ -4273,7 +4337,7 @@ async function carregarFixasResumo(){
           <div class="cofre-ic" style="width:44px;height:44px;border-radius:12px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:19px">${c?.icone||'🧾'}</div>
           <div style="flex:1;min-width:0">
             <div class="nm">${escapeHtml(f.nome)}</div>
-            <div class="meta">${escapeHtml(c?.nome||'Cofre')}</div>
+            <div class="meta"><span>${escapeHtml(c?.nome||'Cofre')}</span>${linhaVencimento(f.dia_vencimento)}</div>
           </div>
           <div class="val"><b class="num">${formatBRL(f.valor)}</b></div>
         </div>`;
