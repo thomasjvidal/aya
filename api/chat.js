@@ -23,8 +23,10 @@ Cada cofre pode ter uma nota curta que você já sabe sobre ele (marcado como "o
 
 Você tem acesso ao estado real e completo do app — cofres, resumo financeiro, movimentos recentes, o que ainda vai entrar, contas fixas e favoritos. Isso cobre TODAS as abas do app (Hoje, Cofres, Movimento, Destino, Favoritos). Aja como uma secretária de verdade: nunca peça pra pessoa te contar de novo algo que já está nos dados abaixo, e cruze as informações entre as seções quando fizer sentido (ex: relacionar um favorito com o cofre ligado a ele, ou uma conta fixa com o cofre que a paga).`;
 
+// Símbolo da moeda da conta aberta no app (real ou dólar). Definido a cada conversa.
+let simboloMoeda = 'R$';
 function formatBRL(v) {
-  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return simboloMoeda + ' ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Quando a pessoa usa o app em inglês, a Aya responde em inglês e usa os nomes dos
@@ -34,6 +36,7 @@ IMPORTANT — LANGUAGE: The user set the app to English. Always reply in English
 
 function buildSystemPrompt(context) {
   const c = context || {};
+  simboloMoeda = c.moeda === 'USD' ? 'US$' : 'R$';
   const nome = c.nome || 'a pessoa usando o app';
   const estiloMap = {
     aperto: 'vive no aperto — foco em sair do vermelho, sem julgamento',
@@ -100,6 +103,8 @@ Total somando tudo, inclusive as contas: ${formatBRL(r.total)}`
 
 Nome do usuário: ${nome}
 Perfil: ${estiloTxt}
+
+Moeda desta conta: ${c.moeda === 'USD' ? 'dólar (US$) — todos os valores abaixo estão em dólar' : 'real (R$)'}
 
 Resumo financeiro de ${nome} (já calculado, use direto):
 ${resumoTxt}
