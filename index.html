@@ -1482,7 +1482,7 @@ async function buildChatContext(){
       cofre:cofreNome(m.cofre_id),pessoa:m.pessoa||null,dataPrevista:m.data_prevista||null
     })),
     vaiEntrar:(esperadosRes.data||[]).map(m=>({valor:m.valor,descricao:m.descricao,data:m.created_at})),
-    contasFixas:(contasFixasRes.data||[]).filter(pertenceContaAtual).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
+    contasFixas:(contasFixasRes.data||[]).filter(cf=>fixaDaContaAtual(cf,Object.fromEntries((cofresRes.data||[]).map(c=>[c.id,c])))).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
     favoritos:(favRes.data||[])
       .filter(f=>{const l=cofresPorFavorito[f.id];return !l||!l.length||l.every(cid=>cofreIdsDaConta.has(String(cid)));})
       .map(f=>({titulo:f.titulo,url:f.url,preco:f.preco||null,cofre:(cofresPorFavorito[f.id]||[]).map(cofreNome).filter(Boolean).join(' + ')||null}))
@@ -1628,7 +1628,8 @@ async function initApp(){
       return;
     }
     if(session){
-      if(event==='TOKEN_REFRESHED'&&currentUser&&currentUser.id===session.user.id){ currentUser=session.user; return; }
+      // Token renovado ou o app voltando do fundo com o mesmo login: já está tudo carregado.
+      if(currentUser&&currentUser.id===session.user.id&&event!=='USER_UPDATED'){ currentUser=session.user; return; }
       onAuthed(session);
     }else{ currentUser=null; document.getElementById('authGate').classList.remove('hidden'); showAuthForm(); }
   });
@@ -1929,10 +1930,12 @@ async function loadPendentes(){
   if(!supabaseClient||!currentUser)return;
   const card=document.getElementById('pendenteCard');
   if(!card)return;
+  const conta=contaAtualId;
   const [{data:esperados,error:errEsperados},{pend,error:errPend}]=await Promise.all([
-    supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','esperado').order('created_at',{ascending:false}),
+    supabaseClient.from('movimentos').select('*').eq('conta_id',conta).eq('tipo','esperado').order('created_at',{ascending:false}),
     buscarPendentes()
   ]);
+  if(contaMudou(conta))return;
   if(errEsperados||errPend){
     card.style.display='block';
     card.innerHTML=`<p style="font-size:12.5px;color:var(--rose)">Não consegui checar pendências: ${escapeHtml((errEsperados||errPend).message||'')}</p>`;
@@ -2445,7 +2448,7 @@ function csvEscape(v){
 async function exportarDadosCSV(){
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   toast('Preparando exportação…');
-  const {data,error}=await supabaseClient.from('movimentos').select('*').order('created_at',{ascending:true});
+  const {data,error}=await supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).order('created_at',{ascending:true});
   if(error||!data||!data.length){ toast('Nada pra exportar ainda 😕'); return; }
   const cofreById={};
   (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
@@ -2828,6 +2831,16 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
 const SIMBOLO_MOEDA={BRL:'R$',USD:'US$'};
 function moedaDaConta(id){
   try{ const c=(contasCache||[]).find(x=>String(x.id)===String(id)); return c&&c.moeda==='USD'?'USD':'BRL'; }catch(e){ return 'BRL'; }
+}
+// As telas carregam em partes (await). Se a pessoa troca de conta no meio, a resposta
+// atrasada da conta anterior não pode ser desenhada na nova: cada carga guarda a conta
+// em que começou e desiste se ela mudou.
+function contaMudou(conta){ try{ return String(conta)!==String(contaAtualId); }catch(e){ return false; } }
+// Conta fixa sem cofre (ex: "É recorrente?" sem escolher cofre) é da Pessoal de quem criou.
+function fixaDaContaAtual(f,cofreById){
+  if(f.cofre_id)return !!cofreById[f.cofre_id];
+  const conta=(contasCache||[]).find(c=>String(c.id)===String(contaAtualId));
+  return !!conta&&conta.tipo==='pessoal'&&String(conta.user_id)===String(currentUser?.id)&&String(f.user_id)===String(currentUser?.id);
 }
 function moedaAtual(){ try{ return moedaDaConta(contaAtualId); }catch(e){ return 'BRL'; } }
 function formatMoeda(v,moeda){
@@ -4167,7 +4180,9 @@ async function confirmarTransferenciaConta(){
 let cofresCache=[];
 async function loadCofres(){
   if(!supabaseClient||!currentUser)return;
-  const {data,error}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
+  const conta=contaAtualId;
+  const {data,error}=await supabaseClient.from('cofres').select('*').eq('conta_id',conta).order('ordem',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true});
+  if(contaMudou(conta))return;
   cofresCache=data||[];
   const list=document.getElementById('cofresList');
   if(list){
@@ -4250,9 +4265,12 @@ async function calcResumoFinanceiro(cofresJaCarregados){
 let livreCache=0;
 async function loadHomeData(){
   if(!supabaseClient||!currentUser)return;
-  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',contaAtualId).order('created_at',{ascending:true});
+  const conta=contaAtualId;
+  const {data:cofres}=await supabaseClient.from('cofres').select('*').eq('conta_id',conta).order('created_at',{ascending:true});
+  if(contaMudou(conta))return;
   const list=cofres||[];
   const {livre,contas,guardado,disponivelHoje}=await calcResumoFinanceiro(list);
+  if(contaMudou(conta))return;
   livreCache=livre;
 
   const heroEl=document.getElementById('heroAmount');
@@ -4370,6 +4388,7 @@ async function carregarGraficos(periodo){
   const inicioAtual=new Date(hoje); inicioAtual.setDate(hoje.getDate()-dias+1); inicioAtual.setHours(0,0,0,0);
   const inicioAnterior=new Date(inicioAtual); inicioAnterior.setDate(inicioAtual.getDate()-dias);
 
+  const conta=contaAtualId;
   const [{data,error},{data:vaiEntrarLista},{data:vaiSairLista},{data:entradasAtual},{data:movsPeriodo}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).eq('tipo','saida').gte('created_at',inicioAnterior.toISOString()),
     supabaseClient.from('movimentos').select('valor').eq('conta_id',contaAtualId).eq('tipo','esperado'),
@@ -4377,6 +4396,7 @@ async function carregarGraficos(periodo){
     supabaseClient.from('movimentos').select('valor').eq('conta_id',contaAtualId).eq('tipo','entrada').gte('created_at',inicioAtual.toISOString()),
     supabaseClient.from('movimentos').select('*').eq('conta_id',contaAtualId).neq('tipo','esperado').gte('created_at',inicioAtual.toISOString()).order('created_at',{ascending:false}).limit(200)
   ]);
+  if(contaMudou(conta))return;
   if(error||!data){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--rose)">Não consegui carregar os gráficos agora 😕</p>';
     return;
@@ -4613,12 +4633,14 @@ async function loadMovimentos(){
 async function carregarFixasResumo(){
   const wrap=document.getElementById('fixasResumoConteudo');
   if(!supabaseClient||!currentUser||!wrap)return;
+  const conta=contaAtualId;
   const {data:fixasTodas,error}=await supabaseClient.from('contas_fixas').select('*').order('valor',{ascending:false});
+  if(contaMudou(conta))return;
   const cofreById={};
   (cofresCache||[]).forEach(c=>{cofreById[c.id]=c;});
   // contas_fixas não tem conta_id próprio — filtra pelas que apontam pra um cofre
-  // dessa conta (ou sem cofre nenhum), pra não vazar conta fixa de outra conta aqui.
-  const fixas=(fixasTodas||[]).filter(f=>!f.cofre_id||cofreById[f.cofre_id]);
+  // dessa conta (as sem cofre ficam só na Pessoal), pra não vazar entre contas.
+  const fixas=(fixasTodas||[]).filter(f=>fixaDaContaAtual(f,cofreById));
   if(error||!fixas.length){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhuma conta fixa ainda. Adiciona dentro de um cofre, em "Contas fixas desse cofre".</p>';
     return;
@@ -4760,10 +4782,12 @@ async function excluirMovimento(id){
 async function loadPerfilStats(){
   if(!supabaseClient||!currentUser)return;
   const desde=new Date(); desde.setDate(desde.getDate()-6); desde.setHours(0,0,0,0);
+  const conta=contaAtualId;
   const [{data:movs},{data:cofres}]=await Promise.all([
-    supabaseClient.from('movimentos').select('created_at').gte('created_at',desde.toISOString()),
-    supabaseClient.from('cofres').select('valor_meta,percentual,valor_atual')
+    supabaseClient.from('movimentos').select('created_at').eq('conta_id',conta).gte('created_at',desde.toISOString()),
+    supabaseClient.from('cofres').select('valor_meta,percentual,valor_atual').eq('conta_id',conta)
   ]);
+  if(contaMudou(conta))return;
   const diasSemana=window.AYA_LANG==='en'?['S','M','T','W','T','F','S']:['D','S','T','Q','Q','S','S'];
   const hoje=new Date();
   const dias=[];
