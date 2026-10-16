@@ -38,7 +38,7 @@
     var chave=k.replace(/\s+/g,' ').trim();
     if(!/\{[RNX]\}/.test(chave)){ exatos[chave]=DICT[k]; return; }
     var re=esc(chave)
-      .replace(/\\\{R\\\}/g,'(R\\$\\s?[−-]?[\\d.,]+)')
+      .replace(/\\\{R\\\}/g,'((?:US|R)\\$\\s?[−-]?[\\d.,]+)')
       .replace(/\\\{N\\\}/g,'([−-]?\\d[\\d.,:/]*)')
       .replace(/\\\{X\\\}/g,'([\\s\\S]*?)');
     padroes.push({re:new RegExp('^'+re+'$'),en:DICT[k],fixo:chave.replace(/\{[RNX]\}/g,'').length});

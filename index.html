@@ -96,6 +96,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .v-oculto{display:none}
 .ocultar-valores .v-real{display:none}
 .ocultar-valores .v-oculto{display:inline}
+.ocultar-valores #homeEmReal{display:none!important}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 
 .aya-card{margin-top:16px;background:linear-gradient(135deg,#2F7D5B,#276849);color:#eafaf2;border-radius:22px;padding:18px 18px 17px;box-shadow:0 10px 24px rgba(47,125,91,.28);position:relative;overflow:hidden}
@@ -313,7 +314,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="resumo-hero" onclick="abrirInfoResumo('hoje')">
       <span class="folha">🌿</span>
       <div class="rh-top"><span class="rh-ic">🌿</span>Disponível hoje<button type="button" class="olho-btn" id="olhoBtn" aria-label="Esconder valores" onclick="event.stopPropagation();alternarValores()"></button></div>
-      <div class="breathe"><span class="amount num v-real" id="heroAmount"><small>R$</small>0</span><span class="amount num v-oculto"><small>R$</small>••••</span></div>
+      <div class="breathe"><span class="amount num v-real" id="heroAmount"><small>R$</small>0</span><span class="amount num v-oculto"><small class="simbolo-moeda">R$</small>••••</span></div>
       <div class="sub" id="hero-sub">Assim que você criar seus cofres, calculo isso de verdade.</div>
       <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('hoje')">i</button>
     </div>
@@ -321,20 +322,21 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div class="resumo-grid">
       <div class="resumo-card largo" onclick="abrirInfoResumo('livre')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><path d="M16 13.5h.01"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Livre pra gastar</div><div class="rc-v num"><span class="v-real" id="barLivre">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Gaste como quiser</div></div>
+        <div class="rc-txt"><div class="rc-t">Livre pra gastar</div><div class="rc-v num"><span class="v-real" id="barLivre">R$ 0</span><span class="v-oculto"><span class="simbolo-moeda">R$</span> ••••</span></div><div class="rc-s">Gaste como quiser</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('livre')">i</button>
       </div>
       <div class="resumo-card contas" onclick="go('cofres')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-2.5-1.5-2 1.5-1.5-1.2-1.5 1.2-2-1.5L6 20.5z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Contas a pagar</div><div class="rc-v num"><span class="v-real" id="barContas">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Já vai sair</div></div>
+        <div class="rc-txt"><div class="rc-t">Contas a pagar</div><div class="rc-v num"><span class="v-real" id="barContas">R$ 0</span><span class="v-oculto"><span class="simbolo-moeda">R$</span> ••••</span></div><div class="rc-s">Já vai sair</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('contas')">i</button>
       </div>
       <div class="resumo-card" onclick="go('cofres')">
         <span class="rc-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2"/></svg></span>
-        <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num"><span class="v-real" id="barGuardado">R$ 0</span><span class="v-oculto">R$ ••••</span></div><div class="rc-s">Em seus cofres</div></div>
+        <div class="rc-txt"><div class="rc-t">Guardado</div><div class="rc-v num"><span class="v-real" id="barGuardado">R$ 0</span><span class="v-oculto"><span class="simbolo-moeda">R$</span> ••••</span></div><div class="rc-s">Em seus cofres</div></div>
         <button type="button" class="info-btn" aria-label="O que é isso?" onclick="event.stopPropagation();abrirInfoResumo('guardado')">i</button>
       </div>
     </div>
+    <div id="homeEmReal" style="display:none;font-size:11.5px;color:var(--ink2);text-align:center;margin:8px 4px 0;line-height:1.4"></div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:8px auto 0">
       <button type="button" onclick="go('cofres')" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">Ver seus cofres →</button>
       <button type="button" onclick="abrirFavoritosPage()" style="background:0;border:0;color:var(--sage);font-family:inherit;font-weight:600;font-size:11.5px;cursor:pointer">♡ Favoritos</button>
@@ -385,17 +387,17 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </select>
 
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="valor" checked onchange="toggleCofreMetaTipo()"> Meta em R$</label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="valor" checked onchange="toggleCofreMetaTipo()"> Meta em valor</label>
         <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:9px 10px"><input type="radio" name="cofreMetaTipo" value="percentual" onchange="toggleCofreMetaTipo();mostrarGuiaPercentualSeNovo()"> % de cada entrada</label>
       </div>
-      <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional, R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+      <input id="cofreValorMeta" type="number" step="0.01" placeholder="Meta (opcional)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <input id="cofrePercentual" type="number" step="0.1" min="0" max="100" placeholder="% de cada entrada (ex: 10)" oninput="atualizarHintPercentual()" style="display:none;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
       <p id="cofrePercentualHint" style="display:none;font-size:11.5px;color:var(--ink2);margin:-4px 0 10px">Toda vez que você registrar uma entrada (ex: salário), esse % é somado automaticamente aqui. Mudar o % não move o que já está guardado — só vale pras próximas entradas.</p>
 
       <button type="button" onclick="toggleCofreMaisOpcoes()" id="cofreMaisOpcoesBtn" style="background:0;border:0;color:var(--ink2);font-family:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px 0;margin-bottom:8px">Mais opções (ícone, valor inicial, notas)</button>
       <div id="cofreMaisOpcoes" style="display:none">
         <input id="cofreIcone" placeholder="Emoji (opcional, ex: 🛟)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
-        <input id="cofreValorAtual" type="number" step="0.01" placeholder="Quanto já tem (R$)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
+        <input id="cofreValorAtual" type="number" step="0.01" placeholder="Quanto já tem" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper);color:var(--ink);margin-bottom:8px">
         <textarea id="cofreNotas" placeholder="O que a Aya deve lembrar sobre esse cofre? (ex: doo via Pix toda segunda, invisto pela XP...)" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:12.5px;background:var(--paper);color:var(--ink);margin-bottom:10px;resize:vertical"></textarea>
       </div>
 
@@ -502,11 +504,17 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <div style="text-align:left;margin-top:10px">
       <div class="eyebrow">Contas</div>
       <div class="h-name" style="margin-top:4px">Trocar de<br>conta</div>
-      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Cada conta tem seus próprios cofres e movimentos, separados. Dá pra transferir entre elas na aba Transferência.</p>
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 4px 16px;line-height:1.5">Cada conta tem seus próprios cofres e movimentos, separados, e a sua moeda (toque em R$ / US$ pra trocar). Dá pra transferir entre elas, mesmo em moedas diferentes.</p>
       <div id="contaPickerList" class="mini-cofres" style="margin-bottom:18px"></div>
 
       <div class="sec-title">Criar nova conta PJ</div>
-      <input id="novaContaNome" placeholder="Nome da empresa" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink);margin-bottom:8px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="novaContaNome" placeholder="Nome da empresa" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+        <select id="novaContaMoeda" title="Moeda da conta" style="border:1px solid var(--line);border-radius:10px;padding:0 10px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+          <option value="BRL">R$</option>
+          <option value="USD">US$</option>
+        </select>
+      </div>
       <button type="button" onclick="criarContaPj()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">+ Criar conta PJ</button>
 
       <button type="button" onclick="fecharContaPicker();abrirTransferencia('contas')" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-top:10px">⇄ Transferir entre contas</button>
@@ -571,9 +579,20 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
           <select id="transfContaOrigem" onchange="popularSelectsTransferenciaContas()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
           <div style="text-align:center;color:var(--sage);font-size:18px;margin:-6px 0 8px">↓</div>
           <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Para a conta</div>
-          <select id="transfContaDestino" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
+          <select id="transfContaDestino" onchange="atualizarConversaoTransf()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:13.5px;background:var(--paper);color:var(--ink);margin-bottom:14px"></select>
           <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Valor</div>
-          <input id="transfContaValor" type="number" step="0.01" min="0" placeholder="R$ 0,00" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:'Fraunces',serif;font-size:22px;background:var(--paper);color:var(--ink);margin-bottom:6px">
+          <input id="transfContaValor" type="number" step="0.01" min="0" placeholder="0,00" oninput="atualizarConversaoTransf()" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-family:'Fraunces',serif;font-size:22px;background:var(--paper);color:var(--ink);margin-bottom:6px">
+          <div id="transfConvWrap" style="display:none;background:var(--sage-tint);border-radius:12px;padding:10px 12px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);margin-bottom:8px">
+              <span style="flex:1">Cotação (R$ por US$ 1)</span>
+              <input id="transfCotacao" type="number" step="0.0001" min="0" inputmode="decimal" oninput="atualizarConversaoTransf()" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)">
+              <span style="flex:1">Chega na outra conta <span id="transfChegaMoeda"></span></span>
+              <input id="transfChega" type="number" step="0.01" min="0" inputmode="decimal" style="width:90px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+            </div>
+            <div style="font-size:11px;color:var(--ink2);margin-top:6px">Dá pra corrigir com o valor exato que o banco usou.</div>
+          </div>
           <p style="font-size:11.5px;color:var(--ink2);margin:0 0 14px">Sai do dinheiro livre de uma conta e chega esperando organização na outra.</p>
           <button type="button" onclick="confirmarTransferenciaConta()" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:13px;padding:14px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer">Transferir</button>
         </div>
@@ -748,7 +767,18 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <p>Registra rapidinho — fica salvo no seu extrato de verdade.</p>
     <form id="quickAddForm">
       <input id="qaDesc" type="text" placeholder="Ex: Pix recebido, Mercado, Uber…" required>
-      <input id="qaValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor (R$)" required>
+      <input id="qaValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor" required oninput="atualizarConversaoQa()">
+      <div id="qaMoedaWrap" style="display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap">
+        <div style="display:flex;background:var(--paper);border-radius:10px;padding:3px">
+          <button type="button" class="qaMoedaBtn" data-moeda="BRL" onclick="escolherMoedaQa('BRL')" style="border:0;border-radius:8px;padding:6px 12px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">R$</button>
+          <button type="button" class="qaMoedaBtn" data-moeda="USD" onclick="escolherMoedaQa('USD')" style="border:0;border-radius:8px;padding:6px 12px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">US$</button>
+        </div>
+        <span id="qaConvWrap" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--ink2)">
+          <span>cotação</span>
+          <input id="qaCotacao" type="number" step="0.0001" min="0" inputmode="decimal" oninput="atualizarConversaoQa()" style="width:74px;margin:0;padding:6px 8px;font-size:12.5px">
+          <span id="qaConvTxt"></span>
+        </span>
+      </div>
       <div style="display:flex;gap:10px;width:100%;justify-content:center;margin:2px 0;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="entrada" checked onchange="toggleQaCofre()"> Entrou</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)"><input type="radio" name="qaTipo" value="saida" onchange="toggleQaCofre()"> Saiu</label>
@@ -788,7 +818,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <form id="editMovForm">
       <input type="hidden" id="emId">
       <input id="emDesc" type="text" placeholder="Descrição" required>
-      <input id="emValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor (R$)" required>
+      <input id="emValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor" required>
       <div id="emPrazoWrap" style="display:none;width:100%">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Data:</span><input id="emData" type="date" style="flex:1;min-width:0;margin:0"></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal"> Cai todo mês?</label>
@@ -848,7 +878,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         </div>
         <div id="rendimentoForm" style="display:none;gap:8px;margin-top:12px;max-width:280px;margin-left:auto;margin-right:auto">
           <div style="display:flex;gap:8px">
-            <input id="rendimentoValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Quanto rendeu (R$)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink)">
+            <input id="rendimentoValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Quanto rendeu" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink)">
             <button type="button" onclick="lancarRendimento()" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">✓</button>
           </div>
         </div>
@@ -1433,6 +1463,7 @@ async function buildChatContext(){
   const cofresPorFavorito={};
   (favVinculosRes.data||[]).forEach(v=>{(cofresPorFavorito[v.favorito_id]=cofresPorFavorito[v.favorito_id]||[]).push(v.cofre_id);});
   return {
+    moeda:moedaAtual(),
     nome:perfilRes.data?.nome,
     idioma:window.AYA_LANG,
     estilo:perfilRes.data?.estilo,
@@ -1634,6 +1665,34 @@ async function checkPushStatus(){
 function openQuickAdd(){
   if(!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   document.getElementById('quickAdd').classList.remove('hidden');
+  escolherMoedaQa(moedaAtual());
+}
+// Moeda em que o valor foi digitado. Diferente da moeda da conta: mostra a cotação
+// (automática, editável) e quanto fica na moeda da conta.
+let qaMoeda='BRL';
+async function escolherMoedaQa(moeda){
+  qaMoeda=moeda;
+  document.querySelectorAll('.qaMoedaBtn').forEach(b=>{
+    const ativo=b.dataset.moeda===moeda;
+    b.style.background=ativo?'var(--card)':'transparent';
+    b.style.color=ativo?'var(--ink)':'var(--ink2)';
+    b.style.boxShadow=ativo?'0 1px 2px rgba(0,0,0,.08)':'none';
+  });
+  const wrap=document.getElementById('qaConvWrap');
+  const converte=moeda!==moedaAtual();
+  if(wrap)wrap.style.display=converte?'flex':'none';
+  if(converte){
+    const inp=document.getElementById('qaCotacao');
+    if(inp&&!inp.value){ const c=await obterCotacao(); if(c&&qaMoeda===moeda)inp.value=Number(c.toFixed(4)); }
+  }
+  atualizarConversaoQa();
+}
+function atualizarConversaoQa(){
+  const txt=document.getElementById('qaConvTxt');
+  if(!txt)return;
+  const v=parseFloat(document.getElementById('qaValor').value);
+  const cot=parseFloat(document.getElementById('qaCotacao').value);
+  txt.textContent=(qaMoeda!==moedaAtual()&&v>0&&cot>0)?`→ ${formatMoedaExato(converterMoeda(v,qaMoeda,moedaAtual(),cot),moedaAtual())}`:'';
 }
 function closeQuickAdd(){
   document.getElementById('quickAdd').classList.add('hidden');
@@ -1680,7 +1739,15 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   e.preventDefault();
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
   const descricao=document.getElementById('qaDesc').value.trim();
-  const valor=parseFloat(document.getElementById('qaValor').value);
+  let valor=parseFloat(document.getElementById('qaValor').value);
+  // Digitado em outra moeda: guarda já convertido pra moeda da conta (e o original junto).
+  let conversao=null;
+  if(qaMoeda!==moedaAtual()&&valor>0){
+    const cot=parseFloat(document.getElementById('qaCotacao').value);
+    if(!(cot>0)){ toast('Coloca a cotação do dólar 🌿'); return; }
+    conversao={moeda:qaMoeda,cotacao:cot,original:valor};
+    valor=converterMoeda(valor,qaMoeda,moedaAtual(),cot);
+  }
   const tipoForm=document.querySelector('input[name="qaTipo"]:checked').value;
   const tipo=tipoForm==='saida_planejada'?'saida':tipoForm;
   const cofresMarcados=(tipoForm==='saida'||tipoForm==='saida_planejada')?[...document.querySelectorAll('.qaCofreCheck:checked')].map(el=>el.value):[];
@@ -1724,7 +1791,8 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
 
   for(const parte of partes){
     // "Vai entrar" que cai todo mês fica marcado em categoria='mensal' (ao chegar, o app anota o do mês seguinte).
-    const {error}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:(tipo==='esperado'&&recorrente)?VAI_ENTRAR_MENSAL:null});
+    const conv=conversao?{valor_original:Math.round(parte.valor/valor*conversao.original*100)/100,moeda_original:conversao.moeda,cotacao:conversao.cotacao}:{};
+    const {error}=await inserirMovimento({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:(tipo==='esperado'&&recorrente)?VAI_ENTRAR_MENSAL:null,...conv});
     if(error){ toast('Não consegui salvar agora 😕'); return; }
     if(tipo==='saida'&&parte.cofre){
       const novoValor=Number(parte.cofre.valor_atual||0)-parte.valor;
@@ -1739,6 +1807,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   }
   document.getElementById('qaDesc').value='';
   document.getElementById('qaValor').value='';
+  document.getElementById('qaCotacao').value='';
   document.querySelectorAll('.qaCofreCheck').forEach(el=>{el.checked=false;});
   document.getElementById('qaPessoa').value='';
   document.getElementById('qaData').value='';
@@ -2744,7 +2813,58 @@ document.getElementById('editFavForm').addEventListener('submit',async(e)=>{
 });
 
 /* ================= COFRES (reais) ================= */
-function formatBRL(v){return 'R$ '+Number(v||0).toLocaleString(window.AYA_LOCALE||'pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
+/* ================= MOEDA (real ou dólar, por conta) ================= */
+// Cada conta (Pessoal, PJ...) tem uma moeda: tudo dentro dela (cofres, movimentos, Vai
+// entrar, contas fixas) fica nessa moeda. Entre moedas diferentes o app converte pela
+// cotação (R$ por US$ 1), que vem automática e a pessoa pode corrigir.
+const SIMBOLO_MOEDA={BRL:'R$',USD:'US$'};
+function moedaDaConta(id){
+  try{ const c=(contasCache||[]).find(x=>String(x.id)===String(id)); return c&&c.moeda==='USD'?'USD':'BRL'; }catch(e){ return 'BRL'; }
+}
+function moedaAtual(){ try{ return moedaDaConta(contaAtualId); }catch(e){ return 'BRL'; } }
+function formatMoeda(v,moeda){
+  return (SIMBOLO_MOEDA[moeda]||'R$')+' '+Number(v||0).toLocaleString(window.AYA_LOCALE||'pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+// Com centavos, pras conversões (onde o valor exato importa).
+function formatMoedaExato(v,moeda){
+  return (SIMBOLO_MOEDA[moeda]||'R$')+' '+Number(v||0).toLocaleString(window.AYA_LOCALE||'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// Valores da conta aberta agora (na moeda dela).
+function formatBRL(v,moeda){ return formatMoeda(v,moeda||moedaAtual()); }
+function converterMoeda(valor,de,para,usdBrl){
+  if(de===para)return valor;
+  return Math.round((de==='USD'?valor*usdBrl:valor/usdBrl)*100)/100;
+}
+let cotacaoMemoria=null;
+// Cotação do dólar comercial: /api/cotacao, guardada por 30 min. Sem internet, usa a última conhecida.
+async function obterCotacao(){
+  if(cotacaoMemoria&&Date.now()-cotacaoMemoria.t<30*60*1000)return cotacaoMemoria.v;
+  try{
+    const r=await fetch('/api/cotacao');
+    const j=await r.json();
+    if(j&&j.usdBrl>0){
+      cotacaoMemoria={v:Number(j.usdBrl),t:Date.now()};
+      try{ localStorage.setItem('aya_cotacao_usd',String(j.usdBrl)); }catch(e){}
+      return cotacaoMemoria.v;
+    }
+  }catch(e){}
+  try{ const v=Number(localStorage.getItem('aya_cotacao_usd')); if(v>0)return v; }catch(e){}
+  return null;
+}
+function formatCotacao(v){ return Number(v||0).toLocaleString(window.AYA_LOCALE||'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4}); }
+const COLUNAS_CONVERSAO=['valor_original','moeda_original','cotacao'];
+// Insere movimento; se o banco ainda não tem as colunas de conversão (SQL 007 não rodado),
+// grava sem elas e põe o valor original na descrição, em vez de falhar.
+async function inserirMovimento(dados){
+  let {data,error}=await supabaseClient.from('movimentos').insert(dados).select('id').single();
+  if(error&&COLUNAS_CONVERSAO.some(k=>k in dados&&(error.message||'').includes(k))){
+    const semConv={...dados};
+    if(semConv.valor_original!=null)semConv.descricao=`${semConv.descricao} (${formatMoeda(semConv.valor_original,semConv.moeda_original)})`;
+    COLUNAS_CONVERSAO.forEach(k=>delete semConv[k]);
+    ({data,error}=await supabaseClient.from('movimentos').insert(semConv).select('id').single());
+  }
+  return {data,error};
+}
 // Vibração tátil curta (fraca no iOS Safari — trocar por @capacitor/haptics se virar app nativo).
 function vibrar(tipo){
   if(!('vibrate' in navigator))return;
@@ -2754,7 +2874,7 @@ function vibrar(tipo){
 // Anima um número subindo (ou descendo) de "de" até "para", em vez de trocar o valor seco.
 function animarValor(el,de,para,{duracao=650,formatar}={}){
   if(!el)return;
-  const fmt=formatar||((v)=>'R$ '+Math.round(v).toLocaleString(window.AYA_LOCALE||'pt-BR'));
+  const fmt=formatar||((v)=>formatBRL(Math.round(v)));
   const inicio=performance.now();
   function passo(agora){
     const t=Math.min(1,(agora-inicio)/duracao);
@@ -3712,6 +3832,7 @@ function renderContaPicker(){
     <div class="cofre-row" onclick="trocarConta('${c.id}')" style="cursor:pointer;${String(c.id)===String(contaAtualId)?'border-color:var(--sage);background:var(--sage-tint)':''}">
       <div class="cofre-ic" style="background:var(--sage-tint)">${c.tipo==='pj'?'💼':'👤'}</div>
       <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(c.nome)}</div><div class="meta">${c.tipo==='pj'?'PJ':'Pessoal'}</div></div>
+      <button type="button" onclick="event.stopPropagation();trocarMoedaConta('${c.id}')" title="Moeda da conta" style="background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:5px 9px;font-family:inherit;font-weight:700;font-size:12px;color:var(--ink);cursor:pointer;margin-right:6px">${SIMBOLO_MOEDA[moedaDaConta(c.id)]}</button>
       ${String(c.id)===String(contaAtualId)?'<span style="color:var(--sage);font-weight:700">✓</span>':''}
     </div>
   `).join('');
@@ -3729,11 +3850,35 @@ async function trocarConta(id){
   await loadPerfilStats();
   await loadPendentes();
 }
+// Troca a moeda de uma conta. Os valores que já estão nela não são convertidos.
+async function trocarMoedaConta(id){
+  if(!supabaseClient)return;
+  const c=contasCache.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const nova=moedaDaConta(id)==='USD'?'BRL':'USD';
+  if(!confirm(`Passar "${c.nome}" para ${SIMBOLO_MOEDA[nova]}? Os valores que já estão nela não são convertidos, só passam a ser contados em ${SIMBOLO_MOEDA[nova]}.`))return;
+  const {error}=await supabaseClient.from('contas').update({moeda:nova}).eq('id',id);
+  if(error){ toast(/moeda/.test(error.message||'')?'Falta rodar o SQL 007 no Supabase 🌿':'Não consegui trocar agora 😕'); return; }
+  c.moeda=nova;
+  renderContaPicker();
+  toast(`${c.nome} agora em ${SIMBOLO_MOEDA[nova]} 🌿`);
+  if(String(id)===String(contaAtualId)){
+    await loadCofres();
+    await loadHomeData();
+    await loadMovimentos();
+    await loadPendentes();
+  }
+}
 async function criarContaPj(){
   if(!supabaseClient||!currentUser)return;
   const nome=document.getElementById('novaContaNome').value.trim();
   if(!nome){ toast('Coloca o nome da empresa 🌿'); return; }
-  const {data,error}=await supabaseClient.from('contas').insert({user_id:currentUser.id,nome,tipo:'pj'}).select('*').single();
+  const moeda=document.getElementById('novaContaMoeda')?.value==='USD'?'USD':'BRL';
+  let {data,error}=await supabaseClient.from('contas').insert({user_id:currentUser.id,nome,tipo:'pj',moeda}).select('*').single();
+  if(error&&/moeda/.test(error.message||'')){
+    if(moeda==='USD'){ toast('Pra criar conta em dólar, falta rodar o SQL 007 no Supabase 🌿'); return; }
+    ({data,error}=await supabaseClient.from('contas').insert({user_id:currentUser.id,nome,tipo:'pj'}).select('*').single());
+  }
   if(error){ toast('Não consegui criar a conta agora 😕'); return; }
   contasCache.push(data);
   document.getElementById('novaContaNome').value='';
@@ -3846,14 +3991,32 @@ function popularSelectsTransferenciaContas(){
   const destino=document.getElementById('transfContaDestino');
   if(!origem||!destino)return;
   if(!contasCache||contasCache.length<2){
-    origem.innerHTML=(contasCache||[]).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+    origem.innerHTML=(contasCache||[]).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)} (${SIMBOLO_MOEDA[moedaDaConta(c.id)]})</option>`).join('');
     destino.innerHTML='<option value="">Crie uma segunda conta pra transferir</option>';
     return;
   }
   if(!origem.options.length){
-    origem.innerHTML=contasCache.map(c=>`<option value="${c.id}" ${String(c.id)===String(contaAtualId)?'selected':''}>${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+    origem.innerHTML=contasCache.map(c=>`<option value="${c.id}" ${String(c.id)===String(contaAtualId)?'selected':''}>${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)} (${SIMBOLO_MOEDA[moedaDaConta(c.id)]})</option>`).join('');
   }
-  destino.innerHTML=contasCache.filter(c=>String(c.id)!==String(origem.value)).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)}</option>`).join('');
+  destino.innerHTML=contasCache.filter(c=>String(c.id)!==String(origem.value)).map(c=>`<option value="${c.id}">${c.tipo==='pj'?'💼':'👤'} ${escapeHtml(c.nome)} (${SIMBOLO_MOEDA[moedaDaConta(c.id)]})</option>`).join('');
+  atualizarConversaoTransf();
+}
+// Contas com moedas diferentes: mostra a cotação (automática, editável) e quanto chega.
+async function atualizarConversaoTransf(){
+  const wrap=document.getElementById('transfConvWrap');
+  const origemId=document.getElementById('transfContaOrigem')?.value;
+  const destinoId=document.getElementById('transfContaDestino')?.value;
+  if(!wrap)return;
+  const mo=moedaDaConta(origemId), md=moedaDaConta(destinoId);
+  const valorInp=document.getElementById('transfContaValor');
+  if(valorInp)valorInp.placeholder=`${SIMBOLO_MOEDA[mo]} 0,00`;
+  if(!destinoId||mo===md){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  document.getElementById('transfChegaMoeda').textContent=`(${SIMBOLO_MOEDA[md]})`;
+  const cotInp=document.getElementById('transfCotacao');
+  if(!cotInp.value){ const c=await obterCotacao(); if(c)cotInp.value=Number(c.toFixed(4)); }
+  const v=parseFloat(valorInp.value), cot=parseFloat(cotInp.value);
+  document.getElementById('transfChega').value=(v>0&&cot>0)?converterMoeda(v,mo,md,cot):'';
 }
 async function confirmarTransferenciaConta(){
   if(!supabaseClient||!currentUser)return;
@@ -3865,15 +4028,28 @@ async function confirmarTransferenciaConta(){
   const origem=contasCache.find(c=>String(c.id)===String(origemId));
   const destino=contasCache.find(c=>String(c.id)===String(destinoId));
   if(!origem||!destino)return;
+  const mo=moedaDaConta(origemId), md=moedaDaConta(destinoId);
+  let chega=valor, conv={};
+  if(mo!==md){
+    const cot=parseFloat(document.getElementById('transfCotacao').value);
+    chega=parseFloat(document.getElementById('transfChega').value);
+    if(!(cot>0)){ toast('Coloca a cotação do dólar 🌿'); return; }
+    if(!(chega>0))chega=converterMoeda(valor,mo,md,cot);
+    conv={valor_original:valor,moeda_original:mo,cotacao:cot};
+  }
   const [{error:err1},{error:err2}]=await Promise.all([
     supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:origemId,descricao:`Transferência pra ${destino.nome}`,valor,tipo:'saida',cofre_id:null}),
-    supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:destinoId,descricao:`Transferência de ${origem.nome}`,valor,tipo:'entrada',cofre_id:null,organizado:false})
+    inserirMovimento({user_id:currentUser.id,conta_id:destinoId,descricao:`Transferência de ${origem.nome}`,valor:chega,tipo:'entrada',cofre_id:null,organizado:false,...conv})
   ]);
   if(err1||err2){ toast('Não consegui transferir agora 😕'); return; }
   vibrar('success');
   document.getElementById('transfContasForm').style.display='none';
   document.getElementById('transfSucesso').style.display='block';
-  document.getElementById('transfSucessoTxt').textContent=`${formatBRL(valor)} de ${origem.nome} pra ${destino.nome} — chegou esperando organização lá`;
+  document.getElementById('transfSucessoTxt').textContent=mo===md
+    ?`${formatMoeda(valor,mo)} de ${origem.nome} pra ${destino.nome} — chegou esperando organização lá`
+    :`${formatMoedaExato(valor,mo)} de ${origem.nome} → ${formatMoedaExato(chega,md)} em ${destino.nome} — chegou esperando organização lá`;
+  document.getElementById('transfCotacao').value='';
+  document.getElementById('transfChega').value='';
   document.getElementById('transfContaValor').value='';
   if(String(origemId)===String(contaAtualId)||String(destinoId)===String(contaAtualId)){
     await loadHomeData();
@@ -3977,9 +4153,9 @@ async function loadHomeData(){
   if(heroEl){
     const anterior=parseInt(heroEl.textContent.replace(/[^\d-]/g,''),10);
     if(!heroEl.querySelector('#heroAmountVal')||isNaN(anterior)||anterior===disponivelHoje){
-      heroEl.innerHTML=`<small>R$</small><span id="heroAmountVal">${disponivelHoje}</span>`;
+      heroEl.innerHTML=`<small>${SIMBOLO_MOEDA[moedaAtual()]}</small><span id="heroAmountVal">${disponivelHoje}</span>`;
     }else{
-      heroEl.innerHTML=`<small>R$</small><span id="heroAmountVal">${anterior}</span>`;
+      heroEl.innerHTML=`<small>${SIMBOLO_MOEDA[moedaAtual()]}</small><span id="heroAmountVal">${anterior}</span>`;
       // "Livre pra gastar hoje" recalcula na frente do usuário — número sobe/desce animado.
       animarValor(document.getElementById('heroAmountVal'),anterior,disponivelHoje,{formatar:(v)=>String(Math.round(v))});
     }
@@ -3988,6 +4164,18 @@ async function loadHomeData(){
   setTxt('barLivre',formatBRL(livre));
   setTxt('barContas',formatBRL(contas));
   setTxt('barGuardado',formatBRL(guardado));
+  document.querySelectorAll('.simbolo-moeda').forEach(el=>{el.textContent=SIMBOLO_MOEDA[moedaAtual()];});
+  const emReal=document.getElementById('homeEmReal');
+  if(emReal){
+    emReal.style.display='none';
+    if(moedaAtual()==='USD'){
+      obterCotacao().then(cot=>{
+        if(!cot||moedaAtual()!=='USD')return;
+        emReal.innerHTML=`<span>Em real:</span> <span>Livre ≈ ${formatMoeda(livre*cot,'BRL')}</span> · <span>Contas ≈ ${formatMoeda(contas*cot,'BRL')}</span> · <span>Guardado ≈ ${formatMoeda(guardado*cot,'BRL')}</span> · <span>cotação ${formatCotacao(cot)}</span>`;
+        emReal.style.display='block';
+      });
+    }
+  }
 
   const subEl=document.getElementById('hero-sub');
   if(subEl){
@@ -4019,7 +4207,7 @@ async function loadHomeData(){
   if(ayaTxt){
     if(movs&&movs.length){
       const totalGasto=movs.reduce((s,m)=>s+Number(m.valor||0),0);
-      ayaTxt.innerHTML=`Você já registrou ${movs.length} saída${movs.length>1?'s':''}, totalizando <span class="v-real">${formatBRL(totalGasto)}</span><span class="v-oculto">R$ ••••</span>. Continue registrando pra eu te ajudar melhor 🌿`;
+      ayaTxt.innerHTML=`Você já registrou ${movs.length} saída${movs.length>1?'s':''}, totalizando <span class="v-real">${formatBRL(totalGasto)}</span><span class="v-oculto">${SIMBOLO_MOEDA[moedaAtual()]} ••••</span>. Continue registrando pra eu te ajudar melhor 🌿`;
     }else{
       ayaTxt.textContent='Ainda não tenho movimentos seus. Registra algo (ou cria um cofre) que eu já começo a te ajudar de verdade 🌿';
     }
@@ -4299,7 +4487,7 @@ function renderMovimentosPeriodo(){
     html+=`
       <div class="tx">
         <div class="tx-ic">${icone}</div>
-        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}${pessoaTxt?' · '+pessoaTxt:''}${dataPrevTxt?' · '+dataPrevTxt:''}</div></div>
+        <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${d.toLocaleString(window.AYA_LOCALE||'pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${origemTxt?' · '+origemTxt:''}${pessoaTxt?' · '+pessoaTxt:''}${dataPrevTxt?' · '+dataPrevTxt:''}${m.moeda_original&&m.valor_original!=null?' · <span>'+formatMoedaExato(m.valor_original,m.moeda_original)+' (cotação '+formatCotacao(m.cotacao)+')</span>':''}</div></div>
         <div class="amt num${positivo?' in':''}">${positivo?'+':'−'} ${formatBRL(m.valor)}</div>
         <button onclick='abrirEditarMovimento("${m.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer;flex-shrink:0;margin-left:2px">✎</button>
       </div>
