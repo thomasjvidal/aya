@@ -826,7 +826,14 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <form id="editMovForm">
       <input type="hidden" id="emId">
       <input id="emDesc" type="text" placeholder="Descrição" required>
-      <input id="emValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor" required>
+      <input id="emValor" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor" required oninput="atualizarConversaoEditar()">
+      <div id="emMoedaWrap" style="display:none;width:100%;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;background:var(--paper);border-radius:10px;padding:3px">
+          <button type="button" class="emMoedaBtn" data-moeda="BRL" onclick="escolherMoedaEditar('BRL')" style="border:0;border-radius:8px;padding:6px 12px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">R$</button>
+          <button type="button" class="emMoedaBtn" data-moeda="USD" onclick="escolherMoedaEditar('USD')" style="border:0;border-radius:8px;padding:6px 12px;font-family:inherit;font-weight:600;font-size:12.5px;cursor:pointer">US$</button>
+        </div>
+        <span id="emConvTxt" style="font-size:12px;color:var(--ink2)"></span>
+      </div>
       <div id="emPrazoWrap" style="display:none;width:100%">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Data:</span><input id="emData" type="date" style="flex:1;min-width:0;margin:0"></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal"> Cai todo mês?</label>
@@ -1901,6 +1908,14 @@ async function buscarPendentes(){
 }
 
 const VAI_ENTRAR_MENSAL='mensal';
+// "Vai entrar" em outra moeda (ex: US$ 500 numa conta em real): o que vale é o valor
+// original; na moeda da conta é só estimativa pela cotação do dia, até cair de verdade.
+function vaiEntrarEmOutraMoeda(m){ return !!(m.moeda_original&&m.valor_original!=null&&m.moeda_original!==moedaAtual()); }
+function vaiEntrarNaMoedaDaConta(m,cot){
+  if(!vaiEntrarEmOutraMoeda(m))return Number(m.valor||0);
+  const c=cot||Number(m.cotacao)||0;
+  return c>0?converterMoeda(Number(m.valor_original),m.moeda_original,moedaAtual(),c):Number(m.valor||0);
+}
 // Quantos dias faltam pra data prevista (negativo = já passou), no fuso do aparelho.
 function prazoVaiEntrar(dataPrevista){
   if(!dataPrevista)return {estado:'sem',dias:null};
@@ -1953,7 +1968,9 @@ async function loadPendentes(){
   card.style.display='block';
   let html='';
   if(listaEsperados.length){
-    const totalEsperado=listaEsperados.reduce((s,m)=>s+Number(m.valor||0),0);
+    const cotVE=listaEsperados.some(vaiEntrarEmOutraMoeda)?await obterCotacao():null;
+    if(contaMudou(conta))return;
+    const totalEsperado=listaEsperados.reduce((s,m)=>s+vaiEntrarNaMoedaDaConta(m,cotVE),0);
     // Com data primeiro (mais perto em cima); sem data no fim.
     listaEsperados.sort((a,b)=>(a.data_prevista||'9999-99-99').localeCompare(b.data_prevista||'9999-99-99'));
     const estados=listaEsperados.map(m=>prazoVaiEntrar(m.data_prevista).estado);
@@ -1978,12 +1995,14 @@ async function loadPendentes(){
           <div class="tx-ic">${({hoje:'❗',atrasada:'⚠️'})[prazoVaiEntrar(m.data_prevista).estado]||'🕓'}</div>
           <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div>${m.data_prevista?'':'<div class="cat">ainda não caiu</div>'}</div>
           <div style="text-align:right;flex-shrink:0">
-            <div class="amt num in">+ ${formatBRL(m.valor)}</div>
+            <div class="amt num in">+ ${vaiEntrarEmOutraMoeda(m)?formatMoeda(m.valor_original,m.moeda_original):formatBRL(m.valor)}</div>
+            ${vaiEntrarEmOutraMoeda(m)?`<div style="font-size:11px;color:var(--ink2);margin-top:2px;white-space:nowrap">≈ ${formatBRL(vaiEntrarNaMoedaDaConta(m,cotVE))}</div>`:''}
             ${linhaPrazoVaiEntrar(m)?`<div style="font-size:11px;color:var(--ink2);margin-top:2px;white-space:nowrap">${linhaPrazoVaiEntrar(m)}</div>`:''}
           </div>
           <span id="veSeta-${m.id}" style="font-size:11px;color:var(--ink2);margin-left:2px">▾</span>
         </div>
-        <div id="veForm-${m.id}" style="display:none;margin-top:10px;gap:8px;justify-content:flex-end">
+        <div id="veForm-${m.id}" style="display:none;margin-top:10px;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center">
+          ${vaiEntrarEmOutraMoeda(m)?`<label style="flex-basis:100%;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:12.5px;color:var(--ink2)"><span>Caiu</span><span>${SIMBOLO_MOEDA[moedaAtual()]}</span><input id="veRecebido-${m.id}" type="number" step="0.01" min="0" inputmode="decimal" value="${vaiEntrarNaMoedaDaConta(m,cotVE)}" style="width:110px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)"></label>`:''}
           <button onclick='abrirEditarMovimento("${m.id}")' title="Editar" style="background:0;border:0;color:var(--ink2);font-size:15px;cursor:pointer">✎ Editar</button>
           <button onclick='excluirMovimento("${m.id}")' style="background:0;border:1px solid var(--line);color:var(--ink2);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:12.5px;cursor:pointer">Cancelar</button>
           <button class="split-btn" style="width:auto;padding:8px 12px;font-size:12.5px;margin-top:0" onclick="confirmarChegada('${m.id}')">Chegou!</button>
@@ -2016,13 +2035,25 @@ async function confirmarChegada(id){
   // Só confirma que chegou — fica esperando em "Dinheiro esperando organização" até
   // a pessoa tocar em "Deixar a Aya organizar". Distribuir sozinho aqui surpreendia
   // quem só queria confirmar o recebimento.
-  const {error}=await supabaseClient.from('movimentos').update({tipo:'entrada'}).eq('id',id);
+  // Em outra moeda: entra o que caiu de verdade na moeda da conta (editável), e a
+  // cotação efetiva fica guardada junto com o valor original.
+  const mudancas={tipo:'entrada'};
+  if(vaiEntrarEmOutraMoeda(mov)){
+    const recebido=parseFloat(document.getElementById(`veRecebido-${id}`)?.value);
+    if(!(recebido>0)){ toast('Coloca quanto caiu 🌿'); return; }
+    mudancas.valor=Math.round(recebido*100)/100;
+    const orig=Number(mov.valor_original);
+    mudancas.cotacao=Math.round((mov.moeda_original==='USD'?recebido/orig:orig/recebido)*10000)/10000;
+  }
+  const {error}=await supabaseClient.from('movimentos').update(mudancas).eq('id',id);
   if(error){ toast('Não consegui confirmar agora 😕'); return; }
+  if(mudancas.valor!=null)mov.valor=mudancas.valor;
   vibrar('success');
   if(mov.categoria===VAI_ENTRAR_MENSAL){
     const h=new Date(), hojeISO=`${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
     const proxima=proximoMes(mov.data_prevista||hojeISO);
-    await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:VAI_ENTRAR_MENSAL});
+    const conv=mov.moeda_original&&mov.valor_original!=null?{valor_original:mov.valor_original,moeda_original:mov.moeda_original,cotacao:mov.cotacao}:{};
+    await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:VAI_ENTRAR_MENSAL,...conv});
     const [,pm,pd]=proxima.split('-');
     toast(`Chegou 🌿 ${formatBRL(mov.valor)} esperando você organizar · próxima em ${pd}/${pm}`);
   }else{
@@ -4674,6 +4705,13 @@ async function abrirEditarMovimento(id){
   document.getElementById('emValor').value=mov.valor;
   const ehVaiEntrar=mov.tipo==='esperado';
   document.getElementById('emPrazoWrap').style.display=ehVaiEntrar?'block':'none';
+  // Vai entrar pode ser em outra moeda: o campo mostra o valor original (ex: US$ 500).
+  document.getElementById('emMoedaWrap').style.display=ehVaiEntrar?'flex':'none';
+  if(ehVaiEntrar){
+    const emOutra=vaiEntrarEmOutraMoeda(mov);
+    if(emOutra)document.getElementById('emValor').value=mov.valor_original;
+    escolherMoedaEditar(emOutra?mov.moeda_original:moedaAtual());
+  }
   document.getElementById('emData').value=ehVaiEntrar?(mov.data_prevista||''):'';
   document.getElementById('emMensal').checked=ehVaiEntrar&&mov.categoria===VAI_ENTRAR_MENSAL;
   const aviso=document.getElementById('emAviso');
@@ -4685,6 +4723,25 @@ async function abrirEditarMovimento(id){
     aviso.textContent='';
   }
   document.getElementById('editMov').classList.remove('hidden');
+}
+let emMoeda='BRL';
+async function escolherMoedaEditar(moeda){
+  emMoeda=moeda;
+  document.querySelectorAll('.emMoedaBtn').forEach(b=>{
+    const ativo=b.dataset.moeda===moeda;
+    b.style.background=ativo?'var(--card)':'transparent';
+    b.style.color=ativo?'var(--ink)':'var(--ink2)';
+    b.style.boxShadow=ativo?'0 1px 2px rgba(0,0,0,.08)':'none';
+  });
+  await atualizarConversaoEditar();
+}
+async function atualizarConversaoEditar(){
+  const txt=document.getElementById('emConvTxt');
+  if(!txt)return;
+  if(emMoeda===moedaAtual()){ txt.textContent=''; return; }
+  const v=parseFloat(document.getElementById('emValor').value);
+  const cot=await obterCotacao();
+  txt.textContent=(v>0&&cot)?`≈ ${formatMoeda(converterMoeda(v,emMoeda,moedaAtual(),cot),moedaAtual())} hoje (cotação ${formatCotacao(cot)})`:'';
 }
 function closeEditMov(){
   document.getElementById('editMov').classList.add('hidden');
@@ -4708,6 +4765,13 @@ document.getElementById('editMovForm').addEventListener('submit',async(e)=>{
   if(mov.tipo==='esperado'){
     mudancas.data_prevista=document.getElementById('emData').value||null;
     mudancas.categoria=document.getElementById('emMensal').checked?VAI_ENTRAR_MENSAL:null;
+    if(emMoeda!==moedaAtual()){
+      const cot=await obterCotacao();
+      if(!cot){ toast('Não consegui a cotação agora — tenta de novo 🌿'); return; }
+      Object.assign(mudancas,{valor:converterMoeda(valorNovo,emMoeda,moedaAtual(),cot),valor_original:valorNovo,moeda_original:emMoeda,cotacao:cot});
+    }else{
+      Object.assign(mudancas,{valor_original:null,moeda_original:null,cotacao:null});
+    }
   }
   const {error}=await supabaseClient.from('movimentos').update(mudancas).eq('id',id);
   if(error){ toast('Não consegui salvar agora 😕'); return; }
