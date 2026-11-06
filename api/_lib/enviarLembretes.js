@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { idiomaDoUsuario } = require('./idioma');
 const { todosDestinos, enviarParaDestino } = require('./push');
+const { avisarVaiEntrar } = require('./avisosVaiEntrar');
 
 // Usado pelos dois crons (api/cron/manha.js e api/cron/noite.js) — o path de
 // um cron do Vercel não pode ter query string, por isso são dois arquivos
@@ -75,7 +76,13 @@ async function enviarLembretes(req, res, tipo) {
     })
   );
 
-  res.status(200).json({ ok: true, enviados });
+  // De manhã também avisa o que cai hoje (ou era pra ter caído ontem) no "Vai entrar".
+  let avisosVaiEntrar = 0;
+  if (tipo === 'manha') {
+    try { avisosVaiEntrar = await avisarVaiEntrar(supabaseAdmin); } catch (e) { /* não derruba o lembrete */ }
+  }
+
+  res.status(200).json({ ok: true, enviados, avisosVaiEntrar });
 }
 
 module.exports = { enviarLembretes };

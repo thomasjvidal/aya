@@ -770,6 +770,20 @@ window.AYA_EN={
 "(parte já tinha sido gasta)":"(part of it had already been spent)",
 "Excluído 🌿 Tirei {X} (parte já tinha sido gasta)":"Deleted 🌿 I removed {0} (part of it had already been spent)",
 
+"Por quantos meses?":"For how many months?",
+"sem prazo":"no end date",
+"contrato {N}/{N}":"contract {0}/{1}",
+"O contrato acabou":"The contract ended",
+"{X}: esse foi o pagamento {N} de {N}. O contrato vai continuar?":"{0}: this was payment {1} of {2}. Will the contract continue?",
+"Renovar por mais {N} meses":"Renew for {0} more months",
+"Renovar por mais {N} mês":"Renew for {0} more month",
+"Outro prazo (meses)":"Other length (months)",
+"Renovar":"Renew",
+"Encerrar o contrato":"End the contract",
+"Coloca por quantos meses 🌿":"Enter for how many months 🌿",
+"Chegou 🌿 {R} · contrato encerrado":"Arrived 🌿 {0} · contract ended",
+"Chegou 🌿 {R} esperando você organizar · próxima em {N}":"Arrived 🌿 {0} waiting for you to organize · next on {1}",
+
 // ---------- Datas ----------
 "Janeiro":"January","Fevereiro":"February","Março":"March","Abril":"April","Maio":"May","Junho":"June",
 "Julho":"July","Agosto":"August","Setembro":"September","Outubro":"October","Novembro":"November","Dezembro":"December"

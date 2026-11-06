@@ -75,7 +75,12 @@ function buildSystemPrompt(context) {
 
   const vaiEntrar = Array.isArray(c.vaiEntrar) ? c.vaiEntrar : [];
   const vaiEntrarTxt = vaiEntrar.length
-    ? vaiEntrar.map((m) => `- ${formatBRL(m.valor)} — ${m.descricao} (ainda não caiu)`).join('\n')
+    ? vaiEntrar.map((m) => {
+        let linha = `- ${formatBRL(m.valor)} — ${m.descricao} (ainda não caiu`;
+        if (m.dataPrevista) linha += `, previsto pra ${new Date(m.dataPrevista + 'T12:00:00').toLocaleDateString('pt-BR')}`;
+        if (m.recorrencia) linha += `, ${m.recorrencia}`;
+        return linha + ')';
+      }).join('\n')
     : 'Nada esperado pra entrar no momento.';
 
   const contasFixas = Array.isArray(c.contasFixas) ? c.contasFixas : [];

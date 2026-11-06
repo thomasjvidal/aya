@@ -815,6 +815,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);width:100%;justify-content:center;margin:2px 0">
         <input type="checkbox" id="qaRecorrente" onchange="toggleQaCofre()"> <span id="qaRecorrenteTxt">É recorrente? (vira uma conta fixa)</span>
       </label>
+      <label id="qaMesesWrap" style="display:none;width:100%;align-items:center;gap:8px;font-size:13px;color:var(--ink2)">
+        <span style="flex-shrink:0">Por quantos meses?</span>
+        <input id="qaMeses" type="number" inputmode="numeric" min="1" max="120" placeholder="sem prazo" style="flex:1;min-width:0;margin:0">
+      </label>
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
@@ -846,7 +850,8 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
       <div id="emPrazoWrap" style="display:none;width:100%">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Data:</span><input id="emData" type="date" style="flex:1;min-width:0;margin:0"></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal"> Cai todo mês?</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal" onchange="document.getElementById('emMesesWrap').style.display=this.checked?'flex':'none'"> Cai todo mês?</label>
+        <label id="emMesesWrap" style="display:none;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Por quantos meses?</span><input id="emMeses" type="number" inputmode="numeric" min="1" max="120" placeholder="sem prazo" style="flex:1;min-width:0;margin:0"></label>
       </div>
       <p id="emAviso" style="display:none;font-size:12px;color:var(--amber);background:var(--sage-tint);border-radius:10px;padding:8px 10px;line-height:1.4"></p>
       <button type="submit">Salvar alterações</button>
@@ -1530,7 +1535,11 @@ async function buildChatContext(){
       tipo:m.tipo,valor:m.valor,descricao:m.descricao,data:m.created_at,
       cofre:cofreNome(m.cofre_id),pessoa:m.pessoa||null,dataPrevista:m.data_prevista||null
     })),
-    vaiEntrar:(esperadosRes.data||[]).map(m=>({valor:m.valor,descricao:m.descricao,data:m.created_at})),
+    vaiEntrar:(esperadosRes.data||[]).map(m=>{
+      const rec=recorrenciaVaiEntrar(m);
+      return {valor:m.valor,descricao:m.descricao,data:m.created_at,dataPrevista:m.data_prevista||null,
+        recorrencia:!rec?null:rec.tipo==='mensal'?'todo mês, sem prazo':`contrato de ${rec.total} meses, este é o pagamento ${rec.parcela} de ${rec.total}`};
+    }),
     contasFixas:(contasFixasRes.data||[]).filter(cf=>fixaDaContaAtual(cf,Object.fromEntries((cofresRes.data||[]).map(c=>[c.id,c])))).map(cf=>({nome:cf.nome,valor:cf.valor,cofre:cofreNome(cf.cofre_id)})),
     favoritos:(favRes.data||[])
       .filter(f=>{const l=cofresPorFavorito[f.id];return !l||!l.length||l.every(cid=>cofreIdsDaConta.has(String(cid)));})
@@ -1858,6 +1867,11 @@ function toggleQaCofre(){
   if(!comData&&data)data.value='';
   const recTxt=document.getElementById('qaRecorrenteTxt');
   if(recTxt)recTxt.textContent=tipo==='esperado'?'Cai todo mês?':'É recorrente? (vira uma conta fixa)';
+  // Contrato: "Vai entrar" que cai todo mês pode ter prazo (ex: 3 meses). Vazio = sem prazo.
+  const mesesWrap=document.getElementById('qaMesesWrap');
+  const comMeses=tipo==='esperado'&&document.getElementById('qaRecorrente')?.checked;
+  if(mesesWrap)mesesWrap.style.display=comMeses?'flex':'none';
+  if(!comMeses&&document.getElementById('qaMeses'))document.getElementById('qaMeses').value='';
 }
 
 document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
@@ -1917,7 +1931,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   for(const parte of partes){
     // "Vai entrar" que cai todo mês fica marcado em categoria='mensal' (ao chegar, o app anota o do mês seguinte).
     const conv=conversao?{valor_original:Math.round(parte.valor/valor*conversao.original*100)/100,moeda_original:conversao.moeda,cotacao:conversao.cotacao}:{};
-    const {error}=await inserirMovimento({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:(tipo==='esperado'&&recorrente)?VAI_ENTRAR_MENSAL:null,...conv});
+    const {error}=await inserirMovimento({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:tipo==='esperado'?categoriaRecorrencia(recorrente,document.getElementById('qaMeses').value,1):null,...conv});
     if(error){ toast('Não consegui salvar agora 😕'); return; }
     if(tipo==='saida'&&parte.cofre){
       const novoValor=Number(parte.cofre.valor_atual||0)-parte.valor;
@@ -1937,6 +1951,8 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   document.getElementById('qaPessoa').value='';
   document.getElementById('qaData').value='';
   document.getElementById('qaRecorrente').checked=false;
+  document.getElementById('qaMeses').value='';
+  document.getElementById('qaMesesWrap').style.display='none';
   closeQuickAdd();
   if(tipoForm==='entrada'){
     // Fica pendente até você tocar em "Deixar a Aya organizar" na aba Cofres —
@@ -2017,6 +2033,21 @@ async function buscarPendentes(){
 }
 
 const VAI_ENTRAR_MENSAL='mensal';
+// Recorrência do "Vai entrar" fica em movimentos.categoria:
+//   'mensal'        = cai todo mês, sem prazo
+//   'contrato:N:K'  = contrato de N meses; este é o pagamento K de N
+// No último pagamento (K = N) o app pergunta se o contrato renova.
+function recorrenciaVaiEntrar(m){
+  const c=String(m&&m.categoria||'');
+  if(c===VAI_ENTRAR_MENSAL)return {tipo:'mensal'};
+  const x=c.match(/^contrato:(\d+):(\d+)$/);
+  return x?{tipo:'contrato',total:Number(x[1]),parcela:Number(x[2])}:null;
+}
+function categoriaRecorrencia(mensal,meses,parcela){
+  if(!mensal)return null;
+  const n=parseInt(meses,10);
+  return n>0?`contrato:${n}:${Math.min(Math.max(1,parcela||1),n)}`:VAI_ENTRAR_MENSAL;
+}
 // "Vai entrar" em outra moeda (ex: US$ 500 numa conta em real): o que vale é o valor
 // original; na moeda da conta é só estimativa pela cotação do dia, até cair de verdade.
 function vaiEntrarEmOutraMoeda(m){ return !!(m.moeda_original&&m.valor_original!=null&&m.moeda_original!==moedaAtual()); }
@@ -2035,7 +2066,8 @@ function prazoVaiEntrar(dataPrevista){
 // Texto pequeno que vai embaixo do valor: quanto falta (ou hoje/atrasada) e "todo mês".
 function linhaPrazoVaiEntrar(m){
   const {estado,dias}=prazoVaiEntrar(m.data_prevista);
-  const mensal=m.categoria===VAI_ENTRAR_MENSAL?'<span>todo mês</span>':'';
+  const rec=recorrenciaVaiEntrar(m);
+  const mensal=!rec?'':rec.tipo==='contrato'?`<span>contrato ${rec.parcela}/${rec.total}</span>`:'<span>todo mês</span>';
   if(estado==='sem')return mensal;
   const quando=estado==='atrasada'
     ?`<span style="color:var(--rose);font-weight:600">atrasada ${-dias} dia${-dias>1?'s':''}</span>`
@@ -2137,6 +2169,38 @@ async function loadPendentes(){
   card.innerHTML=html;
 }
 
+// Último pagamento de um contrato: renova (mesmo prazo ou outro) ou encerra.
+// Devolve o número de meses do novo período, ou null pra encerrar.
+function perguntarRenovacaoContrato(mov,rec){
+  return new Promise(resolve=>{
+    const fundo=document.createElement('div');
+    fundo.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center';
+    fundo.innerHTML=`
+      <div style="width:100%;max-width:480px;background:var(--card);border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom))">
+        <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px">O contrato acabou</div>
+        <p style="font-size:13px;color:var(--ink2);line-height:1.5;margin:0 0 14px">${escapeHtml(mov.descricao)}: esse foi o pagamento ${rec.total} de ${rec.total}. O contrato vai continuar?</p>
+        <button type="button" data-r="mesmo" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:8px">Renovar por mais ${rec.total} ${rec.total>1?'meses':'mês'}</button>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="renovMeses" type="number" inputmode="numeric" min="1" max="120" placeholder="Outro prazo (meses)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-family:inherit;font-size:13px;background:var(--card);color:var(--ink)">
+          <button type="button" data-r="outro" style="background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:0 14px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Renovar</button>
+        </div>
+        <button type="button" data-r="fim" style="width:100%;background:0;border:0;color:var(--ink2);padding:10px;font-family:inherit;font-size:13px;cursor:pointer">Encerrar o contrato</button>
+      </div>`;
+    const fechar=r=>{fundo.remove();resolve(r);};
+    fundo.addEventListener('click',e=>{
+      if(e.target===fundo)return fechar(null);
+      const b=e.target.closest('button[data-r]');
+      if(!b)return;
+      if(b.dataset.r==='mesmo')fechar(rec.total);
+      else if(b.dataset.r==='outro'){
+        const n=parseInt(fundo.querySelector('#renovMeses').value,10);
+        if(!(n>0)){ toast('Coloca por quantos meses 🌿'); return; }
+        fechar(Math.min(n,120));
+      }else fechar(null);
+    });
+    document.body.appendChild(fundo);
+  });
+}
 async function confirmarChegada(id){
   if(!supabaseClient||!currentUser)return;
   const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).eq('tipo','esperado').single();
@@ -2158,13 +2222,24 @@ async function confirmarChegada(id){
   if(error){ toast('Não consegui confirmar agora 😕'); return; }
   if(mudancas.valor!=null)mov.valor=mudancas.valor;
   vibrar('success');
-  if(mov.categoria===VAI_ENTRAR_MENSAL){
+  // Recorrente: já anota o próximo. Contrato no último mês: pergunta se renova.
+  const rec=recorrenciaVaiEntrar(mov);
+  let proximaCategoria=null;
+  if(rec&&rec.tipo==='mensal')proximaCategoria=VAI_ENTRAR_MENSAL;
+  else if(rec&&rec.parcela<rec.total)proximaCategoria=`contrato:${rec.total}:${rec.parcela+1}`;
+  else if(rec){
+    const meses=await perguntarRenovacaoContrato(mov,rec);
+    if(meses)proximaCategoria=`contrato:${meses}:1`;
+  }
+  if(proximaCategoria){
     const h=new Date(), hojeISO=`${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
     const proxima=proximoMes(mov.data_prevista||hojeISO);
     const conv=mov.moeda_original&&mov.valor_original!=null?{valor_original:mov.valor_original,moeda_original:mov.moeda_original,cotacao:mov.cotacao}:{};
-    await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:VAI_ENTRAR_MENSAL,...conv});
+    await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:proximaCategoria,...conv});
     const [,pm,pd]=proxima.split('-');
     toast(`Chegou 🌿 ${formatBRL(mov.valor)} esperando você organizar · próxima em ${pd}/${pm}`);
+  }else if(rec){
+    toast(`Chegou 🌿 ${formatBRL(mov.valor)} · contrato encerrado`);
   }else{
     toast(`Chegou 🌿 ${formatBRL(mov.valor)} esperando você organizar`);
   }
@@ -4917,7 +4992,10 @@ async function abrirEditarMovimento(id){
     escolherMoedaEditar(emOutra?mov.moeda_original:moedaAtual());
   }
   document.getElementById('emData').value=ehVaiEntrar?(mov.data_prevista||''):'';
-  document.getElementById('emMensal').checked=ehVaiEntrar&&mov.categoria===VAI_ENTRAR_MENSAL;
+  const recEm=ehVaiEntrar?recorrenciaVaiEntrar(mov):null;
+  document.getElementById('emMensal').checked=!!recEm;
+  document.getElementById('emMeses').value=recEm&&recEm.tipo==='contrato'?recEm.total:'';
+  document.getElementById('emMesesWrap').style.display=recEm?'flex':'none';
   const aviso=document.getElementById('emAviso');
   if(mov.tipo==='entrada'&&mov.organizado){
     aviso.style.display='block';
@@ -4968,7 +5046,8 @@ document.getElementById('editMovForm').addEventListener('submit',async(e)=>{
   const mudancas={descricao,valor:valorNovo};
   if(mov.tipo==='esperado'){
     mudancas.data_prevista=document.getElementById('emData').value||null;
-    mudancas.categoria=document.getElementById('emMensal').checked?VAI_ENTRAR_MENSAL:null;
+    const recAntes=recorrenciaVaiEntrar(mov);
+    mudancas.categoria=categoriaRecorrencia(document.getElementById('emMensal').checked,document.getElementById('emMeses').value,recAntes&&recAntes.parcela);
     if(emMoeda!==moedaAtual()){
       const cot=await obterCotacao();
       if(!cot){ toast('Não consegui a cotação agora — tenta de novo 🌿'); return; }
