@@ -6,7 +6,7 @@ const path = require('path');
 
 const raiz = path.join(__dirname, '..');
 const www = path.join(raiz, 'www');
-const ARQUIVOS = ['index.html', 'i18n.js', 'i18n-en.js', 'privacidade.html', 'termos.html', 'favicon.ico', 'manifest.json'];
+const ARQUIVOS = ['index.html', 'i18n.js', 'i18n-en.js', 'privacidade.html', 'termos.html', 'suporte.html', 'favicon.ico', 'manifest.json'];
 const PASTAS = ['icons'];
 
 const api = (process.env.AYA_API_URL || '').replace(/\/+$/, '');

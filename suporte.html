@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suporte · Aya</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F1F4F2;--card:#FFFFFF;--ink:#182524;--ink2:#5B6B69;--line:#E4E8E5;--sage:#2F7D5B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter Tight',system-ui,sans-serif;line-height:1.6;font-size:15px}
+main{max-width:720px;margin:0 auto;padding:32px 16px 56px}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:30px;line-height:1.2;margin:8px 0 4px}
+h2{font-size:16px;margin:28px 0 6px}
+p,li{color:var(--ink2)} ul{padding-left:20px}
+a{color:var(--sage)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lang button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font:600 12px 'Inter Tight',sans-serif;color:var(--ink2);cursor:pointer}
+.lang button.sel{background:var(--sage);color:#fff;border-color:var(--sage)}
+.data{font-size:13px;color:var(--ink2)}
+[data-l]{display:none} html[lang="pt-BR"] [data-l="pt"], html[lang="en"] [data-l="en"]{display:block}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><a href="/">← Aya</a><div class="lang"><button data-set="pt">Português</button> <button data-set="en">English</button></div></div>
+
+<section data-l="pt">
+<h1>Suporte</h1>
+<p>Precisa de ajuda com a Aya? Escreva pra <a href="mailto:thomas@novarks.com">thomas@novarks.com</a>. Respondemos em até 2 dias úteis.</p>
+<h2>Como coloco outra pessoa na minha conta (ex: sócio na PJ)?</h2>
+<p>Abra a conta em Trocar de conta, toque em "+ Convidar alguém pra essa conta" e mande o código de 8 letras pra pessoa. Ela entra em Trocar de conta → "Entrar numa conta com código". O código vale 7 dias e serve uma vez só. Quem criou a conta pode tirar pessoas; qualquer membro pode sair.</p>
+<h2>Como ativo as notificações?</h2>
+<p>Perfil → Ativar notificações da Aya. No iPhone, permita as notificações quando o aviso aparecer.</p>
+<h2>A Aya usa inteligência artificial?</h2>
+<p>Sim, só com a sua permissão. Você permite ou retira em Perfil → Inteligência artificial. Veja a <a href="privacidade.html">Política de privacidade</a>.</p>
+<h2>Como exporto meus dados?</h2>
+<p>Perfil → Exportar meu histórico (CSV).</p>
+<h2>Como excluo minha conta?</h2>
+<p>Perfil → Excluir minha conta. Seus dados e arquivos são apagados; contas compartilhadas continuam com os outros membros.</p>
+<h2>A Aya mexe no meu dinheiro do banco?</h2>
+<p>Não. A Aya só organiza o que você registra. Ela não acessa sua conta bancária nem move dinheiro real.</p>
+</section>
+<section data-l="en">
+<h1>Support</h1>
+<p>Need help with Aya? Write to <a href="mailto:thomas@novarks.com">thomas@novarks.com</a>. We reply within 2 business days.</p>
+<h2>How do I add someone to my account (e.g. a business partner)?</h2>
+<p>Open the account in Switch account, tap "+ Invite someone to this account" and send them the 8-letter code. They join in Switch account → "Join an account with a code". The code is valid for 7 days and works once. Whoever created the account can remove people; any member can leave.</p>
+<h2>How do I turn on notifications?</h2>
+<p>Profile → Turn on Aya notifications. On iPhone, allow notifications when asked.</p>
+<h2>Does Aya use artificial intelligence?</h2>
+<p>Yes, only with your permission. Allow or withdraw it in Profile → Artificial intelligence. See the <a href="privacidade.html">Privacy policy</a>.</p>
+<h2>How do I export my data?</h2>
+<p>Profile → Export my history (CSV).</p>
+<h2>How do I delete my account?</h2>
+<p>Profile → Delete my account. Your data and files are deleted; shared accounts stay with their other members.</p>
+<h2>Does Aya touch my bank money?</h2>
+<p>No. Aya only organizes what you log. It doesn't access your bank account or move real money.</p>
+</section>
+</main>
+<script>
+// Mesmo idioma do app (salvo em aya_lang); dá pra trocar aqui também.
+(function(){
+  var l='pt'; try{ l=localStorage.getItem('aya_lang')==='en'?'en':'pt'; }catch(e){}
+  if(/[?&]lang=en/.test(location.search))l='en';
+  function aplicar(x){ document.documentElement.lang=x==='en'?'en':'pt-BR';
+    document.querySelectorAll('.lang button').forEach(function(b){ b.classList.toggle('sel',b.dataset.set===x); }); }
+  document.querySelectorAll('.lang button').forEach(function(b){ b.onclick=function(){ aplicar(b.dataset.set); }; });
+  aplicar(l);
+})();
+</script>
+</body>
+</html>
