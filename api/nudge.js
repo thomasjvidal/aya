@@ -1,6 +1,6 @@
-const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
 const { idiomaDoUsuario } = require('./_lib/idioma');
+const { buscarPorToken, enviarParaDestino } = require('./_lib/push');
 
 module.exports = async (req, res) => {
   const token = req.query.token;
@@ -16,21 +16,10 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Supabase não configurado' });
     return;
   }
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    res.status(500).json({ error: 'VAPID não configurado' });
-    return;
-  }
-
   const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  webpush.setVapidDetails('mailto:contato@aya.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
-
-  const { data: sub, error } = await supabaseAdmin
-    .from('push_subscriptions')
-    .select('*')
-    .eq('nudge_token', token)
-    .single();
-
-  if (error || !sub) {
+  // Aparelho dono do token: navegador (web push) ou app de iPhone (APNs).
+  const sub = await buscarPorToken(supabaseAdmin, token);
+  if (!sub) {
     res.status(404).json({ error: 'Inscrição não encontrada pra esse token' });
     return;
   }
@@ -93,18 +82,7 @@ module.exports = async (req, res) => {
     url = app ? `/#calma=${encodeURIComponent(app)}` : '/#calma';
   }
 
-  const payload = JSON.stringify({ title: 'Aya', body, url });
-
-  try {
-    await webpush.sendNotification(
-      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
-      payload
-    );
-    res.status(200).json({ ok: true });
-  } catch (err) {
-    if (err.statusCode === 404 || err.statusCode === 410) {
-      await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
-    }
-    res.status(500).json({ error: 'Falha ao enviar notificação', detail: String(err) });
-  }
+  const ok = await enviarParaDestino(supabaseAdmin, sub, { title: 'Aya', body, url });
+  if (ok) res.status(200).json({ ok: true });
+  else res.status(500).json({ error: 'Falha ao enviar notificação' });
 };

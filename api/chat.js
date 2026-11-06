@@ -1,3 +1,6 @@
+const { exigirLogin } = require('./_lib/auth');
+const { cors } = require('./_lib/cors');
+
 const BASE_PROMPT = `Você é a Aya, a assistente financeira pessoal de um app de organização financeira em português do Brasil.
 Seu tom é calmo, acolhedor e sem julgamento — nunca dá sermão, ajuda a pessoa a decidir com clareza.
 Respostas curtas e diretas, podem usar 1 emoji no máximo.
@@ -127,16 +130,36 @@ Se fizer sentido na conversa (a pessoa perguntar sobre compras, dinheiro sobrand
 }
 
 module.exports = async (req, res) => {
+  if (cors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
+  // Só quem está logado usa a Aya (senão qualquer um gastaria a chave da Groq).
+  const user = await exigirLogin(req, res);
+  if (!user) return;
   const { message, history, context } = req.body || {};
-  if (!message || typeof message !== 'string') {
-    res.status(400).json({ error: 'Missing "message" field' });
+  const en = context && context.idioma === 'en';
+  // A pessoa precisa ter aceitado mandar os dados pra IA (regra 5.1.2 da Apple / LGPD).
+  if (!(user.user_metadata && user.user_metadata.ia_consentimento)) {
+    res.status(403).json({ error: 'consentimento_ia', reply: en
+      ? 'To chat with Aya, first allow your data to be sent to the AI (tap the message above the chat). 🌿'
+      : 'Pra conversar com a Aya, primeiro autorize o envio dos seus dados pra IA (toque no aviso acima do chat). 🌿' });
     return;
   }
+  if (!message || typeof message !== 'string' || message.length > 2000) {
+    res.status(400).json({ error: 'Mensagem vazia ou longa demais' });
+    return;
+  }
+  if (context && JSON.stringify(context).length > 80000) {
+    res.status(400).json({ error: 'Contexto grande demais' });
+    return;
+  }
+  // Histórico vem do app: só aceita falas de usuário/assistente, curtas.
+  const historico = (Array.isArray(history) ? history.slice(-10) : [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -146,7 +169,7 @@ module.exports = async (req, res) => {
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(context) },
-    ...(Array.isArray(history) ? history.slice(-10) : []),
+    ...historico,
     { role: 'user', content: message },
   ];
 

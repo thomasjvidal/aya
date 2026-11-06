@@ -1,0 +1,42 @@
+# App de iPhone da Aya no Codemagic.
+# O app usa os mesmos arquivos do site (index.html etc.) e chama a API do site na Vercel.
+# Antes do primeiro build, no Codemagic:
+#   1) Teams → Integrations → Developer Portal: conecte uma chave da API do App Store Connect
+#      e dê a ela o nome "Aya App Store Connect" (ou troque o nome abaixo).
+#   2) O bundle id abaixo (com.aya.financas) precisa ser o mesmo criado no Apple Developer.
+workflows:
+  ios-testflight:
+    name: Aya iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Aya App Store Connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.aya.financas
+      vars:
+        AYA_API_URL: https://aya-br.vercel.app
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Instalar dependências
+        script: npm ci
+      - name: Montar o app a partir do site
+        script: npm run build:app
+      - name: Copiar pro projeto iOS
+        script: npx cap sync ios
+      - name: Assinatura (certificados e perfis)
+        script: xcode-project use-profiles
+      - name: Número do build
+        script: cd ios/App && agvtool new-version -all $BUILD_NUMBER
+      - name: Gerar o .ipa
+        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

@@ -1,6 +1,8 @@
+const { cors } = require('./_lib/cors');
 const { createClient } = require('@supabase/supabase-js');
 
 module.exports = async (req, res) => {
+  if (cors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

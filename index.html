@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Aya</title>
+<script src="app-config.js"></script>
 <script src="i18n-en.js"></script>
 <script src="i18n.js"></script>
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -243,6 +244,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 .auth-gate input{border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)}
 .auth-gate button[type=submit]{background:var(--sage);color:#fff;border:0;font-family:inherit;font-size:14.5px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;margin-top:4px}
 .auth-gate button[type=submit]:disabled{opacity:.6}
+.ia-aviso{font-size:11px;color:var(--ink2);text-align:center;margin:-4px 16px 8px;line-height:1.4}
 .lang-switch{position:absolute;top:calc(18px + env(safe-area-inset-top));right:18px;display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
 .lang-switch button{border:0;background:0;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink2);padding:6px 11px;border-radius:999px;cursor:pointer}
 .lang-switch button.sel{background:var(--sage);color:#fff}
@@ -278,6 +280,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     <button class="linklike" id="authToggleMode" type="button" style="display:none">Não tem conta? Criar agora</button>
     <button class="linklike" id="authForgotBtn" type="button" style="display:none">Esqueci minha senha</button>
     <p class="err" id="authError"></p>
+    <p id="authLegal" style="display:none;font-size:11.5px;color:var(--ink2);max-width:300px;margin:10px 0 0;line-height:1.5">Ao criar a conta você concorda com os <a href="termos.html" target="_blank" onclick="return abrirPaginaLegal(this)" style="color:var(--sage)">Termos de uso</a> e a <a href="privacidade.html" target="_blank" onclick="return abrirPaginaLegal(this)" style="color:var(--sage)">Política de privacidade</a>.</p>
 
     <form id="authForgotForm" style="display:none">
       <p style="font-size:13px;color:var(--ink2);margin-bottom:6px">Digite seu e-mail — mando um link pra você trocar a senha.</p>
@@ -288,7 +291,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
     <form id="authRecoverForm" style="display:none">
       <p style="font-size:13px;color:var(--ink2);margin-bottom:6px">Digite sua nova senha.</p>
-      <input id="authNovaSenha" type="password" placeholder="nova senha (mín. 6 caracteres)" autocomplete="new-password" minlength="6" required>
+      <input id="authNovaSenha" type="password" placeholder="nova senha (mín. 8 caracteres)" autocomplete="new-password" minlength="8" required>
       <button type="submit">Salvar nova senha</button>
     </form>
   </div>
@@ -429,6 +432,7 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       <div class="big-face">✦</div>
       <div><div class="nm">Aya</div><div class="st">● cuidando do seu dinheiro</div></div>
     </div>
+    <div class="ia-aviso">A Aya usa inteligência artificial e pode errar. Não é consultoria financeira — as decisões são suas.</div>
     <div class="chat-scroll" id="chat">
       <div class="msg aya">Oi 🌿 Tô de olho por aqui, já vendo seus cofres e movimentos de verdade. Pode me perguntar qualquer coisa — ou é só falar quando bater aquela vontade de gastar.</div>
       <div class="msg aya">Quer começar por onde?</div>
@@ -750,10 +754,15 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
     </div>
     <div id="pushSetup" style="display:none;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;font-size:12.5px;color:var(--ink2);line-height:1.6"></div>
 
-    <div class="sec-title">Conectar banco</div>
-    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;box-shadow:var(--shadow)">
-      <div style="font-weight:600;font-size:13.5px;color:var(--ink);margin-bottom:4px">🏦 Open Finance — em breve</div>
-      <p style="font-size:12px;color:var(--ink2);margin:0;line-height:1.5">A Aya ainda não lê seu extrato direto do banco. Por enquanto é registro manual (ou o aviso quando você abre o app do banco, ali em cima). Quando a conexão automática chegar, é aqui que você vai ligar — e vamos deixar claro antes se isso tiver algum custo.</p>
+    <div class="sec-title">Inteligência artificial</div>
+    <div class="toggle-row" style="cursor:pointer" onclick="alternarConsentimentoIA()">
+      <div class="txt">Aya pode usar IA com meus dados<small id="iaConsentStatus">Não permitido · toque pra permitir</small></div>
+    </div>
+
+    <div class="sec-title">Privacidade</div>
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <a href="privacidade.html" target="_blank" onclick="return abrirPaginaLegal(this)" style="flex:1;text-align:center;background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:600;padding:12px;border-radius:12px;text-decoration:none">Política de privacidade</a>
+      <a href="termos.html" target="_blank" onclick="return abrirPaginaLegal(this)" style="flex:1;text-align:center;background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:600;padding:12px;border-radius:12px;text-decoration:none">Termos de uso</a>
     </div>
 
     <div class="sec-title">Seus dados</div>
@@ -992,6 +1001,37 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Endereço da API. No site é o próprio site; no app de iPhone (Capacitor) vem de
+// app-config.js (AYA_API_BASE = endereço do site na Vercel).
+const API_ORIGEM=window.AYA_API_BASE||location.origin;
+function apiUrl(caminho){ return (window.AYA_API_BASE||'')+caminho; }
+// fetch pra API; com comLogin manda o token do Supabase (a API confere quem é).
+async function apiFetch(caminho,opcoes,comLogin){
+  const o=Object.assign({},opcoes||{});
+  o.headers=Object.assign({},o.headers||{});
+  if(comLogin&&supabaseClient){
+    try{ const {data:{session}}=await supabaseClient.auth.getSession(); if(session)o.headers.Authorization='Bearer '+session.access_token; }catch(e){}
+  }
+  return fetch(apiUrl(caminho),o);
+}
+// Só deixa abrir links http/https (bloqueia javascript: e afins).
+function linkSeguro(url){
+  try{ const u=new URL(String(url||''),location.href); return (u.protocol==='http:'||u.protocol==='https:')?u.href:''; }catch(e){ return ''; }
+}
+// App de iPhone (Capacitor)? Lá os plugins nativos ficam em window.Capacitor.Plugins.
+function ehAppNativo(){ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }
+function pluginNativo(nome){ return ehAppNativo()&&window.Capacitor.Plugins?window.Capacitor.Plugins[nome]:null; }
+// Privacidade/termos: no app de iPhone abre a página do site no navegador do iPhone.
+function abrirPaginaLegal(a){
+  if(!ehAppNativo())return true;
+  abrirLink(API_ORIGEM+'/'+a.getAttribute('href'));
+  return false;
+}
+function abrirLink(url){
+  const u=linkSeguro(url); if(!u)return;
+  const browser=pluginNativo('Browser');
+  if(browser)browser.open({url:u}); else window.open(u,'_blank','noopener');
+}
 function go(v){
   if(v!=='aya'&&'speechSynthesis' in window)pararVoz();
   document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
@@ -1499,19 +1539,21 @@ async function buildChatContext(){
 async function askAya(q){
   q=window.tr?tr(q):q;
   if(chatBusy||!q.trim())return;
+  if(!(await garantirConsentimentoIA()))return;
   chatBusy=true;
   pushMsg('me',q);
   chatHistory.push({role:'user',content:q});
   pushTyping();
   try{
     const context=await buildChatContext();
-    const res=await fetch('/api/chat',{
+    const res=await apiFetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({message:q,history:chatHistory.slice(-10),context})
-    });
+    },true);
     const data=await res.json();
     removeTyping();
+    if(data.error==='consentimento_ia'){ chatHistory.pop(); pushMsg('aya',data.reply); chatBusy=false; abrirConsentimentoIA(); return; }
     const reply=data.reply||'Desculpa, tive um probleminha aqui 🌿 Tenta de novo?';
     pushMsg('aya',reply);
     chatHistory.push({role:'assistant',content:reply});
@@ -1520,6 +1562,63 @@ async function askAya(q){
     pushMsg('aya','Não consegui me conectar agora 🌿 Confere sua internet e tenta de novo.');
   }
   chatBusy=false;
+}
+// Consentimento pra IA (regra 5.1.2 da Apple e LGPD): antes da primeira conversa a pessoa
+// vê o que vai pra IA e autoriza. Fica salvo na conta (user_metadata.ia_consentimento).
+function temConsentimentoIA(){ return !!(currentUser&&currentUser.user_metadata&&currentUser.user_metadata.ia_consentimento); }
+async function garantirConsentimentoIA(){
+  if(temConsentimentoIA())return true;
+  return abrirConsentimentoIA();
+}
+function abrirConsentimentoIA(){
+  return new Promise(resolve=>{
+    const fundo=document.createElement('div');
+    fundo.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center';
+    fundo.innerHTML=`
+      <div style="width:100%;max-width:480px;max-height:85vh;overflow-y:auto;background:var(--card);border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom))">
+        <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px">Antes de conversar com a Aya</div>
+        <p style="font-size:13px;color:var(--ink2);line-height:1.55;margin:0 0 10px">A Aya usa inteligência artificial. Pra responder, o app envia pro serviço de IA da Groq (empresa dos Estados Unidos) suas mensagens e um resumo dos seus dados no app: nomes e valores dos cofres, movimentos recentes, contas fixas e favoritos.</p>
+        <p style="font-size:13px;color:var(--ink2);line-height:1.55;margin:0 0 10px">Não enviamos seu e-mail nem sua senha. Os comprovantes que você compartilha com a Aya também passam por essa IA pra serem lidos.</p>
+        <p style="font-size:13px;color:var(--ink2);line-height:1.55;margin:0 0 16px">A Aya pode errar e não é consultoria financeira. Dá pra retirar essa permissão quando quiser, no Perfil.</p>
+        <div style="display:flex;gap:8px">
+          <button type="button" data-r="0" style="flex:1;background:0;border:1px solid var(--line);color:var(--ink2);border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Agora não</button>
+          <button type="button" data-r="1" style="flex:1;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">Permitir</button>
+        </div>
+        <a href="privacidade.html" target="_blank" onclick="return abrirPaginaLegal(this)" style="display:block;text-align:center;margin-top:12px;font-size:12px;color:var(--sage)">Política de privacidade</a>
+      </div>`;
+    const fechar=async r=>{
+      fundo.remove();
+      if(r){
+        const {data,error}=await supabaseClient.auth.updateUser({data:{ia_consentimento:new Date().toISOString()}});
+        if(error){ toast('Não consegui salvar agora 😕'); resolve(false); return; }
+        if(data&&data.user)currentUser=data.user;
+        atualizarConsentimentoPerfil();
+  if(ehAppNativo())ouvirToquesNotificacao();
+        toast('Pronto 🌿 Pode conversar com a Aya');
+      }
+      resolve(!!r);
+    };
+    fundo.addEventListener('click',e=>{
+      if(e.target===fundo)return fechar(false);
+      const b=e.target.closest('button[data-r]');
+      if(b)fechar(b.dataset.r==='1');
+    });
+    document.body.appendChild(fundo);
+  });
+}
+async function alternarConsentimentoIA(){
+  if(!supabaseClient||!currentUser)return;
+  if(!temConsentimentoIA()){ await abrirConsentimentoIA(); return; }
+  if(!confirm('Retirar a permissão? A Aya para de responder no chat e de ler comprovantes até você permitir de novo.'))return;
+  const {data,error}=await supabaseClient.auth.updateUser({data:{ia_consentimento:null}});
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  if(data&&data.user)currentUser=data.user;
+  atualizarConsentimentoPerfil();
+  toast('Permissão retirada 🌿');
+}
+function atualizarConsentimentoPerfil(){
+  const el=document.getElementById('iaConsentStatus');
+  if(el)el.textContent=temConsentimentoIA()?'Permitido · toque pra retirar':'Não permitido · toque pra permitir';
 }
 function ask(q){askAya(q);}
 function sendChat(){const i=document.getElementById('chatInput');const q=i.value.trim();if(!q)return;i.value='';askAya(q);}
@@ -1604,7 +1703,7 @@ document.addEventListener('DOMContentLoaded',marcarIdiomaAtual);
 
 async function initApp(){
   let cfg={};
-  try{ cfg=await fetch('/api/config').then(r=>r.json()); }catch(e){}
+  try{ cfg=await apiFetch('/api/config').then(r=>r.json()); }catch(e){}
   window.__vapidPublicKey=cfg.vapidPublicKey||null;
 
   if(!cfg.supabaseUrl||!cfg.supabaseAnonKey){
@@ -1652,6 +1751,7 @@ function showAuthForm(){
 async function onAuthed(session){
   currentUser=session.user;
   if(await sincronizarIdiomaDaConta(session.user))return;
+  atualizarConsentimentoPerfil();
   document.getElementById('authGate').classList.add('hidden');
   await loadProfile();
   await loadContas();
@@ -1668,6 +1768,13 @@ async function onAuthed(session){
 async function checkPushStatus(){
   const sw=document.getElementById('pushSw');
   if(!sw)return;
+  if(ehAppNativo()){
+    const P=pluginNativo('PushNotifications');
+    let ativo=false;
+    try{ ativo=!!localStorage.getItem('aya_ios_push')&&P&&(await P.checkPermissions()).receive==='granted'; }catch(e){}
+    sw.style.background=ativo?'var(--sage)':'var(--line)';
+    return;
+  }
   if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
   try{
     const reg=await navigator.serviceWorker.getRegistration('/sw.js');
@@ -2526,7 +2633,7 @@ document.getElementById('excluirContaForm').addEventListener('submit',async(e)=>
   btn.textContent='Excluindo…';
   try{
     const {data:{session}}=await supabaseClient.auth.getSession();
-    const res=await fetch('/api/delete-account',{
+    const res=await apiFetch('/api/delete-account',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({accessToken:session?.access_token})
@@ -2552,6 +2659,8 @@ document.getElementById('authToggleMode').addEventListener('click',()=>{
   authMode=authMode==='login'?'signup':'login';
   document.getElementById('authName').style.display=authMode==='signup'?'block':'none';
   document.getElementById('authSubmitBtn').textContent=authMode==='login'?'Entrar':'Criar conta';
+  document.getElementById('authPassword').placeholder=authMode==='login'?'senha (mín. 6 caracteres)':'senha (mín. 8 caracteres)';
+  document.getElementById('authLegal').style.display=authMode==='signup'?'block':'none';
   document.getElementById('authToggleMode').textContent=authMode==='login'?'Não tem conta? Criar agora':'Já tenho conta, entrar';
   document.getElementById('authError').textContent='';
 });
@@ -2625,6 +2734,7 @@ document.getElementById('authForm').addEventListener('submit',async(e)=>{
   errEl.style.color='var(--rose)';
   errEl.textContent='';
   if(!supabaseClient){ errEl.textContent='Ainda carregando, tenta de novo em instantes.'; return; }
+  if(authMode==='signup'&&password.length<8){ errEl.textContent='A senha precisa ter pelo menos 8 caracteres.'; return; }
   const btn=document.getElementById('authSubmitBtn');
   btn.disabled=true;
   const originalLabel=btn.textContent;
@@ -2691,7 +2801,7 @@ document.getElementById('favForm').addEventListener('submit',async(e)=>{
 
 async function buscarImagemFavorito(id,url,atualizarTitulo){
   try{
-    const res=await fetch('/api/link-preview?url='+encodeURIComponent(url));
+    const res=await apiFetch('/api/link-preview?url='+encodeURIComponent(url),{},true);
     const data=await res.json();
     const payload={};
     if(data.image)payload.imagem_url=data.image;
@@ -2749,10 +2859,10 @@ async function loadFavoritos(){
         : `<div class="meta">Faltam ${formatBRL(Math.max(0,f.preco-disponivel))} · ${origem}</div>`;
     }
     const iconeHtml=f.imagem_url
-      ? `<img src="${escapeHtml(f.imagem_url)}" onerror="favImgErro(this)" style="width:100%;height:100%;object-fit:cover">`
+      ? `<img src="${escapeHtml(linkSeguro(f.imagem_url))}" onerror="favImgErro(this)" style="width:100%;height:100%;object-fit:cover">`
       : ICON_FAV_LINK;
     return `
-    <div class="cofre-row" onclick='window.open("${escapeHtml(f.url)}","_blank")' style="cursor:pointer;${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
+    <div class="cofre-row" data-url="${escapeHtml(linkSeguro(f.url))}" onclick="abrirLink(this.dataset.url)" style="cursor:pointer;${podeComprar?'border-color:var(--sage);background:var(--sage-tint)':''}">
       <div class="cofre-ic" style="width:52px;height:52px;border-radius:14px;background:var(--sage-tint);overflow:hidden">${iconeHtml}</div>
       <div style="flex:1;min-width:0">
         <div class="nm" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.titulo)}</div>
@@ -2892,7 +3002,7 @@ let cotacaoMemoria=null;
 async function obterCotacao(){
   if(cotacaoMemoria&&Date.now()-cotacaoMemoria.t<30*60*1000)return cotacaoMemoria.v;
   try{
-    const r=await fetch('/api/cotacao');
+    const r=await apiFetch('/api/cotacao');
     const j=await r.json();
     if(j&&j.usdBrl>0){
       cotacaoMemoria={v:Number(j.usdBrl),t:Date.now()};
@@ -2917,8 +3027,15 @@ async function inserirMovimento(dados){
   }
   return {data,error};
 }
-// Vibração tátil curta (fraca no iOS Safari — trocar por @capacitor/haptics se virar app nativo).
+// Vibração tátil curta: nativa no app de iPhone, navigator.vibrate no navegador.
 function vibrar(tipo){
+  // No app de iPhone usa a vibração nativa (Haptics); no navegador, navigator.vibrate.
+  const h=pluginNativo('Haptics');
+  if(h){
+    if(tipo==='success')h.notification({type:'SUCCESS'}).catch(()=>{});
+    else h.impact({style:tipo==='medium'?'MEDIUM':'LIGHT'}).catch(()=>{});
+    return;
+  }
   if(!('vibrate' in navigator))return;
   const padroes={light:10,medium:20,success:[15,40,25]};
   navigator.vibrate(padroes[tipo]||10);
@@ -3099,7 +3216,7 @@ async function uploadArquivoCofre(e){
   if(!file||!supabaseClient||!currentUser||!cofreDetalheId)return;
   if(file.size>15*1024*1024){ toast('Arquivo grande demais (máx 15MB) 😕'); return; }
   toast('Enviando arquivo…');
-  const path=`${currentUser.id}/${cofreDetalheId}/${Date.now()}-${file.name}`;
+  const path=`${currentUser.id}/${cofreDetalheId}/${Date.now()}-${file.name.replace(/[^A-Za-z0-9._-]/g,'_')}`;
   const {error:upErr}=await supabaseClient.storage.from('cofre-arquivos').upload(path,file,{contentType:file.type||'application/octet-stream'});
   if(upErr){ toast('Não consegui enviar o arquivo 😕'); return; }
   const {data:pub}=supabaseClient.storage.from('cofre-arquivos').getPublicUrl(path);
@@ -3110,6 +3227,10 @@ async function uploadArquivoCofre(e){
 }
 async function excluirArquivo(id){
   if(!supabaseClient||!currentUser||!cofreDetalheId)return;
+  // Apaga o arquivo de verdade no storage, não só da lista.
+  const f=arquivosCache.find(x=>String(x.id)===String(id));
+  const caminho=f&&caminhoArquivo(f.url);
+  if(caminho)await supabaseClient.storage.from('cofre-arquivos').remove([caminho]);
   await supabaseClient.from('cofre_arquivos').delete().eq('id',id);
   await loadArquivosCofre(cofreDetalheId);
 }
@@ -3125,18 +3246,37 @@ function formatBytes(n){
   if(n<1024*1024)return Math.round(n/1024)+' KB';
   return (n/(1024*1024)).toFixed(1)+' MB';
 }
+// Arquivos dos cofres ficam privados (SQL 010): abrem por um link que vale 10 minutos.
+// Caminho no storage: <quem enviou>/<cofre>/<nome>.
+let arquivosCache=[];
+function caminhoArquivo(url){
+  const i=String(url||'').indexOf('/cofre-arquivos/');
+  if(i<0)return null;
+  try{ return decodeURIComponent(url.slice(i+'/cofre-arquivos/'.length).split('?')[0]); }catch(e){ return null; }
+}
+async function abrirArquivo(id){
+  const f=arquivosCache.find(x=>String(x.id)===String(id));
+  const caminho=f&&caminhoArquivo(f.url);
+  if(!caminho)return;
+  // No navegador, abre a janela já no toque (senão o iPhone bloqueia como pop-up).
+  const janela=ehAppNativo()?null:window.open('','_blank');
+  const {data,error}=await supabaseClient.storage.from('cofre-arquivos').createSignedUrl(caminho,600);
+  if(error||!data||!data.signedUrl){ if(janela)janela.close(); toast('Não consegui abrir o arquivo 😕'); return; }
+  if(janela)janela.location=data.signedUrl; else abrirLink(data.signedUrl);
+}
 async function loadArquivosCofre(cofreId){
   const wrap=document.getElementById('cdArquivos');
   if(!supabaseClient||!currentUser||!wrap)return;
   const {data,error}=await supabaseClient.from('cofre_arquivos').select('*').eq('cofre_id',cofreId).order('created_at',{ascending:false});
+  arquivosCache=data||[];
   if(error||!data||!data.length){
     wrap.innerHTML='<p style="font-size:12.5px;color:var(--ink2)">Nenhum arquivo ainda.</p>';
     return;
   }
   wrap.innerHTML=data.map(f=>`
     <div style="background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:11px;margin-bottom:8px">
-      <a href="${escapeHtml(f.url)}" target="_blank" style="width:36px;height:36px;border-radius:9px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;text-decoration:none">${iconeArquivo(f.nome)}</a>
-      <a href="${escapeHtml(f.url)}" target="_blank" style="flex:1;min-width:0;text-decoration:none;color:inherit">
+      <a href="#" onclick="abrirArquivo('${f.id}');return false" style="width:36px;height:36px;border-radius:9px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;text-decoration:none">${iconeArquivo(f.nome)}</a>
+      <a href="#" onclick="abrirArquivo('${f.id}');return false" style="flex:1;min-width:0;text-decoration:none;color:inherit">
         <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.nome)}</div>
         <div style="font-size:10.5px;color:var(--ink2)">${formatBytes(f.tamanho_bytes)}</div>
       </a>
@@ -3991,6 +4131,8 @@ async function entrarComCodigo(){
   if(!codigo){ toast('Digita o código que te mandaram 🌿'); return; }
   const {data:contaId,error}=await supabaseClient.rpc('aceitar_convite',{p_codigo:codigo});
   if(error){ toast(erroConjunta(error)); return; }
+  // SQL 010: código errado volta vazio (assim o banco consegue contar as tentativas).
+  if(!contaId){ toast('Código não encontrado 😕'); return; }
   inp.value='';
   await loadContas();
   const conta=contasCache.find(c=>String(c.id)===String(contaId));
@@ -4684,7 +4826,7 @@ async function carregarFixasResumo(){
         const c=cofreById[f.cofre_id];
         return `
         <div class="cofre-row" onclick='abrirCofreDetalhe("${f.cofre_id}")' style="cursor:pointer">
-          <div class="cofre-ic" style="width:44px;height:44px;border-radius:12px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:19px">${c?.icone||'🧾'}</div>
+          <div class="cofre-ic" style="width:44px;height:44px;border-radius:12px;background:var(--sage-tint);display:flex;align-items:center;justify-content:center;font-size:19px">${escapeHtml(c?.icone||'🧾')}</div>
           <div style="flex:1;min-width:0">
             <div class="nm">${escapeHtml(f.nome)}</div>
             <div class="meta"><span>${escapeHtml(c?.nome||'Cofre')}</span>${linhaVencimento(f.dia_vencimento)}</div>
@@ -4906,7 +5048,48 @@ function copyNudgeUrl(btn){
   }
 }
 
+// App de iPhone: notificação nativa (APNs) em vez de web push.
+function tokenPushNativo(){ try{ return localStorage.getItem('aya_ios_push')||''; }catch(e){ return ''; } }
+async function obterTokenPushNativo(){
+  const P=pluginNativo('PushNotifications');
+  if(!P)return null;
+  let perm=await P.checkPermissions();
+  if(perm.receive==='prompt'||perm.receive==='prompt-with-rationale')perm=await P.requestPermissions();
+  if(perm.receive!=='granted')return null;
+  await P.removeAllListeners();
+  ouvirToquesNotificacao();
+  return new Promise((resolve,reject)=>{
+    const t=setTimeout(()=>reject(new Error('Sem resposta do iPhone')),15000);
+    P.addListener('registration',r=>{clearTimeout(t);resolve(r.value);});
+    P.addListener('registrationError',e=>{clearTimeout(t);reject(new Error(e&&e.error||'Erro no registro'));});
+    P.register();
+  });
+}
+// Toque numa notificação abre a parte certa do app (ex: /#add, /#calma=Amazon).
+function ouvirToquesNotificacao(){
+  const P=pluginNativo('PushNotifications');
+  if(!P)return;
+  P.addListener('pushNotificationActionPerformed',a=>{
+    const url=String((a&&a.notification&&a.notification.data&&a.notification.data.url)||'');
+    const i=url.indexOf('#');
+    if(i>=0){ location.hash=url.slice(i); try{checkQuickAddHash();}catch(e){} try{checkCalmaHash();}catch(e){} }
+  });
+}
 async function togglePush(){
+  if(ehAppNativo()){
+    try{
+      if(tokenPushNativo()){
+        const P=pluginNativo('PushNotifications');
+        if(supabaseClient)await supabaseClient.from('dispositivos_ios').delete().eq('token',tokenPushNativo());
+        try{ await P.unregister(); }catch(e){}
+        localStorage.removeItem('aya_ios_push');
+        document.getElementById('pushSw').style.background='var(--line)';
+        const setup=document.getElementById('pushSetup'); if(setup)setup.style.display='none';
+        toast('Notificações desativadas 🌿');
+      }else await enablePush();
+    }catch(e){ toast('Não consegui mudar as notificações agora 😕'); }
+    return;
+  }
   if(!('serviceWorker' in navigator)||!('PushManager' in window)){ toast('Esse navegador não suporta notificações 😕'); return; }
   try{
     const reg=await navigator.serviceWorker.getRegistration('/sw.js');
@@ -4933,21 +5116,32 @@ async function disablePush(sub){
 
 async function enablePush(){
   if(!supabaseClient||!currentUser){ toast('Entra na sua conta primeiro 🌿'); return; }
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)){ toast('Esse navegador não suporta notificações 😕'); return; }
-  if(!window.__vapidPublicKey){ toast('Notificações ainda não configuradas 🌿'); return; }
+  const nativo=ehAppNativo();
+  if(!nativo&&(!('serviceWorker' in navigator)||!('PushManager' in window))){ toast('Esse navegador não suporta notificações 😕'); return; }
+  if(!nativo&&!window.__vapidPublicKey){ toast('Notificações ainda não configuradas 🌿'); return; }
   try{
-    const perm=await Notification.requestPermission();
-    if(perm!=='granted'){ toast('Sem permissão de notificação 🌿'); return; }
-    const reg=await navigator.serviceWorker.register('/sw.js');
-    const sub=await reg.pushManager.subscribe({
-      userVisibleOnly:true,
-      applicationServerKey:urlBase64ToUint8Array(window.__vapidPublicKey)
-    });
+    let corpo;
+    if(nativo){
+      const iosToken=await obterTokenPushNativo();
+      if(!iosToken){ toast('Sem permissão de notificação 🌿'); return; }
+      try{ localStorage.setItem('aya_ios_push',iosToken); }catch(e){}
+      corpo={iosToken};
+    }else{
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted'){ toast('Sem permissão de notificação 🌿'); return; }
+      const reg=await navigator.serviceWorker.register('/sw.js');
+      const sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(window.__vapidPublicKey)
+      });
+      corpo={subscription:sub.toJSON()};
+    }
     const {data:{session}}=await supabaseClient.auth.getSession();
-    const res=await fetch('/api/push/subscribe',{
+    corpo.accessToken=session.access_token;
+    const res=await apiFetch('/api/push/subscribe',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subscription:sub.toJSON(),accessToken:session.access_token})
+      body:JSON.stringify(corpo)
     });
     const json=await res.json();
     if(!res.ok||!json.nudgeToken){
@@ -4960,8 +5154,8 @@ async function enablePush(){
     document.getElementById('pushSw').style.background='var(--sage)';
     if(json.nudgeToken){
       const linkRow=(emoji,label,app,tipo,sub)=>{
-        const url=`${location.origin}/api/nudge?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
-        const shortcutFileUrl=`${location.origin}/api/shortcut?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
+        const url=`${API_ORIGEM}/api/nudge?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
+        const shortcutFileUrl=`${API_ORIGEM}/api/shortcut?token=${json.nudgeToken}&tipo=${tipo}&app=${encodeURIComponent(app)}`;
         const importUrl=`shortcuts://import-workflow?url=${encodeURIComponent(shortcutFileUrl)}&name=${encodeURIComponent('Aya - '+app)}`;
         return `
           <div style="margin-bottom:12px">
@@ -4971,7 +5165,7 @@ async function enablePush(){
               <input readonly value="${escapeHtml(url)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
               <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
             </div>
-            <a href="${importUrl}" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--sage);text-decoration:underline">✨ Tentar adicionar em 1 toque (beta)</a>
+            <a href="${importUrl}" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--sage);text-decoration:underline">✨ Adicionar em 1 toque</a>
           </div>`;
       };
       const passo=(n,html)=>`
@@ -4999,7 +5193,7 @@ async function enablePush(){
             ${linkRow('🛍️','Shopee','Shopee','compra','')}
             ${linkRow('🏬','Outra loja','Loja','compra','Cola o nome do app na hora de escolher, no passo 4')}
 
-            <p style="font-size:11px;color:var(--ink2);margin:2px 0 12px;background:var(--sage-tint);padding:8px 10px;border-radius:10px">✨ Cada app tem um botão "1 toque (beta)" — tenta ele primeiro. Se o iPhone disser que não confia no atalho, vai em Ajustes → Atalhos → Avançado → ative "Permitir Atalhos Não Confiáveis". Se não rolar, usa o passo a passo manual abaixo.</p>
+            <p style="font-size:11px;color:var(--ink2);margin:2px 0 12px;background:var(--sage-tint);padding:8px 10px;border-radius:10px">✨ Cada app tem um botão "Adicionar em 1 toque" — tenta ele primeiro. Se o iPhone disser que não confia no atalho, vai em Ajustes → Atalhos → Avançado → ative "Permitir Atalhos Não Confiáveis". Se não rolar, usa o passo a passo manual abaixo.</p>
             <div style="font-weight:600;color:var(--ink);font-size:12.5px;margin:10px 0 10px">Como configurar (repete pra cada app)</div>
             ${passo(1,'Toca em <b>Copiar</b> no link do app que você quer')}
             ${passo(2,'Abre o app <b>Atalhos</b> (ou toca no botão verde abaixo)')}
@@ -5014,7 +5208,7 @@ async function enablePush(){
             <div style="margin-bottom:12px">
               <div style="font-size:11.5px;color:var(--ink2);margin-bottom:6px">Cola esse link no passo 3 abaixo</div>
               <div style="display:flex;gap:8px">
-                <input readonly value="${escapeHtml(`${location.origin}/api/receipt-import?token=${json.nudgeToken}`)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
+                <input readonly value="${escapeHtml(`${API_ORIGEM}/api/receipt-import?token=${json.nudgeToken}`)}" class="nudgeUrlInput" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:11px;background:var(--paper);color:var(--ink)">
                 <button type="button" onclick="copyNudgeUrl(this)" style="background:var(--sage);color:#fff;border:0;border-radius:10px;padding:0 14px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
               </div>
             </div>
@@ -5036,7 +5230,7 @@ async function enablePush(){
   }catch(err){
     const setup=document.getElementById('pushSetup');
     setup.style.display='block';
-    setup.innerHTML=`<div style="color:var(--rose);font-weight:600;margin-bottom:6px">Não consegui ativar</div><div>${escapeHtml(err && err.message ? err.message : String(err))}</div>${!window.matchMedia('(display-mode: standalone)').matches?'<div style="margin-top:8px">No iPhone, notificação só funciona se o app estiver instalado na Tela de Início (não numa aba do Safari).</div>':''}`;
+    setup.innerHTML=`<div style="color:var(--rose);font-weight:600;margin-bottom:6px">Não consegui ativar</div><div>${escapeHtml(err && err.message ? err.message : String(err))}</div>${!ehAppNativo()&&!window.matchMedia('(display-mode: standalone)').matches?'<div style="margin-top:8px">No iPhone, notificação só funciona se o app estiver instalado na Tela de Início (não numa aba do Safari).</div>':''}`;
     toast('Não consegui ativar agora 😕');
   }
 }
