@@ -759,6 +759,17 @@ window.AYA_EN={
 "A conta precisa ter pelo menos uma pessoa":"The account needs at least one person",
 "Você não participa dessa conta":"You're not part of this account",
 
+"Excluir {X}?":"Delete {0}?",
+"Esse cofre ainda tem {R}. O que acontece com esse dinheiro?":"This vault still has {0}. What happens to this money?",
+"Devolver pro Livre pra gastar":"Return it to Free to spend",
+"Esse dinheiro já saiu":"This money is already gone",
+"Cofre excluído: {X}":"Vault deleted: {0}",
+
+"Excluído 🌿 Tirei {X}":"Deleted 🌿 I removed {0}",
+"{R} de {X}":"{0} from {1}",
+"(parte já tinha sido gasta)":"(part of it had already been spent)",
+"Excluído 🌿 Tirei {X} (parte já tinha sido gasta)":"Deleted 🌿 I removed {0} (part of it had already been spent)",
+
 // ---------- Datas ----------
 "Janeiro":"January","Fevereiro":"February","Março":"March","Abril":"April","Maio":"May","Junho":"June",
 "Julho":"July","Agosto":"August","Setembro":"September","Outubro":"October","Novembro":"November","Dezembro":"December"

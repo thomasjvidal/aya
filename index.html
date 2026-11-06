@@ -3340,8 +3340,18 @@ async function iniciarConversaCofreDetalhe(){
 }
 async function excluirCofreDoDetalhe(){
   if(!cofreDetalheId)return;
-  if(!confirm('Excluir esse cofre? Isso não apaga o extrato, só o cofre.'))return;
-  await deleteCofre(cofreDetalheId);
+  const c=(cofresCache||[]).find(x=>String(x.id)===String(cofreDetalheId));
+  const saldo=Math.round(Number(c&&c.valor_atual||0)*100)/100;
+  // Cofre com dinheiro: a pessoa diz o que acontece com o saldo, senão o total do app
+  // mudaria sozinho (ver deleteCofre).
+  let devolver=false;
+  if(saldo>0.005){
+    const r=await perguntarSaldoCofre(c,saldo);
+    if(r===null)return;
+    devolver=r;
+  }else if(!confirm('Excluir esse cofre? Isso não apaga o extrato, só o cofre.'))return;
+  const ok=await deleteCofre(cofreDetalheId,devolver);
+  if(!ok)return;
   document.getElementById('cofreDetalhe').classList.add('hidden');
   ensureCofreFormInline();
   cofreDetalheId=null;
@@ -3628,12 +3638,59 @@ async function salvarCofre(){
   }
 }
 
-async function deleteCofre(id){
-  if(!supabaseClient)return;
-  await supabaseClient.from('cofres').delete().eq('id',id);
+// Apagar o cofre também apaga as distribuições dele (o Livre ganharia tudo que o cofre já
+// recebeu pelas %) e transforma as saídas dele em saídas do Livre. Isso não bate com o
+// saldo do cofre quando teve transferência, rendimento ou valor inicial. Então antes de
+// apagar registra um ajuste no Livre pra que o resultado seja exatamente:
+//   devolver=true  -> o saldo do cofre vai pro Livre pra gastar
+//   devolver=false -> o saldo some (o dinheiro já saiu de verdade)
+async function deleteCofre(id,devolver){
+  if(!supabaseClient)return false;
+  const c=(cofresCache||[]).find(x=>String(x.id)===String(id));
+  const saldo=Number(c&&c.valor_atual||0);
+  const [{data:distribs},{data:saidas},{data:pendentes}]=await Promise.all([
+    supabaseClient.from('distribuicoes').select('valor,movimento_id').eq('cofre_id',id),
+    supabaseClient.from('movimentos').select('valor').eq('tipo','saida').eq('cofre_id',id),
+    supabaseClient.from('movimentos').select('id').eq('tipo','entrada').eq('organizado',false).eq('conta_id',contaAtualId)
+  ]);
+  const idsPend=new Set((pendentes||[]).map(m=>m.id));
+  const recebido=(distribs||[]).filter(d=>!idsPend.has(d.movimento_id)).reduce((s,d)=>s+Number(d.valor||0),0);
+  const gasto=(saidas||[]).reduce((s,m)=>s+Number(m.valor||0),0);
+  const efeito=recebido-gasto;
+  const ajuste=Math.round(((devolver?saldo:0)-efeito)*100)/100;
+  if(Math.abs(ajuste)>0.005){
+    const {error:errAj}=await supabaseClient.from('movimentos').insert({user_id:currentUser.id,conta_id:contaAtualId,
+      descricao:`Cofre excluído: ${c?c.nome:''}`.trim(),valor:Math.abs(ajuste),tipo:ajuste>0?'entrada':'saida',cofre_id:null,organizado:true});
+    if(errAj){ toast('Não consegui excluir agora 😕'); return false; }
+  }
+  const {error}=await supabaseClient.from('cofres').delete().eq('id',id);
+  if(error){ toast('Não consegui excluir agora 😕'); return false; }
   await loadCofres();
   await loadHomeData();
   await loadPerfilStats();
+  await loadMovimentos();
+  return true;
+}
+function perguntarSaldoCofre(c,saldo){
+  return new Promise(resolve=>{
+    const fundo=document.createElement('div');
+    fundo.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center';
+    fundo.innerHTML=`
+      <div style="width:100%;max-width:480px;background:var(--card);border-radius:22px 22px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom))">
+        <div style="font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px">Excluir ${escapeHtml(c.nome)}?</div>
+        <p style="font-size:13px;color:var(--ink2);line-height:1.5;margin:0 0 14px">Esse cofre ainda tem ${formatBRL(saldo)}. O que acontece com esse dinheiro?</p>
+        <button type="button" data-r="1" style="width:100%;background:var(--sage);color:#fff;border:0;border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:8px">Devolver pro Livre pra gastar</button>
+        <button type="button" data-r="0" style="width:100%;background:0;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:8px">Esse dinheiro já saiu</button>
+        <button type="button" data-r="x" style="width:100%;background:0;border:0;color:var(--ink2);padding:10px;font-family:inherit;font-size:13px;cursor:pointer">Cancelar</button>
+      </div>`;
+    const fechar=r=>{fundo.remove();resolve(r);};
+    fundo.addEventListener('click',e=>{
+      if(e.target===fundo)return fechar(null);
+      const b=e.target.closest('button[data-r]');
+      if(b)fechar(b.dataset.r==='x'?null:b.dataset.r==='1');
+    });
+    document.body.appendChild(fundo);
+  });
 }
 
 function togglePendenteCofre(id){
@@ -4968,6 +5025,7 @@ async function excluirMovimento(id){
     toast('Excluído 🌿 Tirei o rendimento do cofre');
   }else if(mov.tipo==='entrada'&&distribs.length){
     const partes=[];
+    let faltou=false;
     for(const d of distribs){
       const c=(cofresCache||[]).find(x=>String(x.id)===String(d.cofre_id));
       const nomeC=c?c.nome:'um cofre';
@@ -4975,9 +5033,11 @@ async function excluirMovimento(id){
       const base=cAtual?Number(cAtual.valor_atual||0):Number(c?.valor_atual||0);
       const novoValor=Math.max(0,base-Number(d.valor||0));
       await supabaseClient.from('cofres').update({valor_atual:novoValor}).eq('id',d.cofre_id);
-      partes.push(`${formatBRL(d.valor)} de ${nomeC}`);
+      // Cofre não fica negativo: se parte já tinha sido gasta, só sai o que sobrou.
+      partes.push(`${formatBRL(base-novoValor)} de ${nomeC}`);
+      if(base-novoValor<Number(d.valor||0)-0.005)faltou=true;
     }
-    toast(`Excluído 🌿 Devolvi ${partes.join(', ')}`);
+    toast(`Excluído 🌿 Tirei ${partes.join(', ')}${faltou?' (parte já tinha sido gasta)':''}`);
   }else{
     toast('Excluído 🌿');
   }
