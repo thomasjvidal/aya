@@ -784,6 +784,24 @@ window.AYA_EN={
 "Chegou 🌿 {R} · contrato encerrado":"Arrived 🌿 {0} · contract ended",
 "Chegou 🌿 {R} esperando você organizar · próxima em {N}":"Arrived 🌿 {0} waiting for you to organize · next on {1}",
 
+"Entra sozinho no dia (vocês só confirmam)":"Comes in automatically on the day (you just confirm)",
+"Vai pra:":"Goes to:",
+"Dividir pelas % dos cofres":"Split by the vaults' %",
+"entra sozinho":"comes in automatically",
+"Entrou sozinho — confirme":"Came in automatically — confirm",
+"Já está na conta e nos cofres. Caiu mesmo no banco?":"It's already in the account and vaults. Did it really land in the bank?",
+"entrou sozinho":"came in automatically",
+"Não caiu":"Didn't arrive",
+"Outro valor":"Different amount",
+"✓ Caiu":"✓ Arrived",
+"Confirmado 🌿 {R} caiu":"Confirmed 🌿 {0} arrived",
+"Não caiu? O valor sai da conta e dos cofres e volta pro \"Vai entrar\" como atrasado.":"Didn't arrive? The amount leaves the account and vaults and goes back to \"Coming in\" as late.",
+"Não consegui desfazer agora 😕":"Couldn't undo right now 😕",
+"Desfeito 🌿 Voltou pro Vai entrar como atrasado":"Undone 🌿 Back in Coming in as late",
+"Quanto caiu de verdade ({X})?":"How much actually arrived ({0})?",
+"Contrato renovado por {N} meses 🌿":"Contract renewed for {0} months 🌿",
+"Contrato renovado por {N} mês 🌿":"Contract renewed for {0} month 🌿",
+
 // ---------- Datas ----------
 "Janeiro":"January","Fevereiro":"February","Março":"March","Abril":"April","Maio":"May","Junho":"June",
 "Julho":"July","Agosto":"August","Setembro":"September","Outubro":"October","Novembro":"November","Dezembro":"December"

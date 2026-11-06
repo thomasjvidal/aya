@@ -819,6 +819,10 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
         <span style="flex-shrink:0">Por quantos meses?</span>
         <input id="qaMeses" type="number" inputmode="numeric" min="1" max="120" placeholder="sem prazo" style="flex:1;min-width:0;margin:0">
       </label>
+      <div id="qaAutoWrap" style="display:none;width:100%;flex-direction:column;gap:6px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><input type="checkbox" id="qaAuto" checked onchange="document.getElementById('qaAutoCofreWrap').style.display=this.checked?'flex':'none'"> Entra sozinho no dia (vocês só confirmam)</label>
+        <label id="qaAutoCofreWrap" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Vai pra:</span><select id="qaAutoCofre" style="flex:1;min-width:0;margin:0"></select></label>
+      </div>
       <button type="submit">Salvar</button>
     </form>
     <button class="linklike" type="button" onclick="closeQuickAdd()">Fechar</button>
@@ -850,8 +854,12 @@ body{font-family:'Inter Tight',system-ui,sans-serif;background:#d9ddda;color:var
       </div>
       <div id="emPrazoWrap" style="display:none;width:100%">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Data:</span><input id="emData" type="date" style="flex:1;min-width:0;margin:0"></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal" onchange="document.getElementById('emMesesWrap').style.display=this.checked?'flex':'none'"> Cai todo mês?</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);justify-content:center;margin:8px 0 2px"><input type="checkbox" id="emMensal" onchange="document.getElementById('emMesesWrap').style.display=this.checked?'flex':'none';document.getElementById('emAutoWrap').style.display=this.checked?'flex':'none'"> Cai todo mês?</label>
         <label id="emMesesWrap" style="display:none;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Por quantos meses?</span><input id="emMeses" type="number" inputmode="numeric" min="1" max="120" placeholder="sem prazo" style="flex:1;min-width:0;margin:0"></label>
+        <div id="emAutoWrap" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><input type="checkbox" id="emAuto"> Entra sozinho no dia (vocês só confirmam)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)"><span style="flex-shrink:0">Vai pra:</span><select id="emAutoCofre" style="flex:1;min-width:0;margin:0"></select></label>
+        </div>
       </div>
       <p id="emAviso" style="display:none;font-size:12px;color:var(--amber);background:var(--sage-tint);border-radius:10px;padding:8px 10px;line-height:1.4"></p>
       <button type="submit">Salvar alterações</button>
@@ -1872,6 +1880,11 @@ function toggleQaCofre(){
   const comMeses=tipo==='esperado'&&document.getElementById('qaRecorrente')?.checked;
   if(mesesWrap)mesesWrap.style.display=comMeses?'flex':'none';
   if(!comMeses&&document.getElementById('qaMeses'))document.getElementById('qaMeses').value='';
+  const autoWrap=document.getElementById('qaAutoWrap');
+  if(autoWrap){
+    autoWrap.style.display=comMeses?'flex':'none';
+    if(comMeses)preencherDestinoAuto(document.getElementById('qaAutoCofre'),'');
+  }
 }
 
 document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
@@ -1931,7 +1944,7 @@ document.getElementById('quickAddForm').addEventListener('submit',async(e)=>{
   for(const parte of partes){
     // "Vai entrar" que cai todo mês fica marcado em categoria='mensal' (ao chegar, o app anota o do mês seguinte).
     const conv=conversao?{valor_original:Math.round(parte.valor/valor*conversao.original*100)/100,moeda_original:conversao.moeda,cotacao:conversao.cotacao}:{};
-    const {error}=await inserirMovimento({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:tipo==='esperado'?categoriaRecorrencia(recorrente,document.getElementById('qaMeses').value,1):null,...conv});
+    const {error}=await inserirMovimento({user_id:currentUser.id,conta_id:contaAtualId,descricao,valor:parte.valor,tipo,cofre_id:parte.cofre?parte.cofre.id:null,pessoa,data_prevista:dataPrevista,categoria:tipo==='esperado'?categoriaRecorrencia(recorrente,document.getElementById('qaMeses').value,1):null,...(tipo==='esperado'&&recorrente?camposAuto(document.getElementById('qaAuto').checked,document.getElementById('qaAutoCofre').value):{}),...conv});
     if(error){ toast('Não consegui salvar agora 😕'); return; }
     if(tipo==='saida'&&parte.cofre){
       const novoValor=Number(parte.cofre.valor_atual||0)-parte.valor;
@@ -2067,7 +2080,7 @@ function prazoVaiEntrar(dataPrevista){
 function linhaPrazoVaiEntrar(m){
   const {estado,dias}=prazoVaiEntrar(m.data_prevista);
   const rec=recorrenciaVaiEntrar(m);
-  const mensal=!rec?'':rec.tipo==='contrato'?`<span>contrato ${rec.parcela}/${rec.total}</span>`:'<span>todo mês</span>';
+  const mensal=(!rec?'':rec.tipo==='contrato'?`<span>contrato ${rec.parcela}/${rec.total}</span>`:'<span>todo mês</span>')+(m.auto_entrar?' · <span>entra sozinho</span>':'');
   if(estado==='sem')return mensal;
   const quando=estado==='atrasada'
     ?`<span style="color:var(--rose);font-weight:600">atrasada ${-dias} dia${-dias>1?'s':''}</span>`
@@ -2087,10 +2100,13 @@ async function loadPendentes(){
   const card=document.getElementById('pendenteCard');
   if(!card)return;
   const conta=contaAtualId;
-  const [{data:esperados,error:errEsperados},{pend,error:errPend}]=await Promise.all([
+  const [{data:esperados,error:errEsperados},{pend,error:errPend},{data:aConfirmar}]=await Promise.all([
     supabaseClient.from('movimentos').select('*').eq('conta_id',conta).eq('tipo','esperado').order('created_at',{ascending:false}),
-    buscarPendentes()
+    buscarPendentes(),
+    // Entrou sozinho e falta confirmar (SQL 011; sem ele a consulta só volta vazia).
+    supabaseClient.from('movimentos').select('*').eq('conta_id',conta).eq('tipo','entrada').eq('a_confirmar',true).order('data_prevista',{ascending:true})
   ]);
+  const listaConfirmar=aConfirmar||[];
   if(contaMudou(conta))return;
   if(errEsperados||errPend){
     card.style.display='block';
@@ -2100,7 +2116,7 @@ async function loadPendentes(){
   const listaEsperados=esperados||[];
   const listaPend=pend||[];
 
-  if(!listaEsperados.length&&!listaPend.length){
+  if(!listaEsperados.length&&!listaPend.length&&!listaConfirmar.length){
     // Hoje em dia as entradas se organizam sozinhas na hora do registro — esse card só
     // aparece de novo se tiver algo em "vai entrar" ou sobrar algo pendente por algum motivo.
     card.style.display='none';
@@ -2108,6 +2124,23 @@ async function loadPendentes(){
   }
   card.style.display='block';
   let html='';
+  if(listaConfirmar.length){
+    html+=`<div class="head"><span class="pulse"></span><h3>Entrou sozinho — confirme</h3></div>
+      <div class="cap" style="margin-bottom:6px">Já está na conta e nos cofres. Caiu mesmo no banco?</div>`;
+    html+=listaConfirmar.map(m=>`
+      <div style="border-bottom:1px solid var(--line);padding:10px 4px">
+        <div style="display:flex;align-items:center;gap:13px">
+          <div class="tx-ic">💰</div>
+          <div style="flex:1;min-width:0"><div class="nm">${escapeHtml(m.descricao)}</div><div class="cat">${linhaPrazoVaiEntrar({...m,data_prevista:null,auto_entrar:false})||'entrou sozinho'}</div></div>
+          <div class="num" style="font-size:16px;font-weight:700;color:var(--sage);white-space:nowrap">+ ${formatBRL(m.valor)}</div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px">
+          <button type="button" onclick="naoCaiuAuto('${m.id}')" style="background:0;border:1px solid var(--line);color:var(--ink2);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:12.5px;cursor:pointer">Não caiu</button>
+          <button type="button" onclick="outroValorAuto('${m.id}')" style="background:0;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:12.5px;cursor:pointer">Outro valor</button>
+          <button type="button" class="split-btn" style="width:auto;padding:8px 14px;font-size:12.5px;margin-top:0" onclick="caiuAuto('${m.id}')">✓ Caiu</button>
+        </div>
+      </div>`).join('');
+  }
   if(listaEsperados.length){
     const cotVE=listaEsperados.some(vaiEntrarEmOutraMoeda)?await obterCotacao():null;
     if(contaMudou(conta))return;
@@ -2167,6 +2200,88 @@ async function loadPendentes(){
     `;
   }
   card.innerHTML=html;
+}
+
+// ---- Entrada automática (SQL 011) ----
+// "Vai entrar" recorrente/contrato pode entrar sozinho no dia: o servidor (cron da manhã)
+// lança na conta, separa nos cofres e marca a_confirmar. Aqui a pessoa confirma.
+function camposAuto(ligado,cofreId){ return {auto_entrar:!!ligado,auto_cofre_id:ligado&&cofreId?cofreId:null}; }
+function preencherDestinoAuto(sel,atual){
+  if(!sel)return;
+  sel.innerHTML=`<option value="">Dividir pelas % dos cofres</option>`+(cofresCache||[]).map(c=>`<option value="${c.id}" ${String(c.id)===String(atual)?'selected':''}>${escapeHtml(c.icone||'🧾')} ${escapeHtml(c.nome)}</option>`).join('');
+}
+// Põe o valor nos cofres do jeito que foi combinado (um cofre ou pelas %).
+async function distribuirEntradaAuto(mov,valor){
+  if(mov.auto_cofre_id){
+    const {data:c}=await supabaseClient.from('cofres').select('valor_atual').eq('id',mov.auto_cofre_id).single();
+    if(c){
+      await supabaseClient.from('cofres').update({valor_atual:Math.round((Number(c.valor_atual||0)+valor)*100)/100}).eq('id',mov.auto_cofre_id);
+      await supabaseClient.from('distribuicoes').insert({movimento_id:mov.id,cofre_id:mov.auto_cofre_id,valor});
+      return;
+    }
+  }
+  await distribuirPercentuais(valor,mov.id);
+}
+// Desfaz o que foi separado nos cofres por esse movimento.
+async function desfazerDistribuicao(movId){
+  const {data:ds}=await supabaseClient.from('distribuicoes').select('*').eq('movimento_id',movId);
+  for(const d of ds||[]){
+    const {data:c}=await supabaseClient.from('cofres').select('valor_atual').eq('id',d.cofre_id).single();
+    if(c)await supabaseClient.from('cofres').update({valor_atual:Math.max(0,Math.round((Number(c.valor_atual||0)-Number(d.valor||0))*100)/100)}).eq('id',d.cofre_id);
+  }
+  await supabaseClient.from('distribuicoes').delete().eq('movimento_id',movId);
+}
+async function recarregarTudo(){ await loadPendentes(); await loadCofres(); await loadHomeData(); await loadMovimentos(); await loadPerfilStats(); }
+// Contrato no último pagamento: depois de confirmar, pergunta se renova.
+async function talvezRenovar(mov){
+  const rec=recorrenciaVaiEntrar(mov);
+  if(!rec||rec.tipo!=='contrato'||rec.parcela<rec.total)return;
+  const meses=await perguntarRenovacaoContrato(mov,rec);
+  if(!meses)return;
+  const h=new Date(), hojeISO=`${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+  const conv=mov.moeda_original&&mov.valor_original!=null?{valor_original:mov.valor_original,moeda_original:mov.moeda_original,cotacao:mov.cotacao}:{};
+  await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,
+    data_prevista:proximoMes(mov.data_prevista||hojeISO),categoria:`contrato:${meses}:1`,...conv,...camposAuto(mov.auto_entrar,mov.auto_cofre_id)});
+  toast(`Contrato renovado por ${meses} ${meses>1?'meses':'mês'} 🌿`);
+}
+async function caiuAuto(id){
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
+  if(!mov)return;
+  const {error}=await supabaseClient.from('movimentos').update({a_confirmar:false}).eq('id',id);
+  if(error){ toast('Não consegui confirmar agora 😕'); return; }
+  vibrar('success');
+  toast(`Confirmado 🌿 ${formatBRL(mov.valor)} caiu`);
+  await talvezRenovar(mov);
+  await recarregarTudo();
+}
+async function naoCaiuAuto(id){
+  if(!confirm('Não caiu? O valor sai da conta e dos cofres e volta pro "Vai entrar" como atrasado.'))return;
+  await desfazerDistribuicao(id);
+  const {error}=await supabaseClient.from('movimentos').update({tipo:'esperado',organizado:false,a_confirmar:false}).eq('id',id);
+  if(error){ toast('Não consegui desfazer agora 😕'); return; }
+  toast('Desfeito 🌿 Voltou pro Vai entrar como atrasado');
+  await recarregarTudo();
+}
+async function outroValorAuto(id){
+  const {data:mov}=await supabaseClient.from('movimentos').select('*').eq('id',id).single();
+  if(!mov)return;
+  const txt=prompt(`Quanto caiu de verdade (${SIMBOLO_MOEDA[moedaAtual()]})?`,String(mov.valor));
+  if(txt===null)return;
+  const valor=Math.round(parseFloat(String(txt).replace(',','.'))*100)/100;
+  if(!(valor>0)){ toast('Coloca o valor 🌿'); return; }
+  await desfazerDistribuicao(id);
+  const mudancas={valor,a_confirmar:false};
+  if(mov.valor_original!=null&&mov.moeda_original&&mov.moeda_original!==moedaAtual()){
+    const orig=Number(mov.valor_original);
+    mudancas.cotacao=Math.round((mov.moeda_original==='USD'?valor/orig:orig/valor)*10000)/10000;
+  }
+  const {error}=await supabaseClient.from('movimentos').update(mudancas).eq('id',id);
+  if(error){ toast('Não consegui salvar agora 😕'); return; }
+  await distribuirEntradaAuto(mov,valor);
+  vibrar('success');
+  toast(`Confirmado 🌿 ${formatBRL(valor)} caiu`);
+  await talvezRenovar({...mov,valor});
+  await recarregarTudo();
 }
 
 // Último pagamento de um contrato: renova (mesmo prazo ou outro) ou encerra.
@@ -2235,7 +2350,7 @@ async function confirmarChegada(id){
     const h=new Date(), hojeISO=`${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
     const proxima=proximoMes(mov.data_prevista||hojeISO);
     const conv=mov.moeda_original&&mov.valor_original!=null?{valor_original:mov.valor_original,moeda_original:mov.moeda_original,cotacao:mov.cotacao}:{};
-    await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:proximaCategoria,...conv});
+    await inserirMovimento({user_id:currentUser.id,conta_id:mov.conta_id||contaAtualId,descricao:mov.descricao,valor:mov.valor,tipo:'esperado',cofre_id:null,pessoa:mov.pessoa||null,data_prevista:proxima,categoria:proximaCategoria,...conv,...camposAuto(mov.auto_entrar,mov.auto_cofre_id)});
     const [,pm,pd]=proxima.split('-');
     toast(`Chegou 🌿 ${formatBRL(mov.valor)} esperando você organizar · próxima em ${pd}/${pm}`);
   }else if(rec){
@@ -3094,8 +3209,14 @@ function formatCotacao(v){ return Number(v||0).toLocaleString(window.AYA_LOCALE|
 const COLUNAS_CONVERSAO=['valor_original','moeda_original','cotacao'];
 // Insere movimento; se o banco ainda não tem as colunas de conversão (SQL 007 não rodado),
 // grava sem elas e põe o valor original na descrição, em vez de falhar.
+// Colunas do SQL 011 (entrada automática): sem o SQL, salva sem elas.
+const COLUNAS_AUTO=['auto_entrar','auto_cofre_id','a_confirmar'];
 async function inserirMovimento(dados){
   let {data,error}=await supabaseClient.from('movimentos').insert(dados).select('id').single();
+  if(error&&COLUNAS_AUTO.some(k=>k in dados&&(error.message||'').includes(k))){
+    dados={...dados}; COLUNAS_AUTO.forEach(k=>delete dados[k]);
+    ({data,error}=await supabaseClient.from('movimentos').insert(dados).select('id').single());
+  }
   if(error&&COLUNAS_CONVERSAO.some(k=>k in dados&&(error.message||'').includes(k))){
     const semConv={...dados};
     if(semConv.valor_original!=null)semConv.descricao=`${semConv.descricao} (${formatMoeda(semConv.valor_original,semConv.moeda_original)})`;
@@ -4996,6 +5117,9 @@ async function abrirEditarMovimento(id){
   document.getElementById('emMensal').checked=!!recEm;
   document.getElementById('emMeses').value=recEm&&recEm.tipo==='contrato'?recEm.total:'';
   document.getElementById('emMesesWrap').style.display=recEm?'flex':'none';
+  document.getElementById('emAutoWrap').style.display=recEm?'flex':'none';
+  document.getElementById('emAuto').checked=!!(ehVaiEntrar&&mov.auto_entrar);
+  preencherDestinoAuto(document.getElementById('emAutoCofre'),mov.auto_cofre_id||'');
   const aviso=document.getElementById('emAviso');
   if(mov.tipo==='entrada'&&mov.organizado){
     aviso.style.display='block';
@@ -5048,6 +5172,7 @@ document.getElementById('editMovForm').addEventListener('submit',async(e)=>{
     mudancas.data_prevista=document.getElementById('emData').value||null;
     const recAntes=recorrenciaVaiEntrar(mov);
     mudancas.categoria=categoriaRecorrencia(document.getElementById('emMensal').checked,document.getElementById('emMeses').value,recAntes&&recAntes.parcela);
+    if('auto_entrar' in mov)Object.assign(mudancas,camposAuto(document.getElementById('emMensal').checked&&document.getElementById('emAuto').checked,document.getElementById('emAutoCofre').value));
     if(emMoeda!==moedaAtual()){
       const cot=await obterCotacao();
       if(!cot){ toast('Não consegui a cotação agora — tenta de novo 🌿'); return; }
