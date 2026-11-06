@@ -1,6 +1,6 @@
-const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
 const { idiomaDoUsuario } = require('./idioma');
+const { todosDestinos, enviarParaDestino } = require('./push');
 
 // Usado pelos dois crons (api/cron/manha.js e api/cron/noite.js) — o path de
 // um cron do Vercel não pode ter query string, por isso são dois arquivos
@@ -44,20 +44,20 @@ async function enviarLembretes(req, res, tipo) {
     }
   }
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    res.status(500).json({ error: 'Supabase ou VAPID não configurado' });
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    res.status(500).json({ error: 'Supabase não configurado' });
     return;
   }
 
   const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  webpush.setVapidDetails('mailto:contato@aya.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
-  const [{ data: subs, error: subsErr }, { data: perfis }] = await Promise.all([
-    supabaseAdmin.from('push_subscriptions').select('*'),
+  // Navegadores (web push) e apps de iPhone (APNs).
+  const [subs, { data: perfis }] = await Promise.all([
+    todosDestinos(supabaseAdmin),
     supabaseAdmin.from('profiles').select('id,estilo'),
   ]);
 
-  if (subsErr || !subs || !subs.length) {
+  if (!subs.length) {
     res.status(200).json({ ok: true, enviados: 0 });
     return;
   }
@@ -71,18 +71,7 @@ async function enviarLembretes(req, res, tipo) {
       const idioma = await idiomaDoUsuario(supabaseAdmin, sub.user_id);
       const msgs = idioma === 'en' ? MENSAGENS_LEMBRETE_EN : MENSAGENS_LEMBRETE;
       const body = msgs[tipo][estilo] || msgs[tipo].default;
-      const payload = JSON.stringify({ title: 'Aya', body, url: '/#add' });
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
-          payload
-        );
-        enviados += 1;
-      } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id);
-        }
-      }
+      if (await enviarParaDestino(supabaseAdmin, sub, { title: 'Aya', body, url: '/#add' })) enviados += 1;
     })
   );
 

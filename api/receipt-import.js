@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
-const { idiomaDoUsuario } = require('./_lib/idioma');
-const webpush = require('web-push');
+const { metadadosDoUsuario } = require('./_lib/idioma');
+const { buscarPorToken, enviarParaDestino } = require('./_lib/push');
 
 const PROMPT = `Essa imagem é um comprovante ou extrato de uma transação bancária (Pix, transferência, pagamento). Extraia os dados e responda SOMENTE com um JSON puro, sem texto antes ou depois, exatamente neste formato:
 {"tipo":"entrada" ou "saida","valor":numero (sem R$, sem separador de milhar, use ponto decimal),"descricao":"string curta descrevendo a transação","pessoa":"nome de quem recebeu (se saída) ou de quem pagou (se entrada), ou null se não der pra ver"}
@@ -36,13 +36,23 @@ module.exports = async (req, res) => {
 
   const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: sub, error: subError } = await supabaseAdmin
-    .from('push_subscriptions')
-    .select('*')
-    .eq('nudge_token', token)
-    .single();
-  if (subError || !sub) {
+  const sub = await buscarPorToken(supabaseAdmin, token);
+  if (!sub) {
     res.status(404).json({ error: 'Inscrição não encontrada pra esse token' });
+    return;
+  }
+
+  // Comprovante vai pra IA da Groq: só com a permissão da pessoa (Perfil → Inteligência artificial).
+  const meta = await metadadosDoUsuario(supabaseAdmin, sub.user_id);
+  const en = meta.idioma === 'en';
+  if (!meta.ia_consentimento) {
+    res.status(403).json({ error: en
+      ? 'Allow Aya to use AI first (in the app: Profile → Artificial intelligence).'
+      : 'Permita primeiro que a Aya use IA (no app: Perfil → Inteligência artificial).' });
+    return;
+  }
+  if (image.length > 8 * 1024 * 1024) {
+    res.status(413).json({ error: en ? 'Image too large' : 'Imagem grande demais' });
     return;
   }
 
@@ -86,7 +96,6 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const en = (await idiomaDoUsuario(supabaseAdmin, sub.user_id)) === 'en';
   const valorValido = extraido && typeof extraido.valor === 'number' && extraido.valor > 0;
   const tipoValido = extraido && (extraido.tipo === 'entrada' || extraido.tipo === 'saida');
   if (!extraido || extraido.erro || !valorValido || !tipoValido) {
@@ -119,22 +128,13 @@ module.exports = async (req, res) => {
     return;
   }
 
-  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-    webpush.setVapidDetails('mailto:contato@aya.app', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
-    const sinal = extraido.tipo === 'entrada' ? '+' : '−';
-    const valorTxt = extraido.valor.toLocaleString(en ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const body = en
-      ? `Logged ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Tap to check.`
-      : `Registrei ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Toca pra conferir.`;
-    try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
-        JSON.stringify({ title: 'Aya', body, url: '/#mov' })
-      );
-    } catch (pushErr) {
-      // Registro já foi salvo — falha no push não deve derrubar a resposta.
-    }
-  }
+  // Avisa no mesmo aparelho que mandou o comprovante (falha aqui não derruba a resposta).
+  const sinal = extraido.tipo === 'entrada' ? '+' : '−';
+  const valorTxt = extraido.valor.toLocaleString(en ? 'en-US' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const body = en
+    ? `Logged ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Tap to check.`
+    : `Registrei ${sinal} R$ ${valorTxt} — ${descricao} 🌿 Toca pra conferir.`;
+  try { await enviarParaDestino(supabaseAdmin, sub, { title: 'Aya', body, url: '/#mov' }); } catch (e) {}
 
   res.status(200).json({ ok: true, tipo: extraido.tipo, valor: extraido.valor, descricao });
 };

@@ -1,3 +1,4 @@
+const { cors } = require('./_lib/cors');
 // Cotação do dólar comercial (quantos reais vale 1 dólar). Tenta a AwesomeAPI e, se
 // ela falhar, a open.er-api.com. A pessoa sempre pode corrigir o valor no app.
 async function buscarJson(url) {
@@ -7,6 +8,7 @@ async function buscarJson(url) {
 }
 
 module.exports = async (req, res) => {
+  if (cors(req, res)) return;
   const fontes = [
     async () => {
       const j = await buscarJson('https://economia.awesomeapi.com.br/json/last/USD-BRL');

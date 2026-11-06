@@ -1,0 +1,6 @@
+# Só o app de iPhone usa estes arquivos; o site na Vercel não precisa deles.
+ios
+www
+scripts
+codemagic.yaml
+capacitor.config.json

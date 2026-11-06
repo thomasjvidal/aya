@@ -1,0 +1,15 @@
+{
+  "appId": "com.aya.financas",
+  "appName": "Aya",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "scheme": "Aya",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

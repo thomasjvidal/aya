@@ -1,0 +1,2 @@
+"NSPhotoLibraryUsageDescription" = "Aya only uses your photos when you pick a profile photo or attach a receipt to a vault.";
+"NSCameraUsageDescription" = "Aya only uses the camera when you take a profile photo or a photo of a receipt to attach to a vault.";
