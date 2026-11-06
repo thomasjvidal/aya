@@ -3,9 +3,7 @@
 # Antes do primeiro build, no Codemagic:
 #   1) Teams → Integrations → Developer Portal: conecte uma chave da API do App Store Connect
 #      e dê a ela o nome "Aya App Store Connect" (ou troque o nome abaixo).
-#   2) No app do Codemagic, em Environment variables, crie AYA_API_URL com o endereço
-#      do site na Vercel (ex: https://aya.vercel.app) no grupo "aya".
-#   3) O bundle id abaixo (com.aya.financas) precisa ser o mesmo criado no Apple Developer.
+#   2) O bundle id abaixo (com.aya.financas) precisa ser o mesmo criado no Apple Developer.
 workflows:
   ios-testflight:
     name: Aya iOS → TestFlight
@@ -14,12 +12,11 @@ workflows:
     integrations:
       app_store_connect: Aya App Store Connect
     environment:
-      groups:
-        - aya
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.aya.financas
       vars:
+        AYA_API_URL: https://aya-br.vercel.app
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
       node: 22
